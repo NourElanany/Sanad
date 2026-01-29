@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL database for main data
   postgres:
     image: postgres:15-alpine
     container_name: sanad-postgres
@@ -13,11 +13,16 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/sql:/docker-entrypoint-initdb.d
+      - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - sanad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sanad_user -d sanad"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Redis Cache
+  # Redis for caching
   redis:
     image: redis:7-alpine
     container_name: sanad-redis
@@ -25,13 +30,18 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
     networks:
       - sanad-network
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Qdrant Vector Database
+  # Qdrant vector database
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.7.0
     container_name: sanad-qdrant
     ports:
       - "6333:6333"
@@ -40,25 +50,41 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - sanad-network
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # API Gateway
-  api-gateway:
+  gateway:
     build:
       context: .
-      dockerfile: services/api-gateway/Dockerfile
-    container_name: sanad-api-gateway
+      dockerfile: gateway/Dockerfile
+    container_name: sanad-gateway
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql://sanad_user:sanad_password@postgres:5432/sanad
-      - REDIS_URL=redis://redis:6379
-      - QDRANT_URL=http://qdrant:6333
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_QDRANT_URL: http://qdrant:6333
+      SANAD_SECURITY_JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      SANAD_EXTERNAL_APIS_HUGGING_FACE_API_KEY: ${HUGGING_FACE_API_KEY}
+      SANAD_EXTERNAL_APIS_GEO_LOCATION_API_KEY: ${GEO_LOCATION_API_KEY}
+      SANAD_LOGGING_LEVEL: info
     depends_on:
-      - postgres
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
       - sanad-network
+    restart: unless-stopped
 
   # Quran Service
   quran-service:
@@ -69,13 +95,17 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - DATABASE_URL=postgresql://sanad_user:sanad_password@postgres:5432/sanad
-      - REDIS_URL=redis://redis:6379
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8081
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - sanad-network
+    restart: unless-stopped
 
   # Hadith Service
   hadith-service:
@@ -86,13 +116,81 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - DATABASE_URL=postgresql://sanad_user:sanad_password@postgres:5432/sanad
-      - REDIS_URL=redis://redis:6379
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8082
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - sanad-network
+    restart: unless-stopped
+
+  # Stories Service
+  stories-service:
+    build:
+      context: .
+      dockerfile: services/stories-service/Dockerfile
+    container_name: sanad-stories-service
+    ports:
+      - "8083:8083"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
+
+  # Prayer Times Service
+  prayer-times-service:
+    build:
+      context: .
+      dockerfile: services/prayer-times-service/Dockerfile
+    container_name: sanad-prayer-times-service
+    ports:
+      - "8084:8084"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8084
+      SANAD_EXTERNAL_APIS_GEO_LOCATION_API_KEY: ${GEO_LOCATION_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
+
+  # Calendar Service
+  calendar-service:
+    build:
+      context: .
+      dockerfile: services/calendar-service/Dockerfile
+    container_name: sanad-calendar-service
+    ports:
+      - "8085:8085"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8085
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
 
   # AI Service
   ai-service:
@@ -101,18 +199,23 @@ services:
       dockerfile: services/ai-service/Dockerfile
     container_name: sanad-ai-service
     ports:
-      - "8083:8083"
+      - "8086:8086"
     environment:
-      - DATABASE_URL=postgresql://sanad_user:sanad_password@postgres:5432/sanad
-      - REDIS_URL=redis://redis:6379
-      - QDRANT_URL=http://qdrant:6333
-      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_QDRANT_URL: http://qdrant:6333
+      SANAD_SERVER_PORT: 8086
+      SANAD_EXTERNAL_APIS_HUGGING_FACE_API_KEY: ${HUGGING_FACE_API_KEY}
     depends_on:
-      - postgres
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
       - sanad-network
+    restart: unless-stopped
 
   # Search Service
   search-service:
@@ -121,22 +224,94 @@ services:
       dockerfile: services/search-service/Dockerfile
     container_name: sanad-search-service
     ports:
-      - "8084:8084"
+      - "8087:8087"
     environment:
-      - DATABASE_URL=postgresql://sanad_user:sanad_password@postgres:5432/sanad
-      - REDIS_URL=redis://redis:6379
-      - QDRANT_URL=http://qdrant:6333
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_QDRANT_URL: http://qdrant:6333
+      SANAD_SERVER_PORT: 8087
+      SANAD_EXTERNAL_APIS_EMBEDDING_SERVICE_API_KEY: ${EMBEDDING_SERVICE_API_KEY}
     depends_on:
-      - postgres
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
       - sanad-network
+    restart: unless-stopped
+
+  # Audio Analysis Service
+  audio-analysis-service:
+    build:
+      context: .
+      dockerfile: services/audio-analysis-service/Dockerfile
+    container_name: sanad-audio-analysis-service
+    ports:
+      - "8088:8088"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8088
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
+
+  # Khatma Service
+  khatma-service:
+    build:
+      context: .
+      dockerfile: services/khatma-service/Dockerfile
+    container_name: sanad-khatma-service
+    ports:
+      - "8089:8089"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8089
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: sanad-notification-service
+    ports:
+      - "8090:8090"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_SERVER_PORT: 8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   qdrant_data:
+    driver: local
 
 networks:
   sanad-network:

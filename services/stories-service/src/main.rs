@@ -1,8 +1,4 @@
-use axum::{
-    routing::get,
-    Router,
-    response::Json,
-};
+use axum::{routing::get, Router, response::Json};
 use shared::{AppConfig, ApiResponse};
 use std::collections::HashMap;
 use tracing::info;
@@ -10,24 +6,17 @@ use tracing::info;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::init();
+    info!("Starting Stories Service on port 8083");
 
-    let config = AppConfig::load()
-        .map_err(|e| format!("Failed to load config: {}", e))?;
-
-    info!("Starting Quran Service on port 8081");
-
-    let app = Router::new()
-        .route("/health", get(health_check));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8081").await?;
+    let app = Router::new().route("/health", get(health_check));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8083").await?;
     axum::serve(listener, app).await?;
-
     Ok(())
 }
 
 async fn health_check() -> Json<ApiResponse<HashMap<String, String>>> {
     let mut status = HashMap::new();
     status.insert("status".to_string(), "healthy".to_string());
-    status.insert("service".to_string(), "quran-service".to_string());
+    status.insert("service".to_string(), "stories-service".to_string());
     Json(ApiResponse::success(status))
 }

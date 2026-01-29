@@ -1,21 +1,23 @@
 [package]
-name = "quran-service"
+name = "gateway"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-shared = { path = "../../shared" }
+shared = { path = "../shared" }
 tokio = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
+hyper = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
-redis = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+reqwest = { workspace = true }
+jsonwebtoken = { workspace = true }
+config = { workspace = true }

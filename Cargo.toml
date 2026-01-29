@@ -1,82 +1,68 @@
 [workspace]
 members = [
-    "services/api-gateway",
     "services/quran-service",
     "services/hadith-service", 
-    "services/ai-service",
-    "services/search-service",
-    "services/audio-service",
+    "services/stories-service",
     "services/prayer-times-service",
     "services/calendar-service",
-    "services/user-service",
-    "shared/common",
-    "shared/database",
+    "services/ai-service",
+    "services/search-service",
+    "services/audio-analysis-service",
+    "services/khatma-service",
+    "services/notification-service",
+    "gateway",
+    "shared"
 ]
 
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-authors = ["Nour Elanany <nour@example.com>"]
-license = "MIT"
-repository = "https://github.com/NourElanany/Sanad"
-description = "Comprehensive Islamic Application with Advanced AI"
+resolver = "2"
 
 [workspace.dependencies]
-# Web framework
+# Web framework and async runtime
+tokio = { version = "1.0", features = ["full"] }
 axum = "0.7"
 tower = "0.4"
-tower-http = "0.5"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
 hyper = "1.0"
 
-# Async runtime
-tokio = { version = "1.0", features = ["full"] }
-futures = "0.3"
+# Database and ORM
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+redis = { version = "0.24", features = ["tokio-comp"] }
+qdrant-client = "1.7"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Database
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
-redis = { version = "0.24", features = ["tokio-comp"] }
-
-# Vector database
-qdrant-client = "1.7"
-
-# HTTP client
-reqwest = { version = "0.11", features = ["json"] }
-
 # Error handling
 anyhow = "1.0"
 thiserror = "1.0"
 
-# Logging
+# Logging and tracing
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Configuration
 config = "0.14"
 
-# UUID
-uuid = { version = "1.0", features = ["v4", "serde"] }
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
 
-# Date and time
+# UUID and time
+uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
-# Cryptography
+# Cryptography and security
 sha2 = "0.10"
-hmac = "0.12"
-jwt = "0.16"
+ring = "0.17"
+jsonwebtoken = "9.0"
 
 # Audio processing
 cpal = "0.15"
 hound = "3.5"
 
-# Machine Learning
-candle-core = "0.3"
-candle-nn = "0.3"
-candle-transformers = "0.3"
-
 # Arabic text processing
 unicode-normalization = "0.1"
 unicode-segmentation = "1.10"
+
+# Testing
+proptest = "1.4"

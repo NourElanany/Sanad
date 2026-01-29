@@ -1,0 +1,49 @@
+# Default configuration for Sanad Islamic Application
+
+[server]
+host = "0.0.0.0"
+port = 8080
+request_timeout_seconds = 30
+
+[database]
+max_connections = 10
+min_connections = 1
+connection_timeout_seconds = 30
+idle_timeout_seconds = 600
+max_lifetime_seconds = 3600
+
+[redis]
+pool_size = 10
+connection_timeout_seconds = 5
+default_ttl_seconds = 3600
+
+[qdrant]
+collection_name = "islamic_content"
+vector_size = 384
+distance_metric = "Cosine"
+
+[external_apis.hugging_face]
+base_url = "https://api-inference.huggingface.co"
+model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+timeout_seconds = 30
+max_retries = 3
+
+[external_apis.geo_location]
+base_url = "https://api.ipgeolocation.io"
+timeout_seconds = 10
+
+[external_apis.embedding_service]
+model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+api_url = "https://api-inference.huggingface.co"
+batch_size = 32
+timeout_seconds = 30
+
+[security]
+jwt_expiration_hours = 24
+password_salt_rounds = 12
+rate_limit_requests_per_minute = 60
+cors_allowed_origins = ["http://localhost:3000", "http://localhost:8080"]
+
+[logging]
+level = "info"
+format = "json"

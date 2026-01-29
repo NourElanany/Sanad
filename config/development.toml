@@ -1,0 +1,31 @@
+# Development configuration for Sanad Islamic Application
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[database]
+url = "postgresql://sanad_user:sanad_password@localhost:5432/sanad"
+
+[redis]
+url = "redis://localhost:6379"
+
+[qdrant]
+url = "http://localhost:6333"
+
+[external_apis.hugging_face]
+api_key = "your-development-hugging-face-api-key"
+
+[external_apis.geo_location]
+api_key = "your-development-geo-location-api-key"
+
+[external_apis.embedding_service]
+api_key = "your-development-embedding-service-api-key"
+
+[security]
+jwt_secret = "development-jwt-secret-not-for-production"
+cors_allowed_origins = ["http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:3000"]
+
+[logging]
+level = "debug"
+format = "pretty"

@@ -1,5 +1,5 @@
 [package]
-name = "quran-service"
+name = "stories-service"
 version = "0.1.0"
 edition = "2021"
 

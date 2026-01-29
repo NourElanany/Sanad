@@ -1,0 +1,41 @@
+# Production configuration for Sanad Islamic Application
+
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+max_connections = 1000
+
+[database]
+max_connections = 50
+min_connections = 5
+connection_timeout_seconds = 10
+idle_timeout_seconds = 300
+max_lifetime_seconds = 1800
+
+[redis]
+pool_size = 50
+connection_timeout_seconds = 3
+default_ttl_seconds = 7200
+
+[external_apis.hugging_face]
+timeout_seconds = 60
+max_retries = 5
+
+[external_apis.geo_location]
+timeout_seconds = 5
+
+[external_apis.embedding_service]
+batch_size = 64
+timeout_seconds = 60
+
+[security]
+jwt_expiration_hours = 12
+rate_limit_requests_per_minute = 100
+
+[logging]
+level = "warn"
+format = "json"
+file_path = "/var/log/sanad/app.log"
+max_file_size_mb = 100
+max_files = 10
