@@ -41,6 +41,10 @@ pub struct RedisConfig {
     pub pool_size: u32,
     pub connection_timeout_seconds: u64,
     pub default_ttl_seconds: u64,
+    pub cluster_enabled: bool,
+    pub cluster_nodes: Vec<String>,
+    pub max_retries: u32,
+    pub retry_delay_ms: u64,
 }
 
 /// Qdrant vector database configuration
@@ -125,6 +129,9 @@ impl AppConfig {
             .set_default("redis.pool_size", 10)?
             .set_default("redis.connection_timeout_seconds", 5)?
             .set_default("redis.default_ttl_seconds", 3600)?
+            .set_default("redis.cluster_enabled", false)?
+            .set_default("redis.max_retries", 3)?
+            .set_default("redis.retry_delay_ms", 100)?
             .set_default("qdrant.collection_name", "islamic_content")?
             .set_default("qdrant.vector_size", 384)?
             .set_default("qdrant.distance_metric", "Cosine")?

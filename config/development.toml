@@ -9,6 +9,12 @@ url = "postgresql://sanad_user:sanad_password@localhost:5432/sanad"
 
 [redis]
 url = "redis://localhost:6379"
+cluster_enabled = true
+cluster_nodes = [
+    "redis://localhost:7001",
+    "redis://localhost:7002", 
+    "redis://localhost:7003"
+]
 
 [qdrant]
 url = "http://localhost:6333"

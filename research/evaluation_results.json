@@ -1,0 +1,18 @@
+{
+  "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
+    "precision_at_5": 0.2,
+    "recall_at_5": 0.875,
+    "mrr": 0.6532738095238095,
+    "avg_processing_time": 0.009825507799784342,
+    "memory_usage_mb": 448.8134765625,
+    "semantic_accuracy": 0.73553466796875
+  },
+  "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": {
+    "precision_at_5": 0.17500000000000002,
+    "recall_at_5": 0.75,
+    "mrr": 0.7261904761904763,
+    "avg_processing_time": 0.026899218559265137,
+    "memory_usage_mb": 1060.65234375,
+    "semantic_accuracy": 0.5981652736663818
+  }
+}

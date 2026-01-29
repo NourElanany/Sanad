@@ -22,58 +22,17 @@ pub fn create_routes(service_registry: ServiceRegistry, config: AppConfig) -> Ro
         .route("/auth/refresh", post(auth::refresh_token))
         .route("/auth/logout", post(auth::logout))
         
-        // Quran service routes
-        .route("/quran/surahs", get(proxy_to_quran_service))
-        .route("/quran/surahs/:surah_number", get(proxy_to_quran_service))
-        .route("/quran/surahs/:surah_number/ayahs/:ayah_number", get(proxy_to_quran_service))
-        .route("/quran/search", get(proxy_to_quran_service))
-        .route("/quran/tafsir/:surah_number/:ayah_number", get(proxy_to_quran_service))
-        
-        // Hadith service routes
-        .route("/hadith/search", get(proxy_to_hadith_service))
-        .route("/hadith/:hadith_id", get(proxy_to_hadith_service))
-        .route("/hadith/books/:book_name", get(proxy_to_hadith_service))
-        .route("/hadith/topics/:topic", get(proxy_to_hadith_service))
-        
-        // Stories service routes
-        .route("/stories/search", get(proxy_to_stories_service))
-        .route("/stories/:story_id", get(proxy_to_stories_service))
-        .route("/stories/categories/:category", get(proxy_to_stories_service))
-        
-        // Prayer times service routes
-        .route("/prayer-times", get(proxy_to_prayer_service))
-        .route("/prayer-times/qibla", get(proxy_to_prayer_service))
-        
-        // Calendar service routes
-        .route("/calendar/hijri/:date", get(proxy_to_calendar_service))
-        .route("/calendar/gregorian/:hijri_date", get(proxy_to_calendar_service))
-        .route("/calendar/events/:month/:year", get(proxy_to_calendar_service))
-        
-        // AI service routes
-        .route("/ai/ask", post(proxy_to_ai_service))
-        .route("/ai/sources", get(proxy_to_ai_service))
-        
-        // Search service routes
-        .route("/search", get(proxy_to_search_service))
-        .route("/search/semantic", get(proxy_to_search_service))
-        .route("/search/suggestions", get(proxy_to_search_service))
-        
-        // Audio analysis service routes
-        .route("/audio/analyze", post(proxy_to_audio_service))
-        .route("/audio/compare", post(proxy_to_audio_service))
-        .route("/audio/progress/:user_id", get(proxy_to_audio_service))
-        
-        // Khatma service routes
-        .route("/khatma/plans", get(proxy_to_khatma_service))
-        .route("/khatma/plans", post(proxy_to_khatma_service))
-        .route("/khatma/plans/:plan_id", get(proxy_to_khatma_service))
-        .route("/khatma/plans/:plan_id", put(proxy_to_khatma_service))
-        .route("/khatma/progress/:plan_id", post(proxy_to_khatma_service))
-        
-        // Notification service routes
-        .route("/notifications", get(proxy_to_notification_service))
-        .route("/notifications/preferences", get(proxy_to_notification_service))
-        .route("/notifications/preferences", put(proxy_to_notification_service))
+        // Placeholder routes - will be implemented in later tasks
+        .route("/quran/surahs", get(placeholder_handler))
+        .route("/hadith/search", get(placeholder_handler))
+        .route("/stories/search", get(placeholder_handler))
+        .route("/prayer-times", get(placeholder_handler))
+        .route("/calendar/hijri/:date", get(placeholder_handler))
+        .route("/ai/ask", post(placeholder_handler))
+        .route("/search", get(placeholder_handler))
+        .route("/audio/analyze", post(placeholder_handler))
+        .route("/khatma/plans", get(placeholder_handler))
+        .route("/notifications", get(placeholder_handler))
         
         // User management routes
         .route("/users/profile", get(get_user_profile))
@@ -103,105 +62,9 @@ pub async fn fallback_handler() -> (StatusCode, Json<ApiResponse<()>>) {
     )
 }
 
-// Proxy handlers for each service
-async fn proxy_to_quran_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("quran-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_hadith_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("hadith-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_stories_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("stories-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_prayer_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("prayer-times-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_calendar_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("calendar-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_ai_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("ai-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_search_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("search-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_audio_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("audio-analysis-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_khatma_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("khatma-service", uri, method, headers, body).await
-}
-
-async fn proxy_to_notification_service(
-    State((registry, _)): State<(ServiceRegistry, AppConfig)>,
-    uri: axum::http::Uri,
-    method: axum::http::Method,
-    headers: axum::http::HeaderMap,
-    body: axum::body::Body,
-) -> Result<axum::response::Response, SanadError> {
-    registry.proxy_request("notification-service", uri, method, headers, body).await
+/// Placeholder handler for routes not yet implemented
+async fn placeholder_handler() -> Json<ApiResponse<String>> {
+    Json(ApiResponse::error("This endpoint is not yet implemented".to_string()))
 }
 
 // User management handlers (implemented directly in gateway)

@@ -1,0 +1,42 @@
+[package]
+name = "cache-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Shared dependencies
+shared = { path = "../../shared" }
+
+# Web framework and async runtime
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+
+# Database and caching
+redis = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+
+# UUID and time
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Additional dependencies for cache service
+dashmap = "5.5"
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"

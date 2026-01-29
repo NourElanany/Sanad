@@ -1,0 +1,211 @@
+# RAG System Configuration for Islamic AI Assistant
+
+# General RAG Settings
+rag:
+  max_sources: 10
+  min_confidence_threshold: 0.7
+  max_response_time_seconds: 30
+  enable_hallucination_check: true
+  require_source_verification: true
+  max_context_length: 4000
+
+# Question Processing Settings
+question_processing:
+  enable_out_of_scope_detection: true
+  enable_controversy_detection: true
+  enable_concept_extraction: true
+  supported_languages:
+    - Arabic
+    - English
+    - French
+    - Urdu
+    - Turkish
+    - Indonesian
+
+# Semantic Search Settings
+semantic_search:
+  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  vector_database:
+    host: "localhost"
+    port: 6333
+    collection_name: "islamic_sources"
+  similarity_threshold: 0.3
+  max_search_results: 50
+
+# Source Scoring Weights
+source_scoring:
+  weights:
+    relevance: 0.35
+    authority: 0.25
+    authenticity: 0.25
+    consensus: 0.10
+    freshness: 0.05
+  
+  # Authority scores for well-known scholars
+  scholar_authority:
+    "ابن كثير": 1.0
+    "الطبري": 1.0
+    "القرطبي": 0.95
+    "البغوي": 0.9
+    "البخاري": 1.0
+    "مسلم": 1.0
+    "أبو داود": 0.9
+    "الترمذي": 0.9
+    "النسائي": 0.9
+    "ابن ماجه": 0.85
+
+# Hadith Verification Settings
+hadith_verification:
+  enable_chain_verification: true
+  enable_text_verification: true
+  enable_source_validation: true
+  
+  # Hadith book reliability scores
+  book_reliability:
+    "صحيح البخاري": 1.0
+    "صحيح مسلم": 1.0
+    "سنن أبي داود": 0.9
+    "جامع الترمذي": 0.9
+    "سنن النسائي": 0.9
+    "سنن ابن ماجه": 0.8
+    "مسند أحمد": 0.8
+    "موطأ مالك": 0.85
+
+# Anti-Hallucination Settings
+anti_hallucination:
+  enable_fact_checking: true
+  enable_source_verification: true
+  enable_consistency_checking: true
+  enable_quran_verification: true
+  enable_hadith_verification: true
+  
+  # Risk thresholds
+  thresholds:
+    low_risk: 0.1
+    medium_risk: 0.3
+    high_risk: 0.5
+    critical_risk: 0.7
+  
+  # Fabricated content indicators
+  fabrication_indicators:
+    - "من قرأ هذا الحديث"
+    - "من نشر هذا الحديث"
+    - "ثواب عظيم لمن قرأ"
+    - "من أرسل هذا"
+
+# LLM Interface Settings
+llm_interface:
+  provider: "huggingface"
+  model_name: "arabic-islamic-model"
+  api_endpoint: "https://api-inference.huggingface.co/models/"
+  max_tokens: 1000
+  temperature: 0.3
+  top_p: 0.9
+  
+  # Fallback models
+  fallback_models:
+    - "aubmindlab/bert-base-arabertv02"
+    - "CAMeL-Lab/bert-base-arabic-camelbert-mix"
+
+# Response Generation Settings
+response_generation:
+  max_response_length: 2000
+  min_response_length: 50
+  include_citations: true
+  include_related_questions: true
+  max_related_questions: 3
+  
+  # Response templates by question type
+  templates:
+    fiqh: |
+      أنت مساعد ذكي متخصص في الفقه الإسلامي. أجب على السؤال بناءً على المصادر المرفقة.
+      اذكر الأدلة الشرعية والآراء الفقهية المختلفة إن وجدت.
+      
+    tafsir: |
+      أنت مساعد ذكي متخصص في تفسير القرآن الكريم. أجب بناءً على كتب التفسير المعتمدة.
+      اذكر أقوال المفسرين المعتبرين.
+      
+    hadith: |
+      أنت مساعد ذكي متخصص في علوم الحديث. تأكد من ذكر درجة صحة الأحاديث المذكورة.
+      اعتمد على كتب الحديث المعتمدة.
+
+# Caching Settings
+caching:
+  enable_query_caching: true
+  enable_response_caching: true
+  cache_ttl_seconds: 3600
+  max_cache_size_mb: 500
+  
+  # Redis configuration
+  redis:
+    host: "localhost"
+    port: 6379
+    database: 0
+    password: null
+
+# Monitoring and Logging
+monitoring:
+  enable_performance_monitoring: true
+  enable_quality_monitoring: true
+  enable_error_tracking: true
+  
+  # Metrics to track
+  metrics:
+    - response_time
+    - confidence_scores
+    - hallucination_risk
+    - source_quality
+    - user_satisfaction
+  
+  # Log levels
+  log_level: "INFO"
+  log_format: "json"
+
+# Security Settings
+security:
+  enable_input_sanitization: true
+  enable_output_filtering: true
+  max_query_length: 1000
+  rate_limiting:
+    requests_per_minute: 60
+    requests_per_hour: 1000
+  
+  # Content filtering
+  content_filters:
+    - inappropriate_content
+    - spam_detection
+    - malicious_input
+
+# Quality Assurance
+quality_assurance:
+  enable_human_review_queue: true
+  human_review_threshold: 0.5
+  enable_feedback_collection: true
+  enable_continuous_learning: true
+  
+  # Quality metrics
+  target_metrics:
+    accuracy: 0.95
+    relevance: 0.9
+    completeness: 0.85
+    user_satisfaction: 0.9
+
+# Backup and Recovery
+backup:
+  enable_automatic_backup: true
+  backup_interval_hours: 24
+  backup_retention_days: 30
+  backup_location: "/data/backups/rag_system"
+
+# Development and Testing
+development:
+  enable_debug_mode: false
+  enable_test_mode: false
+  mock_external_apis: false
+  
+  # Test data
+  test_questions:
+    - "ما حكم الصلاة في المسجد؟"
+    - "ما هي أركان الإسلام؟"
+    - "كيف نتوضأ؟"
+    - "ما هو تفسير آية الكرسي؟"

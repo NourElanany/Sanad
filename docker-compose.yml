@@ -22,7 +22,119 @@ services:
       timeout: 10s
       retries: 3
 
-  # Redis for caching
+  # Redis Cluster for high-performance caching
+  redis-node-1:
+    image: redis:7-alpine
+    container_name: sanad-redis-node-1
+    ports:
+      - "7001:7001"
+      - "17001:17001"
+    volumes:
+      - redis_node_1_data:/data
+    networks:
+      - sanad-network
+    command: >
+      redis-server
+      --port 7001
+      --cluster-enabled yes
+      --cluster-config-file nodes-7001.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7001", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis-node-2:
+    image: redis:7-alpine
+    container_name: sanad-redis-node-2
+    ports:
+      - "7002:7002"
+      - "17002:17002"
+    volumes:
+      - redis_node_2_data:/data
+    networks:
+      - sanad-network
+    command: >
+      redis-server
+      --port 7002
+      --cluster-enabled yes
+      --cluster-config-file nodes-7002.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7002", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis-node-3:
+    image: redis:7-alpine
+    container_name: sanad-redis-node-3
+    ports:
+      - "7003:7003"
+      - "17003:17003"
+    volumes:
+      - redis_node_3_data:/data
+    networks:
+      - sanad-network
+    command: >
+      redis-server
+      --port 7003
+      --cluster-enabled yes
+      --cluster-config-file nodes-7003.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7003", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cluster Setup Service
+  redis-cluster-setup:
+    image: redis:7-alpine
+    container_name: sanad-redis-cluster-setup
+    networks:
+      - sanad-network
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      redis-node-2:
+        condition: service_healthy
+      redis-node-3:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for Redis nodes to be ready...' &&
+        sleep 10 &&
+        echo 'Creating Redis cluster...' &&
+        redis-cli --cluster create
+        redis-node-1:7001
+        redis-node-2:7002
+        redis-node-3:7003
+        --cluster-replicas 0 --cluster-yes &&
+        echo 'Redis cluster created successfully!'
+      "
+    restart: "no"
+
+  # Redis for backward compatibility and simple operations
   redis:
     image: redis:7-alpine
     container_name: sanad-redis
@@ -284,6 +396,31 @@ services:
       - sanad-network
     restart: unless-stopped
 
+  # Cache Service
+  cache-service:
+    build:
+      context: .
+      dockerfile: services/cache-service/Dockerfile
+    container_name: sanad-cache-service
+    ports:
+      - "8091:8091"
+    environment:
+      SANAD_DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      SANAD_REDIS_URL: redis://redis:6379
+      SANAD_REDIS_CLUSTER_ENABLED: true
+      SANAD_REDIS_CLUSTER_NODES: "redis://redis-node-1:7001,redis://redis-node-2:7002,redis://redis-node-3:7003"
+      SANAD_SERVER_PORT: 8091
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-cluster-setup:
+        condition: service_completed_successfully
+    networks:
+      - sanad-network
+    restart: unless-stopped
+
   # Notification Service
   notification-service:
     build:
@@ -309,6 +446,12 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  redis_node_1_data:
+    driver: local
+  redis_node_2_data:
+    driver: local
+  redis_node_3_data:
     driver: local
   qdrant_data:
     driver: local

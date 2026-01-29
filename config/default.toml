@@ -16,6 +16,9 @@ max_lifetime_seconds = 3600
 pool_size = 10
 connection_timeout_seconds = 5
 default_ttl_seconds = 3600
+cluster_enabled = false
+max_retries = 3
+retry_delay_ms = 100
 
 [qdrant]
 collection_name = "islamic_content"

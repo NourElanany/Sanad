@@ -1,0 +1,230 @@
+# إعدادات نظام تحويل النصوص الإسلامية إلى Vectors
+# Islamic Text to Vector Conversion System Configuration
+
+# إعدادات النموذج
+model:
+  # النموذج المختار بناءً على نتائج التقييم
+  name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  
+  # نماذج بديلة للاختبار
+  alternatives:
+    - "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+    - "aubmindlab/bert-base-arabertv02"  # يحتاج معالجة إضافية
+  
+  # إعدادات التحسين
+  optimization:
+    batch_size: 32
+    max_seq_length: 512
+    normalize_embeddings: true
+
+# إعدادات قاعدة البيانات Vector
+vector_database:
+  type: "qdrant"
+  host: "localhost"
+  port: 6333
+  collection_name: "islamic_content"
+  
+  # إعدادات المجموعة
+  collection_config:
+    distance_metric: "cosine"
+    vector_size: 384  # حجم vectors للنموذج المختار
+    
+  # إعدادات الأداء
+  performance:
+    indexing_batch_size: 100
+    search_timeout: 30
+    max_results: 100
+
+# إعدادات معالجة النصوص العربية
+text_processing:
+  # تطبيع النص
+  normalization:
+    remove_diacritics: true
+    normalize_alef: true
+    normalize_teh_marbuta: true
+    remove_extra_spaces: true
+  
+  # استخراج الكلمات المفتاحية
+  keywords:
+    max_keywords: 10
+    min_word_length: 3
+    
+  # كلمات الإيقاف العربية
+  stop_words:
+    - "في"
+    - "من" 
+    - "إلى"
+    - "على"
+    - "عن"
+    - "مع"
+    - "هذا"
+    - "هذه"
+    - "ذلك"
+    - "تلك"
+    - "التي"
+    - "الذي"
+    - "هو"
+    - "هي"
+    - "هم"
+    - "هن"
+    - "أن"
+    - "إن"
+    - "كان"
+    - "كانت"
+    - "يكون"
+    - "تكون"
+
+# إعدادات أنواع المحتوى الإسلامي
+content_types:
+  quran:
+    name: "القرآن الكريم"
+    priority: 1
+    metadata_fields:
+      - "surah"
+      - "ayah"
+      - "juz"
+      - "page"
+      - "ruku"
+  
+  hadith:
+    name: "الأحاديث النبوية"
+    priority: 2
+    metadata_fields:
+      - "book"
+      - "chapter"
+      - "hadith_number"
+      - "grade"
+      - "narrator"
+  
+  tafsir:
+    name: "التفاسير"
+    priority: 3
+    metadata_fields:
+      - "mufassir"
+      - "surah"
+      - "ayah_range"
+      - "school"
+  
+  story:
+    name: "القصص الإسلامية"
+    priority: 4
+    metadata_fields:
+      - "category"
+      - "characters"
+      - "lessons"
+      - "period"
+  
+  fiqh:
+    name: "الفقه الإسلامي"
+    priority: 5
+    metadata_fields:
+      - "madhab"
+      - "topic"
+      - "ruling"
+      - "evidence"
+  
+  akhlaq:
+    name: "الأخلاق الإسلامية"
+    priority: 6
+    metadata_fields:
+      - "virtue"
+      - "category"
+      - "examples"
+
+# إعدادات البحث الدلالي
+semantic_search:
+  # حدود التشابه
+  similarity_thresholds:
+    high: 0.8
+    medium: 0.6
+    low: 0.4
+    minimum: 0.3
+  
+  # إعدادات النتائج
+  results:
+    default_limit: 10
+    max_limit: 100
+    include_metadata: true
+    include_similarity_score: true
+  
+  # فلاتر البحث
+  filters:
+    content_type: true
+    source: true
+    date_range: true
+    metadata: true
+
+# إعدادات الأداء والتحسين
+performance:
+  # التخزين المؤقت
+  caching:
+    enabled: true
+    cache_size: 1000
+    ttl: 3600  # ثانية
+  
+  # المعالجة المتوازية
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+    chunk_size: 100
+  
+  # إدارة الذاكرة
+  memory_management:
+    max_memory_usage: "2GB"
+    cleanup_interval: 300  # ثانية
+    
+# إعدادات التسجيل والمراقبة
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # ملفات السجل
+  files:
+    main: "logs/embedding_pipeline.log"
+    errors: "logs/errors.log"
+    performance: "logs/performance.log"
+  
+  # المراقبة
+  monitoring:
+    enabled: true
+    metrics_interval: 60  # ثانية
+    alert_thresholds:
+      error_rate: 0.05
+      response_time: 5.0  # ثانية
+
+# إعدادات التصدير والنسخ الاحتياطي
+export:
+  # تنسيقات التصدير
+  formats:
+    - "json"
+    - "csv"
+    - "parquet"
+  
+  # النسخ الاحتياطي
+  backup:
+    enabled: true
+    interval: "daily"
+    retention_days: 30
+    compression: true
+
+# إعدادات التطوير والاختبار
+development:
+  # بيانات الاختبار
+  test_data:
+    sample_size: 100
+    include_all_types: true
+  
+  # التقييم
+  evaluation:
+    metrics:
+      - "precision_at_k"
+      - "recall_at_k"
+      - "mrr"
+      - "ndcg"
+    k_values: [1, 3, 5, 10]
+  
+  # التصحيح
+  debug:
+    enabled: false
+    verbose_logging: false
+    save_intermediate_results: false

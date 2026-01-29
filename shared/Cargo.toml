@@ -11,3 +11,8 @@ chrono = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 sqlx = { workspace = true }
+redis = { workspace = true }
+reqwest = { workspace = true }
+config = { workspace = true }
+sha2 = { workspace = true }
+unicode-normalization = { workspace = true }

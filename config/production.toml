@@ -17,6 +17,14 @@ max_lifetime_seconds = 1800
 pool_size = 50
 connection_timeout_seconds = 3
 default_ttl_seconds = 7200
+cluster_enabled = true
+cluster_nodes = [
+    "redis://redis-node-1:7001",
+    "redis://redis-node-2:7002",
+    "redis://redis-node-3:7003"
+]
+max_retries = 5
+retry_delay_ms = 50
 
 [external_apis.hugging_face]
 timeout_seconds = 60

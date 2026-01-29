@@ -1,10 +1,13 @@
 use axum::{routing::get, Router, response::Json};
 use shared::ApiResponse;
 use std::collections::HashMap;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
+    info!("Starting Prayer Times Service on port 8084");
+
     let app = Router::new().route("/health", get(health_check));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8084").await?;
     axum::serve(listener, app).await?;
