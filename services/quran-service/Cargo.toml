@@ -3,6 +3,14 @@ name = "quran-service"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "quran-service"
+path = "src/main.rs"
+
+[lib]
+name = "quran_service"
+path = "src/lib.rs"
+
 [dependencies]
 shared = { path = "../../shared" }
 tokio = { workspace = true }
@@ -11,7 +19,7 @@ tower = { workspace = true }
 tower-http = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
 redis = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
@@ -19,3 +27,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

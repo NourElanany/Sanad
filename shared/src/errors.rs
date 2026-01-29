@@ -1,4 +1,10 @@
 use thiserror::Error;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use crate::ApiResponse;
 
 /// Common error types for the Islamic application
 #[derive(Error, Debug)]
@@ -63,6 +69,52 @@ pub enum SanadError {
 
 /// Result type alias for convenience
 pub type SanadResult<T> = Result<T, SanadError>;
+
+/// Application error type for HTTP handlers
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Internal server error: {0}")]
+    Internal(String),
+
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("Authentication error: {0}")]
+    Authentication(String),
+
+    #[error("Authorization error: {0}")]
+    Authorization(String),
+
+    #[error("Service error: {0}")]
+    Service(#[from] anyhow::Error),
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Authentication(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::Authorization(msg) => (StatusCode::FORBIDDEN, msg),
+            AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::Database(err) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {}", err)),
+            AppError::Service(err) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Service error: {}", err)),
+            AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+        };
+
+        let body = Json(ApiResponse::<()>::error(error_message));
+        (status, body).into_response()
+    }
+}
 
 impl SanadError {
     /// Get HTTP status code for the error
