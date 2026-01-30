@@ -4,6 +4,7 @@ use crate::ai_service::{
     hadith_verifier::HadithVerificationSystem,
     source_scorer::{SourceScoringSystem, ScoredSource},
     anti_hallucination::{AntiHallucinationSystem, HallucinationCheckResult},
+    multiple_viewpoints_system::{MultipleViewpointsSystem, MultipleViewpointsResult},
 };
 use std::time::Instant;
 use tokio::time::Duration;
@@ -17,6 +18,7 @@ pub struct RAGSystem {
     anti_hallucination: AntiHallucinationSystem,
     context_builder: ContextBuilder,
     llm_interface: LLMInterface,
+    multiple_viewpoints_system: MultipleViewpointsSystem,
     config: RAGConfig,
 }
 
@@ -77,6 +79,7 @@ impl RAGSystem {
             anti_hallucination: AntiHallucinationSystem::new(),
             context_builder: ContextBuilder::new(),
             llm_interface: LLMInterface::new(),
+            multiple_viewpoints_system: MultipleViewpointsSystem::new(),
             config: RAGConfig::default(),
         }
     }
@@ -109,15 +112,24 @@ impl RAGSystem {
         // 5. التحقق من صحة الأحاديث إذا لزم الأمر
         let verified_sources = self.verify_hadith_sources(filtered_sources).await?;
         
-        // 6. بناء السياق للنموذج اللغوي
-        let context = self.context_builder
-            .build_context(&processed_question, &verified_sources).await?;
+        // 6. تحليل وجهات النظر المتعددة للأسئلة الخلافية
+        let multiple_viewpoints = if processed_question.is_controversial || 
+            request.preferences.as_ref().map_or(false, |p| p.include_multiple_opinions) {
+            Some(self.multiple_viewpoints_system
+                .analyze_viewpoints(&processed_question, &verified_sources).await?)
+        } else {
+            None
+        };
         
-        // 7. توليد الإجابة باستخدام النموذج اللغوي
+        // 7. بناء السياق للنموذج اللغوي (مع مراعاة وجهات النظر المتعددة)
+        let context = self.context_builder
+            .build_context_with_viewpoints(&processed_question, &verified_sources, &multiple_viewpoints).await?;
+        
+        // 8. توليد الإجابة باستخدام النموذج اللغوي
         let generated_response = self.llm_interface
             .generate_response(&context).await?;
         
-        // 8. فحص الاختلاق ومنع المحتوى المختلق
+        // 9. فحص الاختلاق ومنع المحتوى المختلق
         let hallucination_check = if self.config.enable_hallucination_check {
             Some(self.anti_hallucination.check_response(
                 &generated_response.text,
@@ -128,7 +140,7 @@ impl RAGSystem {
             None
         };
         
-        // 9. تقييم جودة الإجابة واتخاذ القرار
+        // 10. تقييم جودة الإجابة واتخاذ القرار
         let final_response = self.evaluate_and_finalize_response(
             generated_response,
             verified_sources,
@@ -136,10 +148,10 @@ impl RAGSystem {
             &processed_question,
         ).await?;
         
-        // 10. بناء المراجع والاستشهادات
+        // 11. بناء المراجع والاستشهادات
         let citations = self.build_citations(&final_response.retrieved_sources);
         
-        // 11. حساب مقاييس الجودة
+        // 12. حساب مقاييس الجودة
         let quality_metrics = self.calculate_quality_metrics(
             &final_response.retrieved_sources,
             &final_response.cited_sources,
@@ -161,6 +173,7 @@ impl RAGSystem {
             response_time_ms: response_time,
             metadata: final_response.metadata,
             quality_metrics,
+            multiple_viewpoints,
         })
     }
     
@@ -959,6 +972,15 @@ impl ContextBuilder {
         question: &ProcessedQuestion,
         sources: &[ScoredSource],
     ) -> Result<GenerationContext> {
+        self.build_context_with_viewpoints(question, sources, &None).await
+    }
+    
+    pub async fn build_context_with_viewpoints(
+        &self,
+        question: &ProcessedQuestion,
+        sources: &[ScoredSource],
+        viewpoints: &Option<MultipleViewpointsResult>,
+    ) -> Result<GenerationContext> {
         let mut context_sources = Vec::new();
         let mut current_length = 0;
         
@@ -974,8 +996,8 @@ impl ContextBuilder {
             }
         }
         
-        // بناء التعليمات
-        let instructions = self.build_instructions(question, &context_sources);
+        // بناء التعليمات (مع مراعاة وجهات النظر المتعددة)
+        let instructions = self.build_instructions_with_viewpoints(question, &context_sources, viewpoints);
         
         // بناء القيود
         let constraints = self.build_constraints(question);
@@ -989,6 +1011,15 @@ impl ContextBuilder {
     }
     
     fn build_instructions(&self, question: &ProcessedQuestion, sources: &[IslamicSource]) -> String {
+        self.build_instructions_with_viewpoints(question, sources, &None)
+    }
+    
+    fn build_instructions_with_viewpoints(
+        &self, 
+        question: &ProcessedQuestion, 
+        sources: &[IslamicSource],
+        viewpoints: &Option<MultipleViewpointsResult>
+    ) -> String {
         let mut instructions = String::new();
         
         instructions.push_str("أنت مساعد ذكي متخصص في الشؤون الإسلامية. ");
@@ -1007,7 +1038,45 @@ impl ContextBuilder {
             _ => {}
         }
         
-        if question.is_controversial {
+        // إضافة تعليمات خاصة بوجهات النظر المتعددة
+        if let Some(viewpoints_result) = viewpoints {
+            if viewpoints_result.is_controversial {
+                instructions.push_str(&format!(
+                    "هذا موضوع خلافي (مستوى الخلاف: {}). ",
+                    viewpoints_result.controversy_level.to_arabic()
+                ));
+                
+                if viewpoints_result.viewpoints.len() > 1 {
+                    instructions.push_str(&format!(
+                        "يوجد {} وجهات نظر مختلفة في هذه المسألة. ",
+                        viewpoints_result.viewpoints.len()
+                    ));
+                    
+                    // ذكر المذاهب المختلفة
+                    let madhabs: Vec<String> = viewpoints_result.summary.madhabs_represented
+                        .iter()
+                        .map(|m| m.to_arabic().to_string())
+                        .collect();
+                    
+                    if !madhabs.is_empty() {
+                        instructions.push_str(&format!(
+                            "المذاهب الممثلة: {}. ",
+                            madhabs.join("، ")
+                        ));
+                    }
+                }
+                
+                instructions.push_str("اعرض كل وجهة نظر مع أدلتها بشكل منصف ومتوازن. ");
+                instructions.push_str("اذكر نقاط الاتفاق والاختلاف بوضوح. ");
+                
+                if !viewpoints_result.consensus_areas.is_empty() {
+                    instructions.push_str("ابدأ بنقاط الإجماع إن وجدت. ");
+                }
+                
+                instructions.push_str("وضح التطبيق العملي لكل رأي. ");
+                instructions.push_str("اختتم بالتوصية العملية المناسبة. ");
+            }
+        } else if question.is_controversial {
             instructions.push_str("هذا موضوع خلافي، اذكر وجهات النظر المختلفة مع مصادرها. ");
         }
         

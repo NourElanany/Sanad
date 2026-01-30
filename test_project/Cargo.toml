@@ -1,0 +1,15 @@
+[package]
+name = "ai_answer_quality_test"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[[bin]]
+name = "test_ai_answer_quality"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"

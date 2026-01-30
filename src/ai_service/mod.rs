@@ -11,13 +11,21 @@ pub mod integration_service;
 pub mod config;
 pub mod service_manager;
 pub mod error_handler;
+pub mod multiple_viewpoints_system;
 
 #[cfg(test)]
 pub mod tests;
 
+#[cfg(test)]
+pub mod ai_answer_quality_tests;
+
+#[cfg(test)]
+pub mod multiple_viewpoints_tests;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use multiple_viewpoints_system::MultipleViewpointsResult;
 
 /// Core types for the AI service
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,6 +139,7 @@ pub struct RAGResponse {
     pub response_time_ms: u64,
     pub metadata: HashMap<String, String>,
     pub quality_metrics: QualityMetrics,
+    pub multiple_viewpoints: Option<MultipleViewpointsResult>,
 }
 
 /// Quality metrics for the RAG response
