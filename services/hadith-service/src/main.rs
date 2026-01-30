@@ -1,27 +1,31 @@
-use axum::{routing::get, Router, response::Json};
-use shared::ApiResponse;
-use std::collections::HashMap;
+use hadith_service::{create_router, HadithRepository, HadithService};
+use sqlx::PgPool;
+use std::env;
 use tracing::info;
-
-pub mod models;
-
-// Re-export models for external use
-pub use models::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     info!("Starting Hadith Service on port 8082");
 
-    let app = Router::new().route("/health", get(health_check));
+    // Connect to database
+    let database_url = env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgresql://user:password@localhost/sanad_db".to_string());
+    
+    let pool = PgPool::connect(&database_url).await?;
+    info!("Connected to database");
+
+    // Create repository and service
+    let repository = HadithRepository::new(pool);
+    let service = HadithService::new(repository);
+
+    // Create router with all endpoints
+    let app = create_router(service);
+
+    // Start server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8082").await?;
+    info!("Hadith Service listening on 0.0.0.0:8082");
+    
     axum::serve(listener, app).await?;
     Ok(())
-}
-
-async fn health_check() -> Json<ApiResponse<HashMap<String, String>>> {
-    let mut status = HashMap::new();
-    status.insert("status".to_string(), "healthy".to_string());
-    status.insert("service".to_string(), "hadith-service".to_string());
-    Json(ApiResponse::success(status))
 }

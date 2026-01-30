@@ -28,3 +28,6 @@ tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 sha2 = "0.10"
+
+[dev-dependencies]
+proptest = { workspace = true }

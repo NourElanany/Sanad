@@ -117,7 +117,7 @@ pub struct HadithChapter {
 }
 
 /// Hadith authenticity grades according to Islamic scholarship
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq, Hash)]
 #[sqlx(type_name = "text")]
 pub enum HadithGrade {
     #[serde(rename = "sahih")]
@@ -671,7 +671,7 @@ pub struct SearchHadithRequest {
 }
 
 /// Types of search supported for Hadiths
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SearchType {
     #[serde(rename = "text")]
     Text,

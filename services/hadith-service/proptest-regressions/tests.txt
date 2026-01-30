@@ -1,0 +1,11 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc b1d8d8f40eb3cbbbee9b5e2317a7db638e615c1052c9debea52dd23138828fd7 # shrinks to hadith_number = "1", text = "\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}", narrator = "\u{600}\u{600}\u{600}\u{600}\u{600}", book = "صحيح البخاري", chapter = "كتاب الإيمان", grade = Sahih, themes = ["تفسير"], keywords = ["الله", "الله"]
+cc 6f29637d8667038c6ed042b7b4657013d202f500e909ad22f360bbba0894343a # shrinks to hadith_number = "1", text = "\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}\u{600}", narrator = "\u{600}\u{600}\u{600}\u{600}\u{600}", book = "صحيح البخاري", chapter = "كتاب الإيمان", grade = Sahih, themes = ["أسرة", "تاريخ"], keywords = ["زكاة", "صيام", "حج"]
+cc 083a78ec5ce894ab4ba6b6eb7d20ca0a86119650300baf837d54bf786fff02bf # shrinks to book = "صحيح البخاري", chapter = "كتاب الإيمان", hadith_count = 2, base_themes = ["عدل", "عدل"]
+cc 3ded98ebbb33892ef99eb591b2eb03baa0437b8c2db3b0b16c9f9c04ad106831 # shrinks to book = "صحيح البخاري", chapter = "كتاب الإيمان", hadith_count = 7, base_themes = ["معاملات", "معاملات", "معاملات"]
+cc 12bf0b150c80a1058822ed824fbfe318a6dc569c4f24fbb3ed1d2876045d4132 # shrinks to search_theme = "عقيدة", hadith_collection_size = 19, theme_distribution = [["عقيدة"], ["عقيدة"], ["عقيدة"], ["عقيدة"], ["عقيدة"], ["عقيدة"], ["عقيدة"], ["عقيدة"]]
