@@ -3,6 +3,18 @@ name = "stories-service"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "stories_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "stories-service"
+path = "src/main.rs"
+
+[[bin]]
+name = "test-runner"
+path = "src/bin/test_runner.rs"
+
 [dependencies]
 shared = { path = "../../shared" }
 tokio = { workspace = true }
@@ -11,11 +23,15 @@ tower = { workspace = true }
 tower-http = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate"] }
 redis = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-uuid = { workspace = true }
-chrono = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+axum-test = "15.0"
