@@ -27,8 +27,13 @@ pub fn create_routes(service_registry: ServiceRegistry, config: AppConfig) -> Ro
         .route("/auth/refresh", post(auth_refresh_token))
         .route("/auth/logout", post(auth_logout))
         
+        // Quran Service routes - fully implemented
+        .route("/api/v1/quran/*path", get(proxy_to_quran_service))
+        .route("/api/v1/quran/*path", post(proxy_to_quran_service))
+        .route("/api/v1/quran/*path", put(proxy_to_quran_service))
+        .route("/api/v1/quran/*path", delete(proxy_to_quran_service))
+        
         // Placeholder routes - will be implemented in later tasks
-        .route("/quran/surahs", get(placeholder_handler))
         .route("/hadith/search", get(placeholder_handler))
         .route("/stories/search", get(placeholder_handler))
         .route("/prayer-times", get(placeholder_handler))
@@ -115,6 +120,23 @@ pub async fn fallback_handler() -> (StatusCode, Json<ApiResponse<()>>) {
         StatusCode::NOT_FOUND,
         Json(ApiResponse::error("Route not found".to_string())),
     )
+}
+
+/// Proxy requests to Quran service
+async fn proxy_to_quran_service(
+    State((service_registry, _)): State<AppState>,
+    uri: axum::http::Uri,
+    method: axum::http::Method,
+    headers: axum::http::HeaderMap,
+    body: axum::body::Body,
+) -> Result<axum::response::Response, (StatusCode, Json<ApiResponse<()>>)> {
+    match service_registry.proxy_request("quran-service", uri, method, headers, body).await {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            tracing::error!("Failed to proxy to quran-service: {}", e);
+            Err((StatusCode::BAD_GATEWAY, Json(ApiResponse::error(format!("Service unavailable: {}", e)))))
+        }
+    }
 }
 
 /// Placeholder handler for routes not yet implemented
