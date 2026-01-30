@@ -41,7 +41,7 @@ pub struct IslamicSource {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SourceType {
     Quran,
     SahihHadith,
@@ -54,7 +54,7 @@ pub enum SourceType {
     IslamicStory,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum AuthenticityLevel {
     Verified,      // موثق ومتحقق منه
     Reliable,      // موثوق

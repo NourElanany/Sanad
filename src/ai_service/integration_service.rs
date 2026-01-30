@@ -102,6 +102,7 @@ pub struct RetrievedSource {
 }
 
 /// Cache manager for storing queries, responses, and embeddings
+#[derive(Clone)]
 pub struct CacheManager {
     config: CacheConfig,
     query_cache: HashMap<String, CachedQuery>,
@@ -136,6 +137,7 @@ struct CachedEmbedding {
 }
 
 /// Fallback handler for managing service failures
+#[derive(Clone)]
 pub struct FallbackHandler {
     config: FallbackConfig,
     failure_counts: HashMap<String, u32>,

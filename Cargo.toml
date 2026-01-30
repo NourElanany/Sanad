@@ -57,6 +57,12 @@ proptest = { workspace = true }
 # Regular expressions
 regex = "1.10"
 
+# YAML parsing
+serde_yaml = "0.9"
+
+# Random number generation
+rand = "0.8"
+
 [workspace]
 members = [
     "services/quran-service",

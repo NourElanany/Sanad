@@ -371,7 +371,7 @@ impl AIServiceConfig {
         self.hugging_face
             .islamic_models
             .iter()
-            .filter(|model| matches!(model.specialization, specialization) || matches!(model.specialization, ModelSpecialization::General))
+            .filter(|model| matches!(&model.specialization, &specialization) || matches!(model.specialization, ModelSpecialization::General))
             .min_by_key(|model| model.priority)
     }
 

@@ -174,6 +174,133 @@ pub enum EventType {
     CompanionCommemoration,
 }
 
+/// Audio format types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AudioFormat {
+    Wav,
+    Mp3,
+    Flac,
+    Ogg,
+}
+
+/// Audio recording metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioRecording {
+    pub id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub surah_number: u8,
+    pub ayah_start: u16,
+    pub ayah_end: u16,
+    pub format: AudioFormat,
+    pub sample_rate: u32,
+    pub duration_seconds: f64,
+    pub file_path: String,
+    pub file_size_bytes: u64,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Reference reciter information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reciter {
+    pub id: Uuid,
+    pub name: String,
+    pub arabic_name: String,
+    pub biography: Option<String>,
+    pub recitation_style: RecitationStyle,
+    pub is_reference: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Recitation styles
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RecitationStyle {
+    Hafs,
+    Warsh,
+    Qalun,
+    Duri,
+    Other(String),
+}
+
+/// Reference recording for comparison
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReferenceRecording {
+    pub id: Uuid,
+    pub reciter_id: Uuid,
+    pub surah_number: u8,
+    pub ayah_number: u16,
+    pub audio_recording: AudioRecording,
+    pub quality_score: f64,
+    pub verified: bool,
+}
+
+/// Tajweed error types
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+pub enum TajweedErrorType {
+    Ghunnah,
+    Qalqalah,
+    Madd,
+    Idgham,
+    Ikhfa,
+    Pronunciation,
+    Timing,
+    Other(String),
+}
+
+/// Tajweed error detected in recitation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TajweedError {
+    pub error_type: TajweedErrorType,
+    pub start_time: f64,
+    pub end_time: f64,
+    pub severity: ErrorSeverity,
+    pub description: String,
+    pub correction_suggestion: String,
+    pub reference_audio_path: Option<String>,
+}
+
+/// Error severity levels
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ErrorSeverity {
+    Minor,
+    Moderate,
+    Major,
+}
+
+/// Recitation analysis result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecitationAnalysis {
+    pub id: Uuid,
+    pub user_recording_id: Uuid,
+    pub reference_recording_id: Uuid,
+    pub overall_score: f64,
+    pub tajweed_accuracy: f64,
+    pub pronunciation_accuracy: f64,
+    pub timing_accuracy: f64,
+    pub errors: Vec<TajweedError>,
+    pub improvements: Vec<String>,
+    pub next_steps: Vec<String>,
+    pub analyzed_at: DateTime<Utc>,
+}
+
+/// Audio spectrum data for comparison
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioSpectrum {
+    pub frequencies: Vec<f64>,
+    pub magnitudes: Vec<f64>,
+    pub sample_rate: u32,
+    pub window_size: usize,
+}
+
+/// Audio comparison result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioComparisonResult {
+    pub similarity_score: f64,
+    pub frequency_correlation: f64,
+    pub timing_correlation: f64,
+    pub spectral_distance: f64,
+    pub recommendations: Vec<String>,
+}
+
 /// Search filters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchFilters {

@@ -6,7 +6,31 @@ edition = "2021"
 [dependencies]
 shared = { path = "../../shared" }
 tokio = { workspace = true }
-axum = { workspace = true }
+axum = { workspace = true, features = ["multipart"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Audio processing
+cpal = { workspace = true }
+hound = { workspace = true }
+
+# Audio analysis and DSP
+rustfft = "6.1"
+apodize = "1.0"
+
+# Database
+sqlx = { workspace = true }
+rust_decimal = "1.32"
+
+# File handling
+tempfile = "3.8"
+bytes = "1.5"
+
+# Testing
+proptest = { workspace = true }

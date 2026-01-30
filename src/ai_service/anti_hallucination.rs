@@ -191,7 +191,7 @@ impl AntiHallucinationSystem {
         let mut fabricated_content = Vec::new();
         
         // فحص الأرقام والإحصائيات المشبوهة
-        let number_pattern = Regex::new(r"\d+").unwrap();
+        let number_pattern = Regex::new(r#"\d+"#).unwrap();
         for number_match in number_pattern.find_iter(response_text) {
             let number_context = self.get_context_around_match(response_text, number_match.start(), number_match.end());
             if self.is_suspicious_number_claim(&number_context, sources).await? {
@@ -206,8 +206,8 @@ impl AntiHallucinationSystem {
         
         // فحص الأسماء والشخصيات المشبوهة
         let name_patterns = vec![
-            Regex::new(r"قال\s+([^:]+):").unwrap(),
-            Regex::new(r"ذكر\s+([^:]+)\s+أن").unwrap(),
+            Regex::new(r#"قال\s+([^:]+):"#).unwrap(),
+            Regex::new(r#"ذكر\s+([^:]+)\s+أن"#).unwrap(),
         ];
         
         for pattern in name_patterns {
@@ -269,7 +269,7 @@ impl AntiHallucinationSystem {
         }
         
         // فحص إذا كان الرقم يبدو مشبوهاً (أرقام كبيرة جداً أو دقيقة جداً)
-        let number_pattern = Regex::new(r"\d+").unwrap();
+        let number_pattern = Regex::new(r#"\d+"#).unwrap();
         if let Some(number_match) = number_pattern.find(context) {
             if let Ok(number) = number_match.as_str().parse::<i32>() {
                 // أرقام مشبوهة في السياق الإسلامي
@@ -416,9 +416,9 @@ impl AntiHallucinationSystem {
         
         // كثرة التفاصيل الدقيقة
         let detail_patterns = [
-            r"\d{4}", // سنوات محددة
-            r"\d+\s*%", // نسب مئوية
-            r"\d+\s*مرة", // أرقام دقيقة
+            r#"\d{4}"#, // سنوات محددة
+            r#"\d+\s*%"#, // نسب مئوية
+            r#"\d+\s*مرة"#, // أرقام دقيقة
         ];
         
         let mut detail_count = 0;
@@ -681,7 +681,7 @@ impl AntiHallucinationSystem {
         let claim_lower = claim.to_lowercase();
         
         if claim_lower.contains("قرآن") || claim_lower.contains("آية") {
-            suggestions.push("المصحف الشريف".to_string());
+            suggestions.push("المصحف الشريف ".to_string());
             suggestions.push("تفسير ابن كثير".to_string());
         }
         
@@ -811,12 +811,12 @@ pub enum FactType {
 impl FactChecker {
     pub fn new() -> Self {
         let claim_patterns = vec![
-            Regex::new(r"قال الله تعالى:?\s*[\""]([^\"\"]+)[\""]").unwrap(),
-            Regex::new(r"في القرآن:?\s*[\""]([^\"\"]+)[\""]").unwrap(),
-            Regex::new(r"قال الرسول:?\s*[\""]([^\"\"]+)[\""]").unwrap(),
-            Regex::new(r"في الحديث:?\s*[\""]([^\"\"]+)[\""]").unwrap(),
-            Regex::new(r"قال\s+([^:]+):\s*[\""]([^\"\"]+)[\""]").unwrap(),
-            Regex::new(r"الحكم\s+في\s+([^:]+):\s*([^.]+)").unwrap(),
+            Regex::new(r#"قال الله تعالى:?\s*[""]([^""]+)[""]"#).unwrap(),
+            Regex::new(r#"في القرآن:?\s*[""]([^""]+)[""]"#).unwrap(),
+            Regex::new(r#"قال الرسول:?\s*[""]([^""]+)[""]"#).unwrap(),
+            Regex::new(r#"في الحديث:?\s*[""]([^""]+)[""]"#).unwrap(),
+            Regex::new(r#"قال\s+([^:]+):\s*[""]([^""]+)[""]"#).unwrap(),
+            Regex::new(r#"الحكم\s+في\s+([^:]+):\s*([^.]+)"#).unwrap(),
         ];
         
         Self { claim_patterns }
@@ -973,8 +973,8 @@ impl SourceVerifier {
     fn calculate_quran_support(&self, claim: &str, source_text: &str) -> f32 {
         // استخراج النص القرآني من الادعاء
         let quran_patterns = [
-            r#"قال الله تعالى:?\s*["""']([^"""']+)["""']"#,
-            r#"في القرآن:?\s*["""']([^"""']+)["""']"#,
+            r#"قال الله تعالى:?\s*[""]([^""]+)[""]"#,
+            r#"في القرآن:?\s*[""]([^""]+)[""]"#,
         ];
         
         for pattern in &quran_patterns {
@@ -999,8 +999,8 @@ impl SourceVerifier {
     fn calculate_hadith_support(&self, claim: &str, source_text: &str) -> f32 {
         // استخراج نص الحديث من الادعاء
         let hadith_patterns = [
-            r#"قال الرسول:?\s*["""']([^"""']+)["""']"#,
-            r#"في الحديث:?\s*["""']([^"""']+)["""']"#,
+            r#"قال الرسول:?\s*[""]([^""]+)[""]"#,
+            r#"في الحديث:?\s*[""]([^""]+)[""]"#,
         ];
         
         for pattern in &hadith_patterns {
@@ -1053,7 +1053,7 @@ impl SourceVerifier {
     
     fn calculate_quote_support(&self, claim: &str, source_text: &str) -> f32 {
         // استخراج اسم العالم والقول
-        if let Ok(regex) = Regex::new(r"قال\s+([^:]+):\s*(.+)") {
+        if let Ok(regex) = Regex::new(r#"قال\s+([^:]+):\s*(.+)"#) {
             if let Some(capture) = regex.captures(claim) {
                 if let (Some(scholar), Some(quote)) = (capture.get(1), capture.get(2)) {
                     let scholar_name = scholar.as_str();
@@ -1080,7 +1080,7 @@ impl SourceVerifier {
     
     fn calculate_historical_support(&self, claim: &str, source_text: &str) -> f32 {
         // فحص التواريخ والأحداث التاريخية
-        let date_pattern = Regex::new(r"\d+").unwrap();
+        let date_pattern = Regex::new(r#"\d+"#).unwrap();
         let claim_dates: Vec<&str> = date_pattern.find_iter(claim).map(|m| m.as_str()).collect();
         let source_dates: Vec<&str> = date_pattern.find_iter(source_text).map(|m| m.as_str()).collect();
         
@@ -1269,17 +1269,17 @@ impl ConsistencyChecker {
     pub fn new() -> Self {
         let contradiction_patterns = vec![
             ContradictionPattern {
-                pattern: Regex::new(r"حلال.*حرام|حرام.*حلال").unwrap(),
+                pattern: Regex::new(r#"حلال.*حرام|حرام.*حلال"#).unwrap(),
                 contradiction_type: ContradictionType::DirectOpposition,
                 severity: ContradictionSeverity::Critical,
             },
             ContradictionPattern {
-                pattern: Regex::new(r"واجب.*مكروه|مكروه.*واجب").unwrap(),
+                pattern: Regex::new(r#"واجب.*مكروه|مكروه.*واجب"#).unwrap(),
                 contradiction_type: ContradictionType::DirectOpposition,
                 severity: ContradictionSeverity::Major,
             },
             ContradictionPattern {
-                pattern: Regex::new(r"صحيح.*ضعيف|ضعيف.*صحيح").unwrap(),
+                pattern: Regex::new(r#"صحيح.*ضعيف|ضعيف.*صحيح"#).unwrap(),
                 contradiction_type: ContradictionType::SourceConflict,
                 severity: ContradictionSeverity::Major,
             },
@@ -1287,15 +1287,15 @@ impl ConsistencyChecker {
 
         let theological_rules = vec![
             TheologicalRule {
-                rule_name: "توحيد الألوهية".to_string(),
-                condition: "عبادة غير الله".to_string(),
+                rule_name: "توحيد الألوهية ".to_string(),
+                condition: "عبادة غير الله ".to_string(),
                 expected_outcome: "شرك".to_string(),
                 violation_severity: ContradictionSeverity::Critical,
             },
             TheologicalRule {
-                rule_name: "عصمة القرآن".to_string(),
-                condition: "خطأ في القرآن".to_string(),
-                expected_outcome: "رفض الادعاء".to_string(),
+                rule_name: "عصمة القرآن ".to_string(),
+                condition: "خطأ في القرآن ".to_string(),
+                expected_outcome: "رفض الادعاء ".to_string(),
                 violation_severity: ContradictionSeverity::Critical,
             },
         ];
@@ -1356,12 +1356,12 @@ impl ConsistencyChecker {
         for pattern in &self.contradiction_patterns {
             if pattern.pattern.is_match(response_text) {
                 contradictions.push(Contradiction {
-                    claim: "تناقض داخلي في النص".to_string(),
+                    claim: "تناقض داخلي في النص ".to_string(),
                     contradicting_source: IslamicSource {
                         id: "internal_contradiction".to_string(),
                         content_type: SourceType::ScholarOpinion,
                         text: response_text.to_string(),
-                        reference: "النص نفسه".to_string(),
+                        reference: "النص نفسه ".to_string(),
                         author: None,
                         authenticity: AuthenticityLevel::Questionable,
                         language: Language::Arabic,
@@ -1399,7 +1399,7 @@ impl ConsistencyChecker {
                             id: "fiqh_contradiction".to_string(),
                             content_type: SourceType::FiqhRuling,
                             text: response_text.to_string(),
-                            reference: "تناقض داخلي".to_string(),
+                            reference: "تناقض داخلي ".to_string(),
                             author: None,
                             authenticity: AuthenticityLevel::Questionable,
                             language: Language::Arabic,
@@ -1407,7 +1407,7 @@ impl ConsistencyChecker {
                             created_at: chrono::Utc::now(),
                         },
                         severity: ContradictionSeverity::Major,
-                        explanation: "تناقض في الأحكام الفقهية داخل النص".to_string(),
+                        explanation: "تناقض في الأحكام الفقهية داخل النص ".to_string(),
                     });
                 }
             }
@@ -1438,7 +1438,7 @@ impl ConsistencyChecker {
                         id: "hadith_grade_contradiction".to_string(),
                         content_type: SourceType::SahihHadith,
                         text: hadith_text,
-                        reference: "تناقض في الدرجة".to_string(),
+                        reference: "تناقض في الدرجة ".to_string(),
                         author: None,
                         authenticity: AuthenticityLevel::Questionable,
                         language: Language::Arabic,
@@ -1446,7 +1446,7 @@ impl ConsistencyChecker {
                         created_at: chrono::Utc::now(),
                     },
                     severity: ContradictionSeverity::Major,
-                    explanation: "تناقض في درجة صحة نفس الحديث".to_string(),
+                    explanation: "تناقض في درجة صحة نفس الحديث ".to_string(),
                 });
             }
         }
@@ -1530,7 +1530,7 @@ impl ConsistencyChecker {
                 claim: direct_contradiction,
                 contradicting_source: source.clone(),
                 severity: ContradictionSeverity::Critical,
-                explanation: "تناقض مباشر مع المصدر".to_string(),
+                explanation: "تناقض مباشر مع المصدر ".to_string(),
             }));
         }
         
@@ -1540,7 +1540,7 @@ impl ConsistencyChecker {
                 claim: contextual_contradiction,
                 contradicting_source: source.clone(),
                 severity: ContradictionSeverity::Major,
-                explanation: "تناقض سياقي مع المصدر".to_string(),
+                explanation: "تناقض سياقي مع المصدر ".to_string(),
             }));
         }
         
@@ -1567,8 +1567,8 @@ impl ConsistencyChecker {
         let mut rulings = Vec::new();
         
         let ruling_patterns = [
-            r"(\w+)\s+(واجب|فرض|مستحب|سنة|مكروه|حرام|مباح|جائز)",
-            r"(واجب|فرض|مستحب|سنة|مكروه|حرام|مباح|جائز)\s+(\w+)",
+            r#"(\w+)\s+(واجب|فرض|مستحب|سنة|مكروه|حرام|مباح|جائز)"#,
+            r#"(واجب|فرض|مستحب|سنة|مكروه|حرام|مباح|جائز)\s+(\w+)"#,
         ];
         
         for pattern in &ruling_patterns {
@@ -1591,7 +1591,7 @@ impl ConsistencyChecker {
     fn extract_hadith_grades(&self, text: &str) -> Vec<HadithGrade> {
         let mut grades = Vec::new();
         
-        let grade_pattern = r"حديث\s+([^.]+)\s+(صحيح|حسن|ضعيف|موضوع)";
+        let grade_pattern = r#"حديث\s+([^.]+)\s+(صحيح|حسن|ضعيف|موضوع)"#;
         if let Ok(regex) = Regex::new(grade_pattern) {
             for capture in regex.captures_iter(text) {
                 if let (Some(hadith_text), Some(grade)) = (capture.get(1), capture.get(2)) {
@@ -1665,14 +1665,14 @@ impl ConsistencyChecker {
             if response_text.contains(violation) && !response_text.contains("لا") && !response_text.contains("ليس") {
                 // فحص إذا كان السياق يدين الانتهاك
                 if !response_text.contains(&format!("لا {}", violation)) && 
-                   !response_text.contains(&format!("{} محرم", violation)) {
+                   !response_text.contains(&format!("{} محرم ", violation)) {
                     contradictions.push(Contradiction {
-                        claim: format!("ذكر {} بدون إدانة واضحة", violation),
+                        claim: format!("ذكر {} بدون إدانة واضحة ", violation),
                         contradicting_source: IslamicSource {
                             id: "aqeedah_context".to_string(),
                             content_type: SourceType::ScholarOpinion,
                             text: format!("العقيدة الصحيحة تتطلب رفض {}", violation),
-                            reference: "أصول العقيدة".to_string(),
+                            reference: "أصول العقيدة ".to_string(),
                             author: None,
                             authenticity: AuthenticityLevel::Verified,
                             language: Language::Arabic,
@@ -1749,23 +1749,23 @@ impl ConfidenceAssessor {
         authenticity_weights.insert(AuthenticityLevel::Unknown, 0.3);
 
         let uncertainty_patterns = vec![
-            Regex::new(r"لست متأكد").unwrap(),
-            Regex::new(r"قد يكون").unwrap(),
+            Regex::new(r#"لست متأكد "#).unwrap(),
+            Regex::new(r#"قد يكون "#).unwrap(),
             Regex::new(r"ربما").unwrap(),
             Regex::new(r"يحتمل").unwrap(),
-            Regex::new(r"لا أعلم").unwrap(),
-            Regex::new(r"غير واضح").unwrap(),
-            Regex::new(r"يحتاج تأكيد").unwrap(),
-            Regex::new(r"والله أعلم").unwrap(), // هذا إيجابي في السياق الإسلامي
+            Regex::new(r#"لا أعلم "#).unwrap(),
+            Regex::new(r#"غير واضح "#).unwrap(),
+            Regex::new(r#"يحتاج تأكيد "#).unwrap(),
+            Regex::new(r#"والله أعلم "#).unwrap(), // هذا إيجابي في السياق الإسلامي
         ];
 
         let confidence_patterns = vec![
-            Regex::new(r"ثبت في").unwrap(),
-            Regex::new(r"صح عن").unwrap(),
-            Regex::new(r"أجمع العلماء").unwrap(),
-            Regex::new(r"نص صريح").unwrap(),
-            Regex::new(r"دليل قاطع").unwrap(),
-            Regex::new(r"متفق عليه").unwrap(),
+            Regex::new(r#"ثبت في "#).unwrap(),
+            Regex::new(r#"صح عن "#).unwrap(),
+            Regex::new(r#"أجمع العلماء "#).unwrap(),
+            Regex::new(r#"نص صريح "#).unwrap(),
+            Regex::new(r#"دليل قاطع "#).unwrap(),
+            Regex::new(r#"متفق عليه "#).unwrap(),
         ];
 
         Self {
@@ -1904,8 +1904,8 @@ impl ConfidenceAssessor {
         }
         
         if uncertainty_count > 0 {
-            // "والله أعلم" إيجابي في السياق الإسلامي
-            let positive_uncertainty = response_text.matches("والله أعلم").count();
+            // "والله أعلم " إيجابي في السياق الإسلامي
+            let positive_uncertainty = response_text.matches("والله أعلم ").count();
             let negative_uncertainty = uncertainty_count - positive_uncertainty;
             
             if positive_uncertainty > 0 {
@@ -1921,7 +1921,7 @@ impl ConfidenceAssessor {
     }
     
     fn assess_response_completeness(&self, response_text: &str, query: &ProcessedQuestion) -> f32 {
-        let mut completeness = 0.5;
+        let mut completeness: f32 = 0.5;
         
         // تقييم الطول المناسب
         let text_length = response_text.len();
@@ -1952,7 +1952,7 @@ impl ConfidenceAssessor {
         // تقييم تغطية المفاهيم المطلوبة
         let response_lower = response_text.to_lowercase();
         let covered_concepts = query.concepts.iter()
-            .filter(|concept| response_lower.contains(&concept.to_lowercase()))
+            .filter(|concept: &String| response_lower.contains(&concept.to_lowercase()))
             .count();
         
         if !query.concepts.is_empty() {
@@ -2038,7 +2038,7 @@ impl QuranVerifier {
         let mut verified_ayahs = Vec::new();
         
         // استخراج النصوص التي تبدو كآيات قرآنية
-        let quran_pattern = Regex::new(r#"قال الله تعالى:?\s*["""']([^"""']+)["""']"#).unwrap();
+        let quran_pattern = Regex::new(r#"قال الله تعالى:?\s*[""]([^""]+)[""]"#).unwrap();
         
         for capture in quran_pattern.captures_iter(text) {
             if let Some(ayah_text) = capture.get(1) {
@@ -2052,7 +2052,7 @@ impl QuranVerifier {
                         content: ayah.to_string(),
                         content_type: FabricationType::FakeAyah,
                         confidence: 0.9,
-                        evidence: vec!["لا توجد في المصحف الشريف".to_string()],
+                        evidence: vec!["لا توجد في المصحف الشريف ".to_string()],
                     });
                 }
             }
@@ -2090,7 +2090,7 @@ impl HadithContentVerifier {
         let mut verified_hadiths = Vec::new();
         
         // استخراج النصوص التي تبدو كأحاديث
-        let hadith_pattern = Regex::new(r#"قال الرسول:?\s*["""']([^"""']+)["""']"#).unwrap();
+        let hadith_pattern = Regex::new(r#"قال الرسول:?\s*[""]([^""]+)[""]"#).unwrap();
         
         for capture in hadith_pattern.captures_iter(text) {
             if let Some(hadith_text) = capture.get(1) {
@@ -2104,7 +2104,7 @@ impl HadithContentVerifier {
                         content: hadith.to_string(),
                         content_type: FabricationType::FakeHadith,
                         confidence: 0.8,
-                        evidence: vec!["لا يوجد في كتب الحديث المعتمدة".to_string()],
+                        evidence: vec!["لا يوجد في كتب الحديث المعتمدة ".to_string()],
                     });
                 }
             }
@@ -2133,14 +2133,14 @@ mod tests {
     async fn test_anti_hallucination_pipeline() {
         let system = AntiHallucinationSystem::new();
         
-        let response_text = "الصلاة هي الركن الثاني من أركان الإسلام";
+        let response_text = "الصلاة هي الركن الثاني من أركان الإسلام ";
         let sources = vec![
             IslamicSource {
                 id: "test_source".to_string(),
                 content_type: SourceType::SahihHadith,
-                text: "بني الإسلام على خمس: شهادة أن لا إله إلا الله وأن محمداً رسول الله، وإقام الصلاة".to_string(),
-                reference: "صحيح البخاري".to_string(),
-                author: Some("البخاري".to_string()),
+                text: "بني الإسلام على خمس: شهادة أن لا إله إلا الله وأن محمداً رسول الله وإقام الصلاة ".to_string(),
+                reference: "صحيح البخاري ".to_string(),
+                author: Some("البخاري ".to_string()),
                 authenticity: AuthenticityLevel::Verified,
                 language: Language::Arabic,
                 metadata: HashMap::new(),
@@ -2149,8 +2149,8 @@ mod tests {
         ];
         
         let query = ProcessedQuestion {
-            original_text: "ما هي أركان الإسلام؟".to_string(),
-            normalized_text: "ما هي أركان الإسلام".to_string(),
+            original_text: "ما هي أركان الإسلام ".to_string(),
+            normalized_text: "ما هي أركان الإسلام ".to_string(),
             keywords: vec!["أركان".to_string(), "إسلام".to_string()],
             concepts: vec!["إسلام".to_string()],
             question_type: QuestionType::General,
@@ -2182,14 +2182,14 @@ mod tests {
     async fn test_confidence_with_source_quality() {
         let assessor = ConfidenceAssessor::new();
         
-        let response_text = "الصلاة واجبة على كل مسلم";
+        let response_text = "الصلاة واجبة على كل مسلم ";
         
         // مصادر عالية الجودة
         let high_quality_sources = vec![
             IslamicSource {
                 id: "quran_source".to_string(),
                 content_type: SourceType::Quran,
-                text: "وَأَقِيمُوا الصَّلَاةَ".to_string(),
+                text: "وَأَقِيمُوا الصَّلَاةَ ".to_string(),
                 reference: "البقرة: 43".to_string(),
                 author: None,
                 authenticity: AuthenticityLevel::Verified,
@@ -2204,8 +2204,8 @@ mod tests {
             IslamicSource {
                 id: "weak_source".to_string(),
                 content_type: SourceType::DaifHadith,
-                text: "حديث ضعيف عن الصلاة".to_string(),
-                reference: "مصدر ضعيف".to_string(),
+                text: "حديث ضعيف عن الصلاة ".to_string(),
+                reference: "مصدر ضعيف ".to_string(),
                 author: None,
                 authenticity: AuthenticityLevel::Questionable,
                 language: Language::Arabic,
@@ -2215,8 +2215,8 @@ mod tests {
         ];
         
         let query = ProcessedQuestion {
-            original_text: "ما حكم الصلاة؟".to_string(),
-            normalized_text: "ما حكم الصلاة".to_string(),
+            original_text: "ما حكم الصلاة ".to_string(),
+            normalized_text: "ما حكم الصلاة ".to_string(),
             keywords: vec!["حكم".to_string(), "صلاة".to_string()],
             concepts: vec!["صلاة".to_string()],
             question_type: QuestionType::Fiqh,

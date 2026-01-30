@@ -656,7 +656,7 @@ impl MadhabClassifier {
     }
     
     fn calculate_classification_confidence(&self, source: &IslamicSource, madhab: &IslamicMadhab) -> f32 {
-        let mut confidence = 0.5; // Base confidence
+        let mut confidence: f32 = 0.5; // Base confidence
         
         // Higher confidence if author is known
         if let Some(author) = &source.author {

@@ -450,7 +450,7 @@ impl OutOfScopeDetector {
             scope_status,
             islamic_keywords,
             out_of_scope_keywords,
-            borderline_topics,
+            borderline_topics: borderline_topics.clone(),
             confidence_score: (total_score + 2.0) / 4.0, // تطبيع بين 0 و 1
             suggested_islamic_angle: self.suggest_islamic_angle(&borderline_topics),
         }
