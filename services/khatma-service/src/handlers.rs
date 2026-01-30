@@ -2,7 +2,6 @@ use crate::models::*;
 use crate::service::SmartKhatmaService;
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     response::Json,
     routing::{get, post, put},
     Router,
@@ -31,6 +30,10 @@ impl KhatmaHandlers {
             .route("/users/:user_id/plans", get(get_user_plans))
             .route("/users/:user_id/suggestions", get(get_reading_suggestions))
             .route("/users/:user_id/reminders", get(get_smart_reminders))
+            .route("/users/:user_id/dashboard", get(get_progress_dashboard))
+            .route("/users/:user_id/dashboard", post(generate_progress_dashboard))
+            .route("/users/:user_id/comparison", get(get_khatma_comparison))
+            .route("/users/:user_id/comparison", post(generate_khatma_comparison))
             .with_state(service)
     }
 }
@@ -122,7 +125,7 @@ async fn update_khatma_plan(
         }
         Err(e) => {
             error!("Failed to update khatma plan: {}", e);
-            Err(AppError::InternalServerError(e.to_string()))
+            Err(AppError::Internal(e.to_string()))
         }
     }
 }
@@ -149,7 +152,7 @@ async fn update_reading_progress(
         }
         Err(e) => {
             error!("Failed to update reading progress: {}", e);
-            Err(AppError::InternalServerError(e.to_string()))
+            Err(AppError::Internal(e.to_string()))
         }
     }
 }
@@ -175,7 +178,7 @@ async fn adjust_khatma_plan(
         }
         Err(e) => {
             error!("Failed to adjust khatma plan: {}", e);
-            Err(AppError::InternalServerError(e.to_string()))
+            Err(AppError::Internal(e.to_string()))
         }
     }
 }
@@ -194,7 +197,7 @@ async fn get_khatma_statistics(
         }
         Err(e) => {
             error!("Failed to get khatma statistics: {}", e);
-            Err(AppError::InternalServerError(e.to_string()))
+            Err(AppError::Internal(e.to_string()))
         }
     }
 }
@@ -226,7 +229,7 @@ async fn get_user_plans(
         }
         Err(e) => {
             error!("Failed to get user plans: {}", e);
-            Err(AppError::InternalServerError(e.to_string()))
+            Err(AppError::Internal(e.to_string()))
         }
     }
 }
@@ -240,7 +243,7 @@ async fn get_reading_suggestions(
 
     // Get user's active plan (simplified - in real implementation, handle multiple plans)
     let active_plans = service.get_user_active_plans(user_id).await
-        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if let Some(plan) = active_plans.first() {
         match service.get_reading_time_suggestions(user_id, plan.id).await {
@@ -250,7 +253,7 @@ async fn get_reading_suggestions(
             }
             Err(e) => {
                 error!("Failed to get reading suggestions: {}", e);
-                Err(AppError::InternalServerError(e.to_string()))
+                Err(AppError::Internal(e.to_string()))
             }
         }
     } else {
@@ -260,18 +263,38 @@ async fn get_reading_suggestions(
 
 /// Get smart reminders for a user
 async fn get_smart_reminders(
-    State(_service): State<Arc<SmartKhatmaService>>,
+    State(service): State<Arc<SmartKhatmaService>>,
     Path(user_id): Path<Uuid>,
     Query(params): Query<RemindersQuery>,
 ) -> Result<Json<ApiResponse<Vec<SmartReminder>>>, AppError> {
     info!("Getting smart reminders for user: {}", user_id);
 
-    // This would be implemented in the service layer
-    // For now, return empty list
-    let reminders: Vec<SmartReminder> = vec![];
-    
-    info!("Successfully retrieved {} reminders for user: {}", reminders.len(), user_id);
-    Ok(Json(ApiResponse::success(reminders)))
+    // Get user's active plan (simplified - in real implementation, handle multiple plans)
+    let active_plans = service.get_user_active_plans(user_id).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    if let Some(plan) = active_plans.first() {
+        match service.generate_smart_reminders(user_id, plan.id).await {
+            Ok(reminders) => {
+                let limited_reminders = if let Some(limit) = params.limit {
+                    reminders.into_iter().take(limit as usize).collect()
+                } else {
+                    reminders
+                };
+                
+                info!("Successfully retrieved {} reminders for user: {}", limited_reminders.len(), user_id);
+                Ok(Json(ApiResponse::success(limited_reminders)))
+            }
+            Err(e) => {
+                error!("Failed to generate smart reminders: {}", e);
+                Err(AppError::Internal(e.to_string()))
+            }
+        }
+    } else {
+        // Return empty list if no active plan
+        info!("No active khatma plan found for user: {}", user_id);
+        Ok(Json(ApiResponse::success(vec![])))
+    }
 }
 
 /// Response types for API endpoints
@@ -320,5 +343,84 @@ mod tests {
     async fn test_create_khatma_plan() {
         // Test would require proper mock setup
         assert!(true);
+    }
+}
+/// Get progress dashboard for a user
+async fn get_progress_dashboard(
+    State(service): State<Arc<SmartKhatmaService>>,
+    Path(user_id): Path<Uuid>,
+    Query(params): Query<DashboardRequest>,
+) -> Result<Json<ApiResponse<ProgressDashboard>>, AppError> {
+    info!("Getting progress dashboard for user: {}", user_id);
+
+    match service.generate_progress_dashboard(user_id, params).await {
+        Ok(dashboard) => {
+            info!("Successfully retrieved progress dashboard for user: {}", user_id);
+            Ok(Json(ApiResponse::success(dashboard)))
+        }
+        Err(e) => {
+            error!("Failed to get progress dashboard: {}", e);
+            Err(AppError::Internal(e.to_string()))
+        }
+    }
+}
+
+/// Generate new progress dashboard for a user
+async fn generate_progress_dashboard(
+    State(service): State<Arc<SmartKhatmaService>>,
+    Path(user_id): Path<Uuid>,
+    Json(request): Json<DashboardRequest>,
+) -> Result<Json<ApiResponse<ProgressDashboard>>, AppError> {
+    info!("Generating new progress dashboard for user: {}", user_id);
+
+    match service.generate_progress_dashboard(user_id, request).await {
+        Ok(dashboard) => {
+            info!("Successfully generated progress dashboard for user: {}", user_id);
+            Ok(Json(ApiResponse::success(dashboard)))
+        }
+        Err(e) => {
+            error!("Failed to generate progress dashboard: {}", e);
+            Err(AppError::Internal(e.to_string()))
+        }
+    }
+}
+
+/// Get Khatma comparison for a user
+async fn get_khatma_comparison(
+    State(service): State<Arc<SmartKhatmaService>>,
+    Path(user_id): Path<Uuid>,
+    Query(params): Query<ComparisonRequest>,
+) -> Result<Json<ApiResponse<KhatmaComparison>>, AppError> {
+    info!("Getting Khatma comparison for user: {}", user_id);
+
+    match service.generate_khatma_comparison(user_id, params).await {
+        Ok(comparison) => {
+            info!("Successfully retrieved Khatma comparison for user: {}", user_id);
+            Ok(Json(ApiResponse::success(comparison)))
+        }
+        Err(e) => {
+            error!("Failed to get Khatma comparison: {}", e);
+            Err(AppError::Internal(e.to_string()))
+        }
+    }
+}
+
+/// Generate new Khatma comparison for a user
+async fn generate_khatma_comparison(
+    State(service): State<Arc<SmartKhatmaService>>,
+    Path(user_id): Path<Uuid>,
+    Json(request): Json<ComparisonRequest>,
+) -> Result<Json<ApiResponse<KhatmaComparison>>, AppError> {
+    info!("Generating new Khatma comparison for user: {}", user_id);
+
+    match service.generate_khatma_comparison(user_id, request).await {
+        Ok(comparison) => {
+            info!("Successfully generated Khatma comparison for user: {}", user_id);
+            Ok(Json(ApiResponse::success(comparison)))
+        }
+        Err(e) => {
+            error!("Failed to generate Khatma comparison: {}", e);
+            Err(AppError::Internal(e.to_string()))
+        }
     }
 }

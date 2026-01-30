@@ -24,17 +24,22 @@ impl PlanningAlgorithms {
         }
 
         // Calculate weighted average, giving more weight to recent sessions
-        let total_weight: f64 = valid_sessions.len() as f64;
-        let weighted_sum: f64 = valid_sessions
-            .iter()
-            .enumerate()
-            .map(|(i, session)| {
-                let weight = (i + 1) as f64 / total_weight; // More recent sessions get higher weight
-                session.reading_speed_wpm.unwrap() * weight
-            })
-            .sum();
+        let total_sessions = valid_sessions.len() as f64;
+        let mut weighted_sum = 0.0;
+        let mut total_weight = 0.0;
 
-        weighted_sum / valid_sessions.len() as f64
+        for (i, session) in valid_sessions.iter().enumerate() {
+            // More recent sessions get higher weight (linear increase)
+            let weight = (i + 1) as f64;
+            weighted_sum += session.reading_speed_wpm.unwrap() * weight;
+            total_weight += weight;
+        }
+
+        if total_weight > 0.0 {
+            weighted_sum / total_weight
+        } else {
+            150.0
+        }
     }
 
     /// Create an adaptive khatma plan based on user preferences and reading speed
@@ -275,10 +280,11 @@ impl PlanningAlgorithms {
             }
         }
         
-        if progress_difference < -10.0 {
+        // Only make adjustments if the difference is significant (more than 5%)
+        if progress_difference < -5.0 {
             // User is significantly behind schedule
             adjustments.extend(Self::handle_behind_schedule(plan, progress_difference)?);
-        } else if progress_difference > 10.0 {
+        } else if progress_difference > 5.0 {
             // User is ahead of schedule
             adjustments.extend(Self::handle_ahead_of_schedule(plan, progress_difference)?);
         }
@@ -399,6 +405,286 @@ impl PlanningAlgorithms {
         });
         
         suggestions.into_iter().take(10).collect() // Return top 10 suggestions
+    }
+
+    /// Generate intelligent reminders based on user behavior and Islamic optimal times
+    pub fn generate_intelligent_reminders(
+        user_id: Uuid,
+        plan: &KhatmaPlan,
+        reading_history: &[ReadingSession],
+        current_time: DateTime<Utc>,
+    ) -> Vec<SmartReminder> {
+        let mut reminders = Vec::new();
+        
+        // 1. Generate time-sensitive reminders
+        reminders.extend(Self::generate_time_sensitive_reminders(user_id, plan, current_time));
+        
+        // 2. Generate habit-reinforcement reminders
+        reminders.extend(Self::generate_habit_reinforcement_reminders(user_id, plan, reading_history));
+        
+        // 3. Generate motivational reminders
+        reminders.extend(Self::generate_plan_adherence_reminders(user_id, plan, current_time));
+        
+        // 4. Generate recovery reminders for missed sessions
+        reminders.extend(Self::generate_missed_session_reminders(user_id, plan, current_time));
+        
+        // Sort by priority and confidence
+        reminders.sort_by(|a, b| {
+            b.confidence_score.partial_cmp(&a.confidence_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.suggested_time.cmp(&b.suggested_time))
+        });
+        
+        reminders
+    }
+
+    /// Generate time-sensitive reminders based on Islamic prayer times and optimal reading periods
+    pub fn generate_time_sensitive_reminders(
+        user_id: Uuid,
+        plan: &KhatmaPlan,
+        current_time: DateTime<Utc>,
+    ) -> Vec<SmartReminder> {
+        let mut reminders = Vec::new();
+        let current_hour = current_time.hour();
+        
+        // Get today's incomplete portion
+        let today = current_time.date_naive();
+        if let Some(today_portion) = plan.daily_portions
+            .iter()
+            .find(|p| !p.completed && p.date.date_naive() == today)
+        {
+            // Generate reminders based on Islamic optimal times
+            let optimal_islamic_times = vec![
+                (5, 30, "After Fajr prayer - blessed morning time", 0.9),
+                (8, 0, "Morning productivity hours", 0.7),
+                (13, 30, "After Dhuhr prayer", 0.6),
+                (16, 0, "Afternoon reflection time", 0.5),
+                (19, 30, "After Maghrib prayer", 0.8),
+                (21, 0, "Evening contemplation", 0.7),
+            ];
+            
+            for (hour, minute, reason, base_confidence) in optimal_islamic_times {
+                if current_hour <= hour {
+                    let reminder_time = current_time.date_naive()
+                        .and_hms_opt(hour, minute, 0)
+                        .unwrap()
+                        .and_utc();
+                    
+                    // Adjust confidence based on how close we are to the time
+                    let time_diff = (reminder_time - current_time).num_hours().abs();
+                    let time_adjustment: f64 = if time_diff <= 1 { 0.2 } else if time_diff <= 3 { 0.1 } else { 0.0 };
+                    
+                    reminders.push(SmartReminder {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        khatma_plan_id: plan.id,
+                        suggested_time: reminder_time,
+                        duration_minutes: today_portion.estimated_minutes,
+                        portion: today_portion.clone(),
+                        confidence_score: (base_confidence + time_adjustment).min(1.0),
+                        reasoning: reason.to_string(),
+                        created_at: current_time,
+                    });
+                }
+            }
+        }
+        
+        reminders
+    }
+
+    /// Generate habit-reinforcement reminders based on user's historical patterns
+    pub fn generate_habit_reinforcement_reminders(
+        user_id: Uuid,
+        plan: &KhatmaPlan,
+        reading_history: &[ReadingSession],
+    ) -> Vec<SmartReminder> {
+        let mut reminders = Vec::new();
+        
+        if reading_history.is_empty() {
+            return reminders;
+        }
+        
+        let patterns = Self::analyze_reading_patterns(reading_history);
+        let current_time = Utc::now();
+        
+        // Get upcoming portions for the next 3 days
+        let upcoming_portions: Vec<_> = plan.daily_portions
+            .iter()
+            .filter(|p| !p.completed && p.date >= current_time && p.date <= current_time + chrono::Duration::days(3))
+            .collect();
+        
+        for portion in upcoming_portions {
+            // Use user's most successful reading hour
+            if let Some(&preferred_hour) = patterns.get("preferred_hour") {
+                let reminder_time = portion.date.date_naive()
+                    .and_hms_opt(preferred_hour as u32, 0, 0)
+                    .unwrap()
+                    .and_utc();
+                
+                let consistency = patterns.get("hour_consistency").unwrap_or(&0.5);
+                
+                reminders.push(SmartReminder {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    khatma_plan_id: plan.id,
+                    suggested_time: reminder_time,
+                    duration_minutes: portion.estimated_minutes,
+                    portion: portion.clone(),
+                    confidence_score: *consistency,
+                    reasoning: format!("Your most productive reading time is {}:00 - you've been consistent at this hour", preferred_hour),
+                    created_at: current_time,
+                });
+            }
+        }
+        
+        reminders
+    }
+
+    /// Generate motivational reminders for plan adherence
+    pub fn generate_plan_adherence_reminders(
+        user_id: Uuid,
+        plan: &KhatmaPlan,
+        current_time: DateTime<Utc>,
+    ) -> Vec<SmartReminder> {
+        let mut reminders = Vec::new();
+        
+        // Calculate progress metrics
+        let total_days = (plan.target_date - plan.start_date).num_days() as f64;
+        let elapsed_days = (current_time - plan.start_date).num_days() as f64;
+        let expected_progress = if total_days > 0.0 { (elapsed_days / total_days) * 100.0 } else { 0.0 };
+        let progress_gap = expected_progress - plan.current_progress;
+        
+        // Generate different types of motivational reminders based on progress
+        if progress_gap > 10.0 {
+            // User is significantly behind - urgent catch-up reminder
+            if let Some(next_portion) = plan.daily_portions
+                .iter()
+                .find(|p| !p.completed && p.date >= current_time)
+            {
+                let urgent_time = current_time + chrono::Duration::minutes(30);
+                
+                reminders.push(SmartReminder {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    khatma_plan_id: plan.id,
+                    suggested_time: urgent_time,
+                    duration_minutes: next_portion.estimated_minutes,
+                    portion: next_portion.clone(),
+                    confidence_score: 0.9,
+                    reasoning: format!("Urgent: You're {:.1}% behind schedule. A focused session now will help you catch up with your Khatma goal.", progress_gap),
+                    created_at: current_time,
+                });
+            }
+        } else if progress_gap > 5.0 {
+            // User is moderately behind - gentle encouragement
+            if let Some(next_portion) = plan.daily_portions
+                .iter()
+                .find(|p| !p.completed && p.date >= current_time)
+            {
+                let gentle_time = current_time + chrono::Duration::hours(2);
+                
+                reminders.push(SmartReminder {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    khatma_plan_id: plan.id,
+                    suggested_time: gentle_time,
+                    duration_minutes: next_portion.estimated_minutes,
+                    portion: next_portion.clone(),
+                    confidence_score: 0.7,
+                    reasoning: "You're slightly behind your reading plan. A short session today will help you stay on track.".to_string(),
+                    created_at: current_time,
+                });
+            }
+        } else if progress_gap < -5.0 {
+            // User is ahead - encourage consistency
+            if let Some(next_portion) = plan.daily_portions
+                .iter()
+                .find(|p| !p.completed && p.date >= current_time)
+            {
+                let consistency_time = current_time + chrono::Duration::hours(3);
+                
+                reminders.push(SmartReminder {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    khatma_plan_id: plan.id,
+                    suggested_time: consistency_time,
+                    duration_minutes: next_portion.estimated_minutes,
+                    portion: next_portion.clone(),
+                    confidence_score: 0.8,
+                    reasoning: format!("Excellent progress! You're {:.1}% ahead of schedule. Keep up the consistent reading to maintain this momentum.", progress_gap.abs()),
+                    created_at: current_time,
+                });
+            }
+        }
+        
+        reminders
+    }
+
+    /// Generate reminders for missed reading sessions
+    pub fn generate_missed_session_reminders(
+        user_id: Uuid,
+        plan: &KhatmaPlan,
+        current_time: DateTime<Utc>,
+    ) -> Vec<SmartReminder> {
+        let mut reminders = Vec::new();
+        let yesterday = current_time - chrono::Duration::days(1);
+        
+        // Check for missed sessions from yesterday
+        let missed_portions: Vec<_> = plan.daily_portions
+            .iter()
+            .filter(|p| !p.completed && p.date.date_naive() == yesterday.date_naive())
+            .collect();
+        
+        for missed_portion in missed_portions {
+            // Generate recovery reminder
+            let recovery_time = current_time + chrono::Duration::minutes(45);
+            
+            reminders.push(SmartReminder {
+                id: Uuid::new_v4(),
+                user_id,
+                khatma_plan_id: plan.id,
+                suggested_time: recovery_time,
+                duration_minutes: missed_portion.estimated_minutes,
+                portion: missed_portion.clone(),
+                confidence_score: 0.8,
+                reasoning: "Recovery opportunity: You missed yesterday's reading. A makeup session now will help you stay committed to your Khatma journey.".to_string(),
+                created_at: current_time,
+            });
+        }
+        
+        // Check for patterns of missed sessions (last 3 days)
+        let recent_missed_count = plan.daily_portions
+            .iter()
+            .filter(|p| {
+                !p.completed && 
+                p.date >= current_time - chrono::Duration::days(3) &&
+                p.date < current_time
+            })
+            .count();
+        
+        if recent_missed_count >= 2 {
+            // User has missed multiple sessions - motivational intervention
+            if let Some(today_portion) = plan.daily_portions
+                .iter()
+                .find(|p| !p.completed && p.date.date_naive() == current_time.date_naive())
+            {
+                let intervention_time = current_time + chrono::Duration::minutes(20);
+                
+                reminders.push(SmartReminder {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    khatma_plan_id: plan.id,
+                    suggested_time: intervention_time,
+                    duration_minutes: today_portion.estimated_minutes,
+                    portion: today_portion.clone(),
+                    confidence_score: 0.9,
+                    reasoning: format!("Gentle reminder: You've missed {} recent sessions. Today is a perfect opportunity to reconnect with your Quran reading goal. Even a short session makes a difference.", recent_missed_count),
+                    created_at: current_time,
+                });
+            }
+        }
+        
+        reminders
     }
 
     /// Analyze user's reading patterns from history

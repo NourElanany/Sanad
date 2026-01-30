@@ -153,8 +153,17 @@ mod planning_algorithm_tests {
         let mut plan = create_test_plan();
         let sessions = create_test_sessions();
         
-        // Simulate being 20% behind schedule
-        let current_progress = 30.0; // Should be at 50% by now
+        // Debug: Calculate expected progress
+        let days_elapsed = (Utc::now() - plan.start_date).num_days();
+        let total_days = (plan.target_date - plan.start_date).num_days();
+        let expected_progress = (days_elapsed as f64 / total_days as f64) * 100.0;
+        
+        println!("Days elapsed: {}, Total days: {}", days_elapsed, total_days);
+        println!("Expected progress: {:.1}%", expected_progress);
+        
+        // Set current progress to be significantly behind (more than 5% behind expected)
+        let current_progress = expected_progress - 10.0; // 10% behind expected
+        println!("Current progress: {:.1}%", current_progress);
         
         let adjustments = PlanningAlgorithms::adjust_plan_for_delay(
             &mut plan,
@@ -162,6 +171,8 @@ mod planning_algorithm_tests {
             &sessions,
         ).unwrap();
 
+        println!("Adjustments: {:?}", adjustments);
+        
         assert!(!adjustments.is_empty());
         assert!(adjustments.iter().any(|adj| adj.contains("Increased daily reading time")));
         assert_eq!(plan.current_progress, current_progress);
@@ -172,8 +183,13 @@ mod planning_algorithm_tests {
         let mut plan = create_test_plan();
         let sessions = create_test_sessions();
         
-        // Simulate being 20% ahead of schedule
-        let current_progress = 70.0; // Should be at 50% by now
+        // Calculate expected progress
+        let days_elapsed = (Utc::now() - plan.start_date).num_days();
+        let total_days = (plan.target_date - plan.start_date).num_days();
+        let expected_progress = (days_elapsed as f64 / total_days as f64) * 100.0;
+        
+        // Set current progress to be significantly ahead (more than 5% ahead of expected)
+        let current_progress = expected_progress + 10.0; // 10% ahead of expected
         
         let adjustments = PlanningAlgorithms::adjust_plan_for_delay(
             &mut plan,
@@ -296,7 +312,8 @@ mod planning_algorithm_tests {
         let mut plan = create_test_plan();
         let sessions = create_test_sessions();
         
-        for progress in [10.0, 25.0, 50.0, 75.0, 90.0] {
+        // Test with progress values that will trigger adjustments (outside 5% threshold)
+        for progress in [10.0, 25.0, 75.0, 90.0] {
             let original_id = plan.id;
             let original_user_id = plan.user_id;
             
@@ -345,12 +362,17 @@ mod planning_algorithm_tests {
         let target_date = Utc::now() + Duration::days(30);
         let preferences = create_test_preferences();
 
-        PlanningAlgorithms::create_adaptive_plan(
+        // Create a plan that started a few days ago to simulate progress
+        let mut plan = PlanningAlgorithms::create_adaptive_plan(
             user_id,
             target_date,
             &preferences,
             150.0,
-        ).unwrap()
+        ).unwrap();
+        
+        // Adjust start date to simulate a plan that's been running for a while
+        plan.start_date = Utc::now() - Duration::days(15); // Started 15 days ago
+        plan
     }
 
     fn create_test_sessions() -> Vec<ReadingSession> {

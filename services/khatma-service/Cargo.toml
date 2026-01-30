@@ -3,6 +3,14 @@ name = "khatma-service"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "khatma-service"
+path = "src/main.rs"
+
+[lib]
+name = "khatma_service"
+path = "src/lib.rs"
+
 [dependencies]
 shared = { path = "../../shared" }
 tokio = { workspace = true }
