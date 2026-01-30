@@ -125,7 +125,7 @@ pub async fn register(
 
 /// Refresh token handler
 pub async fn refresh_token(
-    State(config): State<AppConfig>,
+    State(_config): State<AppConfig>,
     Json(request): Json<RefreshTokenRequest>,
 ) -> Result<Json<ApiResponse<AuthResponse>>, SanadError> {
     // TODO: Implement refresh token validation and new token generation

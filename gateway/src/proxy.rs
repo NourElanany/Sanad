@@ -171,13 +171,27 @@ impl ServiceRegistry {
             }
         };
 
-        // Build the request
-        let mut request_builder = self.client.request(method, &target_url);
+        // Build the request - convert axum Method to reqwest Method
+        let reqwest_method = match method {
+            Method::GET => reqwest::Method::GET,
+            Method::POST => reqwest::Method::POST,
+            Method::PUT => reqwest::Method::PUT,
+            Method::DELETE => reqwest::Method::DELETE,
+            Method::PATCH => reqwest::Method::PATCH,
+            Method::HEAD => reqwest::Method::HEAD,
+            Method::OPTIONS => reqwest::Method::OPTIONS,
+            _ => reqwest::Method::GET, // Default fallback
+        };
+
+        let mut request_builder = self.client.request(reqwest_method, &target_url);
 
         // Copy headers (excluding host and content-length which will be set automatically)
         for (name, value) in headers.iter() {
             if name != "host" && name != "content-length" {
-                request_builder = request_builder.header(name, value);
+                // Convert axum headers to reqwest headers
+                let header_name = name.as_str();
+                let header_value = value.to_str().unwrap_or("");
+                request_builder = request_builder.header(header_name, header_value);
             }
         }
 
@@ -208,11 +222,14 @@ impl ServiceRegistry {
             })?;
 
         // Convert reqwest response to axum response
-        let mut response_builder = Response::builder().status(response.status());
+        let status_code = response.status().as_u16();
+        let mut response_builder = Response::builder().status(status_code);
 
         // Copy response headers
         for (name, value) in response.headers().iter() {
-            response_builder = response_builder.header(name, value);
+            let header_name = name.as_str();
+            let header_value = value.to_str().unwrap_or("");
+            response_builder = response_builder.header(header_name, header_value);
         }
 
         let body_bytes = response

@@ -1,11 +1,11 @@
 use axum::{routing::get, Router, response::Json};
-use shared::{AppConfig, ApiResponse};
+use shared::ApiResponse;
 use std::collections::HashMap;
 use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
     info!("Starting AI Service with RAG on port 8086");
 
     let app = Router::new().route("/health", get(health_check));

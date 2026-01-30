@@ -125,7 +125,7 @@ pub fn extract_arabic_root(word: &str) -> Option<String> {
     let normalized = normalize_arabic_text(word);
     
     // Remove common prefixes and suffixes
-    let mut root = normalized
+    let root = normalized
         .trim_start_matches(&['ا', 'ل', 'ب', 'ف', 'ك', 'و'])
         .trim_end_matches(&['ة', 'ه', 'ت', 'ن', 'ي'])
         .to_string();
@@ -162,17 +162,28 @@ pub fn generate_request_id() -> String {
 
 /// Validate email format
 pub fn is_valid_email(email: &str) -> bool {
-    email.contains('@') && email.contains('.') && email.len() > 5
+    if email.len() <= 5 || !email.contains('@') || !email.contains('.') {
+        return false;
+    }
+    
+    // Check that email doesn't start or end with @
+    if email.starts_with('@') || email.ends_with('@') {
+        return false;
+    }
+    
+    // Basic check for @ position
+    let at_pos = email.find('@').unwrap();
+    at_pos > 0 && at_pos < email.len() - 1
 }
 
 /// Sanitize user input to prevent XSS and injection attacks
 pub fn sanitize_input(input: &str) -> String {
     input
+        .replace('&', "&amp;") // Replace & first to avoid double encoding
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#x27;")
-        .replace('&', "&amp;")
 }
 
 /// Rate limiting helper - simple in-memory implementation

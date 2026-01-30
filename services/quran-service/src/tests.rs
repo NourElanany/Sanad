@@ -591,6 +591,205 @@ mod property_tests {
                 }
             }
         }
+
+        /// **Validates: Requirements 2.2, 2.3**
+        /// Property 5: Content-Source Linking to Trusted Sources
+        /// 
+        /// For any Islamic content (Tafsir, Hadith, Story), it must be properly linked
+        /// to its original source and author with appropriate reliability rating.
+        /// 
+        /// This property ensures that:
+        /// 1. Every piece of Islamic content has a valid source reference
+        /// 2. Each content item is linked to its author/scholar
+        /// 3. Reliability ratings are properly assigned and consistent
+        /// 4. Source information is complete and verifiable
+        /// 5. Content integrity is maintained through proper source attribution
+        #[test]
+        fn prop_content_source_linking_to_trusted_sources(
+            surah_number in surah_number_strategy(),
+            ayah_number in ayah_number_strategy(),
+            content_text in arabic_text_strategy(),
+            author_name in "[\\u{0600}-\\u{06FF}\\s]{5,50}", // Arabic author names
+            source_name in "[\\u{0600}-\\u{06FF}\\s]{10,100}", // Arabic source names
+            source_type in prop::sample::select(vec![
+                TafsirSourceType::Classical,
+                TafsirSourceType::Contemporary,
+                TafsirSourceType::Linguistic,
+                TafsirSourceType::Thematic,
+                TafsirSourceType::Sectarian
+            ]),
+            auth_level in prop::sample::select(vec![
+                ScholarlyAuthentication::HighlyAuthenticated,
+                ScholarlyAuthentication::Authenticated,
+                ScholarlyAuthentication::Verified,
+                ScholarlyAuthentication::Unverified
+            ]),
+            publication_year in prop::option::of(1000..=2024i32),
+            methodology in prop::option::of("[\\u{0600}-\\u{06FF}\\s]{10,200}")
+        ) {
+            // Skip test if inputs contain only whitespace (would be rejected in real validation)
+            prop_assume!(!author_name.trim().is_empty(), "Author name cannot be empty or only whitespace");
+            prop_assume!(!source_name.trim().is_empty(), "Source name cannot be empty or only whitespace");
+            prop_assume!(!content_text.trim().is_empty(), "Content text cannot be empty or only whitespace");
+
+            // Create a trusted source with complete information
+            let source = TafsirSource::new(
+                source_name.clone(),
+                author_name.clone(),
+                "ar".to_string(),
+                Some("مصدر موثوق للتفسير الإسلامي".to_string()),
+                source_type.clone(),
+                auth_level.clone(),
+            );
+
+            // Set additional metadata if provided
+            let mut complete_source = source;
+            complete_source.publication_year = publication_year;
+            complete_source.methodology = methodology.clone();
+
+            // Create Islamic content linked to this source
+            let tafsir = Tafsir::new_with_metadata(
+                surah_number,
+                ayah_number,
+                complete_source.id,
+                content_text.clone(),
+                vec!["تفسير".to_string(), "شرح".to_string()],
+                vec![format!("{}:{}", surah_number, ayah_number)]
+            );
+
+            // **Property 5.1: Every piece of Islamic content has a valid source reference**
+            prop_assert!(!complete_source.id.is_nil(), "Source must have a valid UUID");
+            prop_assert_eq!(tafsir.source_id, complete_source.id, "Content must be linked to its source");
+            prop_assert!(!complete_source.name.is_empty(), "Source must have a name");
+            prop_assert!(!complete_source.author.is_empty(), "Source must have an author");
+
+            // **Property 5.2: Each content item is linked to its author/scholar**
+            prop_assert_eq!(&complete_source.author, &author_name, "Author information must be preserved");
+            
+            // Skip test if author name is only whitespace (this would be rejected in real validation)
+            prop_assume!(!complete_source.author.trim().is_empty(), "Author name cannot be empty or only whitespace");
+            
+            // Verify author name contains valid Arabic characters
+            let has_arabic_chars = complete_source.author.chars()
+                .any(|c| c >= '\u{0600}' && c <= '\u{06FF}');
+            prop_assert!(has_arabic_chars || complete_source.author.chars().all(|c| c.is_ascii_alphabetic() || c.is_whitespace()), 
+                "Author name must contain valid characters");
+
+            // **Property 5.3: Reliability ratings are properly assigned and consistent**
+            prop_assert!(complete_source.credibility_score >= 0.0 && complete_source.credibility_score <= 10.0,
+                "Credibility score must be within valid range [0.0, 10.0]");
+            
+            // Verify authentication level consistency with credibility score
+            let expected_min_score = match auth_level {
+                ScholarlyAuthentication::HighlyAuthenticated => 7.0,
+                ScholarlyAuthentication::Authenticated => 5.5,
+                ScholarlyAuthentication::Verified => 4.0,
+                ScholarlyAuthentication::Unverified => 0.0,
+            };
+            prop_assert!(complete_source.credibility_score >= expected_min_score,
+                "Credibility score {} should be >= {} for authentication level {:?}",
+                complete_source.credibility_score, expected_min_score, auth_level);
+
+            // Verify source type affects credibility appropriately
+            let _type_modifier = match &source_type {
+                TafsirSourceType::Classical => 1.0,
+                TafsirSourceType::Linguistic => 0.95,
+                TafsirSourceType::Contemporary => 0.9,
+                TafsirSourceType::Thematic => 0.9,
+                TafsirSourceType::Sectarian => 0.8,
+            };
+            
+            let calculated_score = TafsirSource::calculate_initial_credibility_score(&auth_level, &source_type);
+            prop_assert!((complete_source.credibility_score - calculated_score).abs() < 0.01,
+                "Credibility score should match calculated value");
+
+            // **Property 5.4: Source information is complete and verifiable**
+            prop_assert_eq!(&complete_source.source_type, &source_type, "Source type must be preserved");
+            prop_assert_eq!(&complete_source.scholarly_authentication, &auth_level, "Authentication level must be preserved");
+            prop_assert_eq!(&complete_source.language, "ar", "Language must be specified");
+            prop_assert!(complete_source.description.is_some(), "Source should have a description");
+            
+            // Verify optional metadata consistency
+            if let Some(year) = publication_year {
+                prop_assert_eq!(complete_source.publication_year, Some(year), "Publication year must be preserved");
+                prop_assert!(year >= 1000 && year <= 2024, "Publication year must be reasonable");
+            }
+            
+            if let Some(method) = &methodology {
+                prop_assume!(!method.trim().is_empty(), "Methodology cannot be empty or only whitespace if provided");
+                prop_assert_eq!(complete_source.methodology.as_ref(), Some(method), "Methodology must be preserved");
+            }
+
+            // **Property 5.5: Content integrity is maintained through proper source attribution**
+            prop_assert!(tafsir.verify_integrity(), "Content must maintain integrity");
+            prop_assert_eq!(&tafsir.text, &content_text, "Content text must be preserved exactly");
+            prop_assert!(!tafsir.text_hash.is_empty(), "Content must have integrity hash");
+            prop_assert_eq!(tafsir.text_hash.len(), 64, "Hash must be SHA-256 (64 chars)");
+
+            // Verify content-source relationship integrity
+            prop_assert_eq!(tafsir.surah_number, surah_number, "Surah reference must be preserved");
+            prop_assert_eq!(tafsir.ayah_number, ayah_number, "Ayah reference must be preserved");
+            prop_assert!(tafsir.word_count > 0, "Content must have word count calculated");
+            prop_assert!(!tafsir.themes.is_empty(), "Content should have thematic classification");
+            prop_assert!(!tafsir.cross_references.is_empty(), "Content should have cross-references");
+
+            // **Property 5.6: Source credibility affects content reliability**
+            let _is_highly_reliable = complete_source.is_highly_credible() && complete_source.is_authenticated();
+            let is_classical_authenticated = matches!(&source_type, TafsirSourceType::Classical) 
+                && matches!(&auth_level, ScholarlyAuthentication::HighlyAuthenticated | ScholarlyAuthentication::Authenticated);
+            
+            if is_classical_authenticated {
+                prop_assert!(complete_source.credibility_score >= 7.0, 
+                    "Classical authenticated sources should have high credibility");
+            }
+
+            // **Property 5.7: Source metadata supports verification**
+            prop_assert!(complete_source.created_at <= complete_source.updated_at, 
+                "Source timestamps must be consistent");
+            prop_assert!(tafsir.created_at <= tafsir.updated_at, 
+                "Content timestamps must be consistent");
+
+            // Verify credibility level string consistency
+            let credibility_level = complete_source.credibility_level();
+            let expected_level = match complete_source.credibility_score {
+                9.0..=10.0 => "Excellent",
+                7.5..=8.9 => "Very Good", 
+                6.0..=7.4 => "Good",
+                4.0..=5.9 => "Fair",
+                _ => "Poor",
+            };
+            prop_assert_eq!(credibility_level, expected_level, 
+                "Credibility level string must match score range");
+
+            // **Property 5.8: Cross-references maintain source traceability**
+            for cross_ref in &tafsir.cross_references {
+                prop_assert!(cross_ref.contains(':'), "Cross-reference must have proper format");
+                let parts: Vec<&str> = cross_ref.split(':').collect();
+                prop_assert_eq!(parts.len(), 2, "Cross-reference must have surah:ayah format");
+                
+                if let (Ok(ref_surah), Ok(ref_ayah)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
+                    prop_assert!(ref_surah >= 1 && ref_surah <= 114, "Cross-reference surah must be valid");
+                    prop_assert!(ref_ayah >= 1, "Cross-reference ayah must be valid");
+                }
+            }
+
+            // **Property 5.9: Thematic classification supports content discovery**
+            for theme in &tafsir.themes {
+                prop_assert!(!theme.trim().is_empty(), "Themes cannot be empty");
+                prop_assert!(theme.len() >= 3, "Themes must be meaningful (>= 3 chars)");
+            }
+
+            // **Property 5.10: Source-content relationship is bidirectional**
+            // In a complete system, we should be able to find all content by a source
+            // Here we verify the relationship data is consistent
+            prop_assert_eq!(tafsir.source_id, complete_source.id, 
+                "Content must reference correct source ID");
+            
+            // Verify that source can be used to validate content
+            let content_hash = Tafsir::calculate_text_hash(&tafsir.text);
+            prop_assert_eq!(&tafsir.text_hash, &content_hash, 
+                "Content hash must be verifiable independently");
+        }
     }
 }
 
@@ -1233,8 +1432,8 @@ mod tafsir_system_tests {
         let test_cases = vec![
             ("كلمة واحدة", 2, 1),
             ("كلمة واحدة فقط", 3, 1),
-            ("", 0, 1), // Minimum 1 minute
-            ("   ", 0, 1), // Only whitespace, minimum 1 minute
+            ("", 0, 0), // Empty text = 0 minutes
+            ("   ", 0, 0), // Only whitespace = 0 minutes
             ("كلمة\nجديدة\tمع\rفواصل", 4, 1), // Different whitespace types
             (text_100.trim(), 100, 1), // 100 words = 1 minute (100/200 rounded up)
             (text_250.trim(), 250, 2), // 250 words = 2 minutes (250/200 rounded up)

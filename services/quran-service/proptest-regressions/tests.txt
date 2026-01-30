@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 433eb8dd743e8d60596d53090c51353113d75113b0baaa9f17044bcf77f4e369 # shrinks to surah_number = 1, ayah_number = 1, content_text = "\u{600}", author_name = "\u{2028}\u{a0} \t\u{1680}", source_name = "\u{1680}\u{202f}\u{205f}\u{205f}\t\t\u{1680}\u{600}\u{2028}\u{1680}", source_type = Classical, auth_level = HighlyAuthenticated, publication_year = None, methodology = None
+cc fbca83ed78db25bd8baae43c6631a88633787383bb2a7aa59d8fbfb5e1844872 # shrinks to surah_number = 1, ayah_number = 1, content_text = "\u{600}", author_name = "\u{600}\u{2028}\u{202f}\u{a0} ", source_name = "\u{2000}\t\u{600}\u{85}\u{1680}\t\u{a0} \u{600}\t", source_type = Classical, auth_level = HighlyAuthenticated, publication_year = None, methodology = Some("\t\t\t\u{a0}\u{205f}\u{205f}\u{2000}\u{2028}\u{205f}\u{205f}")

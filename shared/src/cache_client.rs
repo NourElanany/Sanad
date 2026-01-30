@@ -28,7 +28,7 @@ pub struct GetMultipleRequest {
 }
 
 /// Response for multiple cache values
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct GetMultipleResponse {
     pub values: HashMap<String, Option<serde_json::Value>>,
 }
@@ -40,7 +40,7 @@ pub struct InvalidatePatternRequest {
 }
 
 /// Response for cache invalidation
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct InvalidateResponse {
     pub deleted_count: u64,
 }

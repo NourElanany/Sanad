@@ -6,6 +6,9 @@ pub mod source_scorer;
 pub mod anti_hallucination;
 pub mod context_builder;
 
+#[cfg(test)]
+pub mod tests;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};

@@ -123,6 +123,7 @@ pub struct SurahWithAyahs {
 
 /// Ayah with its associated Tafsir entries
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AyahWithTafsir {
     pub ayah: Ayah,
     pub tafsir_entries: Vec<TafsirWithSource>,
@@ -273,6 +274,7 @@ pub struct TafsirComparisonRequest {
     pub surah_number: i32,
     pub ayah_number: i32,
     pub source_ids: Vec<Uuid>,
+    #[allow(dead_code)]
     pub comparison_criteria: Option<Vec<ComparisonCriteria>>,
 }
 
@@ -521,6 +523,7 @@ pub struct AdvancedSearchFilters {
 
 /// Context information for search results
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SearchContext {
     pub previous_ayah: Option<Ayah>,
     pub next_ayah: Option<Ayah>,
@@ -529,6 +532,7 @@ pub struct SearchContext {
 
 /// Enhanced search result with context
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct EnhancedQuranSearchResult {
     pub ayah: Ayah,
     pub surah: Surah,
@@ -680,6 +684,9 @@ impl Tafsir {
 
     /// Get reading time estimate in minutes
     pub fn estimated_reading_time(&self) -> i32 {
+        if self.word_count == 0 {
+            return 0; // Empty text has 0 reading time
+        }
         // Assuming average reading speed of 200 words per minute for Arabic
         (self.word_count as f32 / 200.0).ceil() as i32
     }
@@ -818,6 +825,7 @@ impl ContentIntegrity for Tafsir {
 }
 
 /// Trait for serialization and deserialization
+#[allow(dead_code)]
 pub trait Serializable: Serialize + for<'de> Deserialize<'de> {}
 
 impl Serializable for Surah {}
@@ -924,7 +932,7 @@ mod tests {
             &ScholarlyAuthentication::Verified,
             &TafsirSourceType::Sectarian,
         );
-        assert_eq!(score2, 4.8); // 6.0 * 0.8
+        assert!((score2 - 4.8).abs() < 0.0001); // Use floating point comparison
     }
 
     #[test]

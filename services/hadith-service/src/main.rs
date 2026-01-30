@@ -1,11 +1,16 @@
 use axum::{routing::get, Router, response::Json};
-use shared::{AppConfig, ApiResponse};
+use shared::ApiResponse;
 use std::collections::HashMap;
 use tracing::info;
 
+pub mod models;
+
+// Re-export models for external use
+pub use models::*;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
     info!("Starting Hadith Service on port 8082");
 
     let app = Router::new().route("/health", get(health_check));

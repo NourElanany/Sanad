@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use shared::{
-    cache::{AdvancedCacheManager, CacheConfig, CacheStats, CacheStrategies, CacheType},
+    cache::{AdvancedCacheManager, CacheConfig, CacheStats, CacheType},
     config::AppConfig,
     models::ApiResponse,
     SanadError, SanadResult,
@@ -16,7 +16,6 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{error, info, warn};
-use uuid::Uuid;
 
 /// Cache service application state
 #[derive(Clone)]
@@ -92,7 +91,7 @@ async fn main() -> SanadResult<()> {
         enable_smart_invalidation: true,
     };
 
-    let cache_manager = Arc::new(
+    let cache_manager: Arc<AdvancedCacheManager> = Arc::new(
         AdvancedCacheManager::new(&config.redis.url, Some(cache_config))
             .await
             .map_err(|e| {
@@ -180,7 +179,7 @@ async fn get_cache_value(
 async fn set_cache_value(
     State(state): State<AppState>,
     Path(key): Path<String>,
-    Query(params): Query<CacheQueryParams>,
+    Query(_params): Query<CacheQueryParams>,
     Json(request): Json<SetCacheRequest>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     let cache_type = request.cache_type.unwrap_or(CacheType::General);
@@ -242,8 +241,8 @@ async fn delete_multiple_cache_values(
 }
 
 async fn cache_prayer_times(
-    State(state): State<AppState>,
-    Json(request): Json<serde_json::Value>,
+    State(_state): State<AppState>,
+    Json(_request): Json<serde_json::Value>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     // This would parse the prayer times data and cache it appropriately
     // For now, we'll just acknowledge the request
@@ -252,8 +251,8 @@ async fn cache_prayer_times(
 }
 
 async fn cache_semantic_query(
-    State(state): State<AppState>,
-    Json(request): Json<serde_json::Value>,
+    State(_state): State<AppState>,
+    Json(_request): Json<serde_json::Value>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     // This would parse the semantic query and results, then cache them
     info!("Caching semantic query results");
@@ -261,8 +260,8 @@ async fn cache_semantic_query(
 }
 
 async fn cache_quran_content(
-    State(state): State<AppState>,
-    Json(request): Json<serde_json::Value>,
+    State(_state): State<AppState>,
+    Json(_request): Json<serde_json::Value>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     // This would parse the Quran content and cache it with permanent storage
     info!("Caching Quran content");
@@ -270,8 +269,8 @@ async fn cache_quran_content(
 }
 
 async fn cache_hadith_content(
-    State(state): State<AppState>,
-    Json(request): Json<serde_json::Value>,
+    State(_state): State<AppState>,
+    Json(_request): Json<serde_json::Value>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     // This would parse the hadith content and cache it with collection organization
     info!("Caching hadith content");

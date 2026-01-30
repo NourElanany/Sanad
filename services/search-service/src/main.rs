@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
     let app = Router::new().route("/health", get(health_check));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8087").await?;
     axum::serve(listener, app).await?;

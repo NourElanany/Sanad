@@ -1,26 +1,31 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
     routing::{get, post, put, delete},
     Router,
 };
-use shared::{AppConfig, ApiResponse, SanadError, SanadResult};
+use shared::{AppConfig, ApiResponse};
 use crate::{auth, proxy::ServiceRegistry};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+
+/// Application state
+pub type AppState = (Arc<ServiceRegistry>, Arc<AppConfig>);
 
 /// Create all API routes
 pub fn create_routes(service_registry: ServiceRegistry, config: AppConfig) -> Router {
+    let state = (Arc::new(service_registry), Arc::new(config));
+    
     Router::new()
         // Health check
         .route("/health", get(health_check))
         
         // Authentication routes
-        .route("/auth/login", post(auth::login))
-        .route("/auth/register", post(auth::register))
-        .route("/auth/refresh", post(auth::refresh_token))
-        .route("/auth/logout", post(auth::logout))
+        .route("/auth/login", post(auth_login))
+        .route("/auth/register", post(auth_register))
+        .route("/auth/refresh", post(auth_refresh_token))
+        .route("/auth/logout", post(auth_logout))
         
         // Placeholder routes - will be implemented in later tasks
         .route("/quran/surahs", get(placeholder_handler))
@@ -41,7 +46,57 @@ pub fn create_routes(service_registry: ServiceRegistry, config: AppConfig) -> Ro
         .route("/users/bookmarks", post(add_bookmark))
         .route("/users/bookmarks/:bookmark_id", delete(remove_bookmark))
         
-        .with_state((service_registry, config))
+        .with_state(state)
+}
+
+// Wrapper functions for auth handlers to extract config from state
+async fn auth_login(
+    State((_, config)): State<AppState>,
+    payload: axum::extract::Json<auth::LoginRequest>,
+) -> Result<Json<ApiResponse<auth::AuthResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+    match auth::login(axum::extract::State((*config).clone()), payload).await {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            tracing::error!("Login error: {}", e);
+            Err((StatusCode::UNAUTHORIZED, Json(ApiResponse::error(e.to_string()))))
+        }
+    }
+}
+
+async fn auth_register(
+    State((_, config)): State<AppState>,
+    payload: axum::extract::Json<auth::RegisterRequest>,
+) -> Result<Json<ApiResponse<auth::AuthResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+    match auth::register(axum::extract::State((*config).clone()), payload).await {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            tracing::error!("Register error: {}", e);
+            Err((StatusCode::BAD_REQUEST, Json(ApiResponse::error(e.to_string()))))
+        }
+    }
+}
+
+async fn auth_refresh_token(
+    State((_, config)): State<AppState>,
+    payload: axum::extract::Json<auth::RefreshTokenRequest>,
+) -> Result<Json<ApiResponse<auth::AuthResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+    match auth::refresh_token(axum::extract::State((*config).clone()), payload).await {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            tracing::error!("Refresh token error: {}", e);
+            Err((StatusCode::UNAUTHORIZED, Json(ApiResponse::error(e.to_string()))))
+        }
+    }
+}
+
+async fn auth_logout() -> Result<Json<ApiResponse<String>>, (StatusCode, Json<ApiResponse<()>>)> {
+    match auth::logout().await {
+        Ok(response) => Ok(response),
+        Err(e) => {
+            tracing::error!("Logout error: {}", e);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error(e.to_string()))))
+        }
+    }
 }
 
 /// Health check endpoint
