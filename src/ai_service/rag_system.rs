@@ -136,6 +136,17 @@ impl RAGSystem {
             &processed_question,
         ).await?;
         
+        // 10. بناء المراجع والاستشهادات
+        let citations = self.build_citations(&final_response.retrieved_sources);
+        
+        // 11. حساب مقاييس الجودة
+        let quality_metrics = self.calculate_quality_metrics(
+            &final_response.retrieved_sources,
+            &final_response.cited_sources,
+            &final_response.answer,
+            &processed_question,
+        );
+        
         let response_time = start_time.elapsed().as_millis() as u64;
         
         Ok(RAGResponse {
@@ -143,11 +154,13 @@ impl RAGSystem {
             confidence: final_response.confidence,
             retrieved_sources: final_response.retrieved_sources,
             cited_sources: final_response.cited_sources,
+            citations,
             related_questions: final_response.related_questions,
             warnings: final_response.warnings,
             hallucination_risk: final_response.hallucination_risk,
             response_time_ms: response_time,
             metadata: final_response.metadata,
+            quality_metrics,
         })
     }
     
@@ -309,58 +322,615 @@ impl RAGSystem {
             QuestionType::Fiqh => {
                 related.push("ما هي الأدلة على هذا الحكم؟".to_string());
                 related.push("هل هناك خلاف في هذه المسألة؟".to_string());
+                if sources.iter().any(|s| matches!(s.source.content_type, SourceType::Quran)) {
+                    related.push("ما هي الآيات القرآنية المتعلقة بهذا الموضوع؟".to_string());
+                }
             },
             QuestionType::Tafsir => {
                 related.push("ما هو سبب نزول هذه الآية؟".to_string());
                 related.push("ما هي الدروس المستفادة من هذه الآية؟".to_string());
+                related.push("كيف فسر العلماء هذه الآية؟".to_string());
             },
             QuestionType::Hadith => {
                 related.push("ما هي درجة صحة هذا الحديث؟".to_string());
                 related.push("هل هناك أحاديث أخرى في نفس الموضوع؟".to_string());
+                related.push("من هم رواة هذا الحديث؟".to_string());
+            },
+            QuestionType::Aqeedah => {
+                related.push("ما هو موقف أهل السنة والجماعة من هذه المسألة؟".to_string());
+                related.push("ما هي الأدلة من القرآن والسنة؟".to_string());
+            },
+            QuestionType::Sirah => {
+                related.push("ما هي الدروس المستفادة من هذا الحدث؟".to_string());
+                related.push("متى وقع هذا الحدث؟".to_string());
             },
             _ => {
                 related.push("هل يمكن توضيح هذا الموضوع أكثر؟".to_string());
+                related.push("ما هي المصادر الإضافية لهذا الموضوع؟".to_string());
             }
         }
         
         // أسئلة مبنية على المفاهيم المستخرجة
         for concept in &question.concepts {
-            if concept == "صلاة" {
-                related.push("ما هي شروط صحة الصلاة؟".to_string());
-            } else if concept == "زكاة" {
-                related.push("متى تجب الزكاة؟".to_string());
+            match concept.as_str() {
+                "صلاة" => {
+                    related.push("ما هي شروط صحة الصلاة؟".to_string());
+                    related.push("كيف نصلي الصلاة الصحيحة؟".to_string());
+                },
+                "زكاة" => {
+                    related.push("متى تجب الزكاة؟".to_string());
+                    related.push("كيف نحسب الزكاة؟".to_string());
+                },
+                "صوم" => {
+                    related.push("ما هي مبطلات الصوم؟".to_string());
+                    related.push("متى يجب الصوم؟".to_string());
+                },
+                "حج" => {
+                    related.push("ما هي أركان الحج؟".to_string());
+                    related.push("متى يجب الحج؟".to_string());
+                },
+                _ => {}
             }
         }
         
+        // أسئلة مبنية على المصادر المتاحة
+        if sources.iter().any(|s| matches!(s.source.content_type, SourceType::Quran)) {
+            related.push("ما هي الآيات ذات الصلة؟".to_string());
+        }
+        
+        if sources.iter().any(|s| matches!(s.source.content_type, SourceType::SahihHadith)) {
+            related.push("ما هي الأحاديث الصحيحة في هذا الموضوع؟".to_string());
+        }
+        
+        // إزالة التكرار وتحديد العدد
+        related.sort();
+        related.dedup();
         Ok(related.into_iter().take(3).collect())
     }
+    
+    /// Build citations for the response
+    fn build_citations(&self, sources: &[IslamicSource]) -> Vec<Citation> {
+        sources.iter()
+            .enumerate()
+            .map(|(index, source)| {
+                Citation {
+                    id: format!("cite_{}", index + 1),
+                    source: source.clone(),
+                    citation_text: self.format_citation(source),
+                    relevance_score: 0.8, // سيتم حسابها بناءً على التشابه الدلالي
+                    usage_type: CitationType::Primary, // سيتم تحديدها بناءً على أهمية المصدر
+                }
+            })
+            .collect()
+    }
+    
+    /// Format citation text according to Islamic scholarly standards
+    fn format_citation(&self, source: &IslamicSource) -> String {
+        match source.content_type {
+            SourceType::Quran => {
+                format!("القرآن الكريم، {}", source.reference)
+            },
+            SourceType::SahihHadith | SourceType::HasanHadith | SourceType::DaifHadith => {
+                if let Some(author) = &source.author {
+                    format!("{}: {}", author, source.reference)
+                } else {
+                    source.reference.clone()
+                }
+            },
+            SourceType::Tafsir => {
+                if let Some(author) = &source.author {
+                    format!("تفسير {}: {}", author, source.reference)
+                } else {
+                    format!("تفسير: {}", source.reference)
+                }
+            },
+            SourceType::FiqhRuling => {
+                if let Some(author) = &source.author {
+                    format!("فتوى {}: {}", author, source.reference)
+                } else {
+                    format!("فتوى: {}", source.reference)
+                }
+            },
+            _ => {
+                if let Some(author) = &source.author {
+                    format!("{}: {}", author, source.reference)
+                } else {
+                    source.reference.clone()
+                }
+            }
+        }
+    }
+    
+    /// Calculate quality metrics for the response
+    fn calculate_quality_metrics(
+        &self,
+        retrieved_sources: &[IslamicSource],
+        cited_sources: &[IslamicSource],
+        answer: &str,
+        question: &ProcessedQuestion,
+    ) -> QualityMetrics {
+        // حساب جودة المصادر
+        let source_quality_score = if retrieved_sources.is_empty() {
+            0.0
+        } else {
+            let total_quality: f32 = retrieved_sources.iter()
+                .map(|source| self.calculate_source_quality_score(source))
+                .sum();
+            total_quality / retrieved_sources.len() as f32
+        };
+        
+        // حساب درجة الصلة
+        let relevance_score = self.calculate_relevance_score(retrieved_sources, question);
+        
+        // حساب درجة الاكتمال
+        let completeness_score = self.calculate_completeness_score(answer, question);
+        
+        // حساب درجة الأصالة
+        let authenticity_score = if retrieved_sources.is_empty() {
+            0.5
+        } else {
+            let authentic_sources = retrieved_sources.iter()
+                .filter(|source| matches!(source.authenticity, AuthenticityLevel::Verified | AuthenticityLevel::Reliable))
+                .count();
+            authentic_sources as f32 / retrieved_sources.len() as f32
+        };
+        
+        // حساب تغطية الاستشهادات
+        let citation_coverage = if retrieved_sources.is_empty() {
+            1.0
+        } else {
+            cited_sources.len() as f32 / retrieved_sources.len() as f32
+        };
+        
+        QualityMetrics {
+            source_quality_score,
+            relevance_score,
+            completeness_score,
+            authenticity_score,
+            citation_coverage,
+        }
+    }
+    
+    fn calculate_source_quality_score(&self, source: &IslamicSource) -> f32 {
+        let type_score = match source.content_type {
+            SourceType::Quran => 1.0,
+            SourceType::SahihHadith => 0.95,
+            SourceType::HasanHadith => 0.85,
+            SourceType::Tafsir => 0.8,
+            SourceType::FiqhRuling => 0.75,
+            SourceType::ScholarOpinion => 0.7,
+            SourceType::DaifHadith => 0.5,
+            SourceType::MawduHadith => 0.1,
+            _ => 0.6,
+        };
+        
+        let authenticity_score = match source.authenticity {
+            AuthenticityLevel::Verified => 1.0,
+            AuthenticityLevel::Reliable => 0.8,
+            AuthenticityLevel::Questionable => 0.5,
+            AuthenticityLevel::Unreliable => 0.3,
+            AuthenticityLevel::Unknown => 0.4,
+        };
+        
+        (type_score + authenticity_score) / 2.0
+    }
+    
+    fn calculate_relevance_score(&self, sources: &[IslamicSource], question: &ProcessedQuestion) -> f32 {
+        if sources.is_empty() {
+            return 0.0;
+        }
+        
+        let mut total_relevance = 0.0;
+        
+        for source in sources {
+            let mut relevance = 0.5; // نقطة بداية
+            
+            // تطابق الكلمات المفتاحية
+            let source_text_lower = source.text.to_lowercase();
+            let keyword_matches = question.keywords.iter()
+                .filter(|keyword| source_text_lower.contains(&keyword.to_lowercase()))
+                .count();
+            
+            if !question.keywords.is_empty() {
+                relevance += (keyword_matches as f32 / question.keywords.len() as f32) * 0.3;
+            }
+            
+            // تطابق المفاهيم
+            let concept_matches = question.concepts.iter()
+                .filter(|concept| source_text_lower.contains(&concept.to_lowercase()))
+                .count();
+            
+            if !question.concepts.is_empty() {
+                relevance += (concept_matches as f32 / question.concepts.len() as f32) * 0.2;
+            }
+            
+            total_relevance += relevance.min(1.0);
+        }
+        
+        total_relevance / sources.len() as f32
+    }
+    
+    fn calculate_completeness_score(&self, answer: &str, question: &ProcessedQuestion) -> f32 {
+        let mut completeness = 0.5;
+        
+        // طول الإجابة المناسب
+        let answer_length = answer.len();
+        if answer_length >= 100 && answer_length <= 2000 {
+            completeness += 0.2;
+        }
+        
+        // تغطية المفاهيم المطلوبة
+        let answer_lower = answer.to_lowercase();
+        let covered_concepts = question.concepts.iter()
+            .filter(|concept| answer_lower.contains(&concept.to_lowercase()))
+            .count();
+        
+        if !question.concepts.is_empty() {
+            completeness += (covered_concepts as f32 / question.concepts.len() as f32) * 0.3;
+        }
+        
+        completeness.min(1.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio;
+
+    /// Test the complete RAG pipeline with a basic Islamic question
+    #[tokio::test]
+    async fn test_rag_pipeline_basic_question() {
+        let rag_system = RAGSystem::new();
+        
+        let request = RAGRequest {
+            question: "ما هي أركان الإسلام؟".to_string(),
+            user_id: Some("test_user".to_string()),
+            context: None,
+            preferences: None,
+        };
+        
+        let response = rag_system.ask_question(request).await;
+        
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        
+        // التحقق من وجود إجابة
+        assert!(!response.answer.is_empty());
+        
+        // التحقق من وجود مصادر
+        assert!(!response.retrieved_sources.is_empty());
+        
+        // التحقق من مستوى الثقة
+        assert!(response.confidence > 0.0);
+        assert!(response.confidence <= 1.0);
+        
+        // التحقق من مخاطر الاختلاق
+        assert!(response.hallucination_risk >= 0.0);
+        assert!(response.hallucination_risk <= 1.0);
+        
+        // التحقق من وجود أسئلة ذات صلة
+        assert!(!response.related_questions.is_empty());
+        
+        // التحقق من وجود مراجع
+        assert!(!response.citations.is_empty());
+        
+        println!("الإجابة: {}", response.answer);
+        println!("مستوى الثقة: {:.2}", response.confidence);
+        println!("مخاطر الاختلاق: {:.2}", response.hallucination_risk);
+        println!("عدد المصادر: {}", response.retrieved_sources.len());
+    }
+    
+    /// Test out-of-scope question detection
+    #[tokio::test]
+    async fn test_out_of_scope_question() {
+        let rag_system = RAGSystem::new();
+        
+        let request = RAGRequest {
+            question: "كيف أطبخ الأرز؟".to_string(),
+            user_id: Some("test_user".to_string()),
+            context: None,
+            preferences: None,
+        };
+        
+        let response = rag_system.ask_question(request).await;
+        
+        // يجب أن يفشل السؤال خارج النطاق
+        assert!(response.is_err());
+        
+        if let Err(error) = response {
+            assert!(matches!(error, AIServiceError::OutOfScopeQuestion(_)));
+            println!("تم رفض السؤال خارج النطاق: {}", error);
+        }
+    }
+    
+    /// Test performance requirements
+    #[tokio::test]
+    async fn test_performance_requirements() {
+        let rag_system = RAGSystem::new();
+        
+        let request = RAGRequest {
+            question: "ما هي أركان الإسلام؟".to_string(),
+            user_id: Some("performance_test".to_string()),
+            context: None,
+            preferences: None,
+        };
+        
+        let start_time = std::time::Instant::now();
+        let response = rag_system.ask_question(request).await;
+        let elapsed = start_time.elapsed();
+        
+        assert!(response.is_ok());
+        let response = response.unwrap();
+        
+        // التحقق من متطلبات الأداء (أقل من 30 ثانية)
+        assert!(elapsed.as_secs() < 30);
+        assert!(response.response_time_ms < 30000);
+        
+        println!("وقت الاستجابة: {} مللي ثانية", response.response_time_ms);
+        println!("الوقت الفعلي: {} مللي ثانية", elapsed.as_millis());
+    }
+}
+
+/// Citation structure for source references
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Citation {
+    pub id: String,
+    pub source: IslamicSource,
+    pub citation_text: String,
+    pub relevance_score: f32,
+    pub usage_type: CitationType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CitationType {
+    Primary,    // مصدر أساسي
+    Supporting, // مصدر داعم
+    Reference,  // مصدر مرجعي
 }
 
 /// Semantic search engine for retrieving relevant Islamic sources
 pub struct SemanticSearchEngine {
-    // في التطبيق الحقيقي، سيحتوي على اتصال بـ Qdrant
+    vector_db_client: VectorDatabaseClient,
+    embedding_service: EmbeddingService,
+    search_config: SearchConfig,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchConfig {
+    pub max_results: usize,
+    pub similarity_threshold: f32,
+    pub boost_quran: f32,
+    pub boost_sahih_hadith: f32,
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        Self {
+            max_results: 50,
+            similarity_threshold: 0.3,
+            boost_quran: 1.2,
+            boost_sahih_hadith: 1.1,
+        }
+    }
 }
 
 impl SemanticSearchEngine {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            vector_db_client: VectorDatabaseClient::new(),
+            embedding_service: EmbeddingService::new(),
+            search_config: SearchConfig::default(),
+        }
     }
     
     pub async fn search(&self, question: &ProcessedQuestion) -> Result<Vec<IslamicSource>> {
-        // هذا مثال مبسط - في التطبيق الحقيقي سيتم البحث في Qdrant
-        Ok(vec![
-            IslamicSource {
-                id: "quran_001".to_string(),
-                content_type: SourceType::Quran,
-                text: "مثال على آية قرآنية".to_string(),
-                reference: "البقرة: 1".to_string(),
-                author: None,
-                authenticity: AuthenticityLevel::Verified,
-                language: Language::Arabic,
-                metadata: HashMap::new(),
-                created_at: chrono::Utc::now(),
+        // 1. توليد embedding للسؤال
+        let query_embedding = self.embedding_service
+            .generate_embedding(&question.normalized_text).await?;
+        
+        // 2. البحث الدلالي في قاعدة البيانات
+        let mut search_results = self.vector_db_client
+            .similarity_search(&query_embedding, self.search_config.max_results).await?;
+        
+        // 3. فلترة النتائج حسب عتبة التشابه
+        search_results.retain(|result| result.similarity >= self.search_config.similarity_threshold);
+        
+        // 4. تطبيق تعزيز للمصادر المهمة
+        for result in &mut search_results {
+            match result.source.content_type {
+                SourceType::Quran => result.similarity *= self.search_config.boost_quran,
+                SourceType::SahihHadith => result.similarity *= self.search_config.boost_sahih_hadith,
+                _ => {}
             }
-        ])
+        }
+        
+        // 5. ترتيب النتائج حسب التشابه المحدث
+        search_results.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap());
+        
+        // 6. تحويل إلى IslamicSource
+        let sources: Vec<IslamicSource> = search_results
+            .into_iter()
+            .map(|result| result.source)
+            .collect();
+        
+        Ok(sources)
+    }
+    
+    pub async fn search_with_filters(
+        &self, 
+        question: &ProcessedQuestion,
+        content_types: &[SourceType],
+        min_authenticity: AuthenticityLevel,
+    ) -> Result<Vec<IslamicSource>> {
+        let mut sources = self.search(question).await?;
+        
+        // فلترة حسب نوع المحتوى
+        if !content_types.is_empty() {
+            sources.retain(|source| content_types.contains(&source.content_type));
+        }
+        
+        // فلترة حسب مستوى الموثوقية
+        sources.retain(|source| self.meets_authenticity_requirement(&source.authenticity, &min_authenticity));
+        
+        Ok(sources)
+    }
+    
+    fn meets_authenticity_requirement(&self, source_auth: &AuthenticityLevel, min_auth: &AuthenticityLevel) -> bool {
+        let source_score = match source_auth {
+            AuthenticityLevel::Verified => 5,
+            AuthenticityLevel::Reliable => 4,
+            AuthenticityLevel::Questionable => 3,
+            AuthenticityLevel::Unreliable => 2,
+            AuthenticityLevel::Unknown => 1,
+        };
+        
+        let min_score = match min_auth {
+            AuthenticityLevel::Verified => 5,
+            AuthenticityLevel::Reliable => 4,
+            AuthenticityLevel::Questionable => 3,
+            AuthenticityLevel::Unreliable => 2,
+            AuthenticityLevel::Unknown => 1,
+        };
+        
+        source_score >= min_score
+    }
+}
+
+/// Vector database client for similarity search
+pub struct VectorDatabaseClient {
+    // في التطبيق الحقيقي، سيحتوي على اتصال بـ Qdrant
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResult {
+    pub source: IslamicSource,
+    pub similarity: f32,
+    pub metadata: HashMap<String, String>,
+}
+
+impl VectorDatabaseClient {
+    pub fn new() -> Self {
+        Self {}
+    }
+    
+    pub async fn similarity_search(&self, embedding: &[f32], limit: usize) -> Result<Vec<SearchResult>> {
+        // محاكاة البحث في قاعدة البيانات
+        // في التطبيق الحقيقي، سيتم الاتصال بـ Qdrant
+        
+        let mock_results = vec![
+            SearchResult {
+                source: IslamicSource {
+                    id: "quran_002_255".to_string(),
+                    content_type: SourceType::Quran,
+                    text: "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ".to_string(),
+                    reference: "البقرة: 255".to_string(),
+                    author: None,
+                    authenticity: AuthenticityLevel::Verified,
+                    language: Language::Arabic,
+                    metadata: {
+                        let mut meta = HashMap::new();
+                        meta.insert("surah_number".to_string(), "2".to_string());
+                        meta.insert("ayah_number".to_string(), "255".to_string());
+                        meta.insert("juz".to_string(), "3".to_string());
+                        meta
+                    },
+                    created_at: chrono::Utc::now(),
+                },
+                similarity: 0.95,
+                metadata: HashMap::new(),
+            },
+            SearchResult {
+                source: IslamicSource {
+                    id: "hadith_bukhari_001".to_string(),
+                    content_type: SourceType::SahihHadith,
+                    text: "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى".to_string(),
+                    reference: "صحيح البخاري، كتاب بدء الوحي، حديث رقم 1".to_string(),
+                    author: Some("البخاري".to_string()),
+                    authenticity: AuthenticityLevel::Verified,
+                    language: Language::Arabic,
+                    metadata: {
+                        let mut meta = HashMap::new();
+                        meta.insert("book".to_string(), "صحيح البخاري".to_string());
+                        meta.insert("chapter".to_string(), "بدء الوحي".to_string());
+                        meta.insert("hadith_number".to_string(), "1".to_string());
+                        meta
+                    },
+                    created_at: chrono::Utc::now(),
+                },
+                similarity: 0.87,
+                metadata: HashMap::new(),
+            },
+            SearchResult {
+                source: IslamicSource {
+                    id: "tafsir_ibn_kathir_002_255".to_string(),
+                    content_type: SourceType::Tafsir,
+                    text: "هذه آية الكرسي وهي أعظم آية في القرآن الكريم".to_string(),
+                    reference: "تفسير ابن كثير، سورة البقرة، آية 255".to_string(),
+                    author: Some("ابن كثير".to_string()),
+                    authenticity: AuthenticityLevel::Verified,
+                    language: Language::Arabic,
+                    metadata: {
+                        let mut meta = HashMap::new();
+                        meta.insert("tafsir_book".to_string(), "تفسير ابن كثير".to_string());
+                        meta.insert("surah".to_string(), "البقرة".to_string());
+                        meta.insert("ayah".to_string(), "255".to_string());
+                        meta
+                    },
+                    created_at: chrono::Utc::now(),
+                },
+                similarity: 0.82,
+                metadata: HashMap::new(),
+            },
+        ];
+        
+        Ok(mock_results.into_iter().take(limit).collect())
+    }
+}
+
+/// Embedding service for generating text embeddings
+pub struct EmbeddingService {
+    model_name: String,
+}
+
+impl EmbeddingService {
+    pub fn new() -> Self {
+        Self {
+            model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2".to_string(),
+        }
+    }
+    
+    pub async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
+        // محاكاة توليد embedding
+        // في التطبيق الحقيقي، سيتم استخدام نموذج embedding حقيقي
+        
+        // توليد embedding وهمي بناءً على hash النص
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        text.hash(&mut hasher);
+        let hash = hasher.finish();
+        
+        // توليد vector بحجم 384 (حجم نموذج MiniLM)
+        let mut embedding = Vec::with_capacity(384);
+        let mut seed = hash;
+        
+        for _ in 0..384 {
+            seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+            let value = (seed as f32 / u64::MAX as f32) * 2.0 - 1.0; // تطبيع بين -1 و 1
+            embedding.push(value);
+        }
+        
+        // تطبيع الـ vector
+        let magnitude: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if magnitude > 0.0 {
+            for value in &mut embedding {
+                *value /= magnitude;
+            }
+        }
+        
+        Ok(embedding)
     }
 }
 
@@ -466,7 +1036,33 @@ impl ContextBuilder {
 }
 
 /// LLM interface for generating responses
-pub struct LLMInterface;
+pub struct LLMInterface {
+    client: HuggingFaceClient,
+    config: LLMConfig,
+}
+
+#[derive(Debug, Clone)]
+pub struct LLMConfig {
+    pub model_name: String,
+    pub max_tokens: usize,
+    pub temperature: f32,
+    pub top_p: f32,
+    pub include_citations: bool,
+    pub response_language: Language,
+}
+
+impl Default for LLMConfig {
+    fn default() -> Self {
+        Self {
+            model_name: "arabic-islamic-model".to_string(),
+            max_tokens: 1000,
+            temperature: 0.3,
+            top_p: 0.9,
+            include_citations: true,
+            response_language: Language::Arabic,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct GeneratedResponse {
@@ -474,36 +1070,253 @@ pub struct GeneratedResponse {
     pub confidence: f32,
     pub model_used: String,
     pub generation_time_ms: u64,
+    pub citations_included: bool,
+    pub token_count: usize,
 }
 
 impl LLMInterface {
     pub fn new() -> Self {
-        Self
+        Self {
+            client: HuggingFaceClient::new(),
+            config: LLMConfig::default(),
+        }
+    }
+    
+    pub fn with_config(config: LLMConfig) -> Self {
+        Self {
+            client: HuggingFaceClient::new(),
+            config,
+        }
     }
     
     pub async fn generate_response(&self, context: &GenerationContext) -> Result<GeneratedResponse> {
-        // في التطبيق الحقيقي، سيتم الاتصال بـ Hugging Face أو نموذج آخر
-        // هذا مثال مبسط
-        
         let start_time = Instant::now();
         
-        // محاكاة توليد الإجابة
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        // بناء الـ prompt الكامل
+        let full_prompt = self.build_prompt(context)?;
         
-        let response_text = format!(
-            "إجابة مولدة بناءً على {} مصادر للسؤال: {}",
-            context.sources.len(),
-            context.question
-        );
+        // توليد الإجابة باستخدام النموذج
+        let response_text = self.client.generate_text(
+            &full_prompt,
+            self.config.max_tokens,
+            self.config.temperature,
+            self.config.top_p,
+        ).await?;
+        
+        // معالجة الإجابة وإضافة المراجع
+        let processed_response = if self.config.include_citations {
+            self.add_citations_to_response(&response_text, &context.sources)?
+        } else {
+            response_text
+        };
+        
+        // حساب الثقة بناءً على جودة المصادر
+        let confidence = self.calculate_response_confidence(&context.sources);
         
         let generation_time = start_time.elapsed().as_millis() as u64;
         
         Ok(GeneratedResponse {
-            text: response_text,
-            confidence: 0.8,
-            model_used: "arabic-islamic-model".to_string(),
+            text: processed_response.clone(),
+            confidence,
+            model_used: self.config.model_name.clone(),
             generation_time_ms: generation_time,
+            citations_included: self.config.include_citations,
+            token_count: self.estimate_token_count(&processed_response),
         })
+    }
+    
+    fn build_prompt(&self, context: &GenerationContext) -> Result<String> {
+        let mut prompt = String::new();
+        
+        // إضافة التعليمات الأساسية
+        prompt.push_str(&context.instructions);
+        prompt.push_str("\n\n");
+        
+        // إضافة القيود
+        if !context.constraints.is_empty() {
+            prompt.push_str("القيود والضوابط:\n");
+            for constraint in &context.constraints {
+                prompt.push_str(&format!("- {}\n", constraint));
+            }
+            prompt.push_str("\n");
+        }
+        
+        // إضافة المصادر
+        if !context.sources.is_empty() {
+            prompt.push_str("المصادر المتاحة:\n");
+            for (index, source) in context.sources.iter().enumerate() {
+                prompt.push_str(&format!(
+                    "{}. {} ({})\n   النص: {}\n\n",
+                    index + 1,
+                    self.format_source_header(source),
+                    source.reference,
+                    source.text.chars().take(200).collect::<String>()
+                ));
+            }
+        }
+        
+        // إضافة السؤال
+        prompt.push_str(&format!("السؤال: {}\n\n", context.question));
+        prompt.push_str("الإجابة:");
+        
+        Ok(prompt)
+    }
+    
+    fn format_source_header(&self, source: &IslamicSource) -> String {
+        match source.content_type {
+            SourceType::Quran => "القرآن الكريم".to_string(),
+            SourceType::SahihHadith => "حديث صحيح".to_string(),
+            SourceType::HasanHadith => "حديث حسن".to_string(),
+            SourceType::DaifHadith => "حديث ضعيف".to_string(),
+            SourceType::Tafsir => {
+                if let Some(author) = &source.author {
+                    format!("تفسير {}", author)
+                } else {
+                    "تفسير".to_string()
+                }
+            },
+            SourceType::FiqhRuling => "حكم فقهي".to_string(),
+            SourceType::ScholarOpinion => {
+                if let Some(author) = &source.author {
+                    format!("رأي {}", author)
+                } else {
+                    "رأي علمي".to_string()
+                }
+            },
+            _ => "مصدر إسلامي".to_string(),
+        }
+    }
+    
+    fn add_citations_to_response(&self, response: &str, sources: &[IslamicSource]) -> Result<String> {
+        let mut response_with_citations = response.to_string();
+        
+        // إضافة قسم المراجع في نهاية الإجابة
+        if !sources.is_empty() {
+            response_with_citations.push_str("\n\n**المراجع:**\n");
+            
+            for (index, source) in sources.iter().enumerate() {
+                let citation = match source.content_type {
+                    SourceType::Quran => {
+                        format!("{}. القرآن الكريم، {}", index + 1, source.reference)
+                    },
+                    SourceType::SahihHadith | SourceType::HasanHadith | SourceType::DaifHadith => {
+                        if let Some(author) = &source.author {
+                            format!("{}. {}: {}", index + 1, author, source.reference)
+                        } else {
+                            format!("{}. {}", index + 1, source.reference)
+                        }
+                    },
+                    SourceType::Tafsir => {
+                        if let Some(author) = &source.author {
+                            format!("{}. تفسير {}: {}", index + 1, author, source.reference)
+                        } else {
+                            format!("{}. تفسير: {}", index + 1, source.reference)
+                        }
+                    },
+                    _ => {
+                        if let Some(author) = &source.author {
+                            format!("{}. {}: {}", index + 1, author, source.reference)
+                        } else {
+                            format!("{}. {}", index + 1, source.reference)
+                        }
+                    }
+                };
+                
+                response_with_citations.push_str(&format!("{}\n", citation));
+            }
+        }
+        
+        Ok(response_with_citations)
+    }
+    
+    fn calculate_response_confidence(&self, sources: &[IslamicSource]) -> f32 {
+        if sources.is_empty() {
+            return 0.3; // ثقة منخفضة بدون مصادر
+        }
+        
+        let mut total_confidence = 0.0;
+        let mut weight_sum = 0.0;
+        
+        for source in sources {
+            let source_weight = match source.content_type {
+                SourceType::Quran => 1.0,
+                SourceType::SahihHadith => 0.95,
+                SourceType::HasanHadith => 0.85,
+                SourceType::Tafsir => 0.8,
+                SourceType::FiqhRuling => 0.75,
+                SourceType::ScholarOpinion => 0.7,
+                SourceType::DaifHadith => 0.5,
+                _ => 0.6,
+            };
+            
+            let authenticity_score = match source.authenticity {
+                AuthenticityLevel::Verified => 1.0,
+                AuthenticityLevel::Reliable => 0.8,
+                AuthenticityLevel::Questionable => 0.5,
+                AuthenticityLevel::Unreliable => 0.3,
+                AuthenticityLevel::Unknown => 0.4,
+            };
+            
+            total_confidence += source_weight * authenticity_score;
+            weight_sum += source_weight;
+        }
+        
+        if weight_sum > 0.0 {
+            (total_confidence / weight_sum).min(1.0)
+        } else {
+            0.5
+        }
+    }
+    
+    fn estimate_token_count(&self, text: &str) -> usize {
+        // تقدير تقريبي لعدد الرموز (tokens)
+        // في المتوسط، كل 4 أحرف = رمز واحد للنصوص العربية
+        (text.len() / 4).max(1)
+    }
+}
+
+/// Hugging Face client for API communication
+pub struct HuggingFaceClient {
+    api_key: Option<String>,
+    base_url: String,
+}
+
+impl HuggingFaceClient {
+    pub fn new() -> Self {
+        Self {
+            api_key: std::env::var("HUGGINGFACE_API_KEY").ok(),
+            base_url: "https://api-inference.huggingface.co/models/".to_string(),
+        }
+    }
+    
+    pub async fn generate_text(
+        &self,
+        prompt: &str,
+        max_tokens: usize,
+        temperature: f32,
+        top_p: f32,
+    ) -> Result<String> {
+        // محاكاة استدعاء API
+        // في التطبيق الحقيقي، سيتم إرسال طلب HTTP إلى Hugging Face
+        
+        tokio::time::sleep(Duration::from_millis(800)).await;
+        
+        // توليد إجابة نموذجية بناءً على الـ prompt
+        let response = if prompt.contains("أركان الإسلام") {
+            "أركان الإسلام خمسة: شهادة أن لا إله إلا الله وأن محمداً رسول الله، وإقام الصلاة، وإيتاء الزكاة، وصوم رمضان، وحج البيت من استطاع إليه سبيلاً. هذا ما ثبت في الحديث الصحيح عن ابن عمر رضي الله عنهما.".to_string()
+        } else if prompt.contains("الوضوء") {
+            "الوضوء هو الطهارة الصغرى التي تتطلب غسل الوجه واليدين إلى المرفقين ومسح الرأس وغسل الرجلين إلى الكعبين، كما جاء في قوله تعالى في سورة المائدة. وهو شرط من شروط صحة الصلاة.".to_string()
+        } else if prompt.contains("الصلاة") {
+            "الصلاة هي الركن الثاني من أركان الإسلام وهي عماد الدين. فرضت خمس صلوات في اليوم والليلة: الفجر والظهر والعصر والمغرب والعشاء. وهي أول ما يحاسب عليه العبد يوم القيامة.".to_string()
+        } else {
+            format!(
+                "بناءً على المصادر المتاحة، يمكن القول أن هذا الموضوع يحتاج إلى دراسة أعمق. \
+                يُنصح بالرجوع إلى العلماء المختصين للحصول على إجابة شاملة ودقيقة. \
+                والله أعلم."
+            )
+        };
+        
+        Ok(response)
     }
 }
 

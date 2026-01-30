@@ -5,6 +5,12 @@ pub mod hadith_verifier;
 pub mod source_scorer;
 pub mod anti_hallucination;
 pub mod context_builder;
+pub mod hugging_face_client;
+pub mod vector_database;
+pub mod integration_service;
+pub mod config;
+pub mod service_manager;
+pub mod error_handler;
 
 #[cfg(test)]
 pub mod tests;
@@ -118,11 +124,40 @@ pub struct RAGResponse {
     pub confidence: f32,
     pub retrieved_sources: Vec<IslamicSource>,
     pub cited_sources: Vec<IslamicSource>,
+    pub citations: Vec<Citation>,
     pub related_questions: Vec<String>,
     pub warnings: Vec<String>,
     pub hallucination_risk: f32,
     pub response_time_ms: u64,
     pub metadata: HashMap<String, String>,
+    pub quality_metrics: QualityMetrics,
+}
+
+/// Quality metrics for the RAG response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityMetrics {
+    pub source_quality_score: f32,
+    pub relevance_score: f32,
+    pub completeness_score: f32,
+    pub authenticity_score: f32,
+    pub citation_coverage: f32,
+}
+
+/// Citation structure for source references
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Citation {
+    pub id: String,
+    pub source: IslamicSource,
+    pub citation_text: String,
+    pub relevance_score: f32,
+    pub usage_type: CitationType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CitationType {
+    Primary,    // مصدر أساسي
+    Supporting, // مصدر داعم
+    Reference,  // مصدر مرجعي
 }
 
 /// Error types for the AI service
@@ -151,6 +186,18 @@ pub enum AIServiceError {
     
     #[error("External API error: {0}")]
     ExternalAPIError(String),
+    
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+    
+    #[error("Cache error: {0}")]
+    CacheError(String),
+    
+    #[error("Rate limit exceeded: {0}")]
+    RateLimitExceeded(String),
+    
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
 }
 
 pub type Result<T> = std::result::Result<T, AIServiceError>;

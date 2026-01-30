@@ -1,6 +1,6 @@
 use super::*;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 /// Question processor for analyzing and preparing user questions
 pub struct QuestionProcessor {
@@ -37,11 +37,22 @@ impl QuestionProcessor {
     }
     
     pub async fn process_question(&self, question: &str) -> Result<ProcessedQuestion> {
-        // التحقق من أن السؤال ليس خارج النطاق
-        if self.out_of_scope_detector.is_out_of_scope(question) {
-            return Err(AIServiceError::OutOfScopeQuestion(
-                "السؤال خارج نطاق الاختصاص الإسلامي".to_string()
-            ));
+        // تحليل نطاق السؤال
+        let scope_analysis = self.out_of_scope_detector.get_scope_analysis(question);
+        
+        // التعامل مع الأسئلة خارج النطاق أو الحدودية
+        match scope_analysis.scope_status {
+            ScopeStatus::OutOfScope => {
+                let fallback_response = self.out_of_scope_detector.generate_fallback_response(&scope_analysis);
+                return Err(AIServiceError::OutOfScopeQuestion(fallback_response));
+            },
+            ScopeStatus::Borderline => {
+                // يمكن معالجة الأسئلة الحدودية مع تحذير
+                // لكن نتركها تمر للمعالجة مع إضافة تحذير لاحقاً
+            },
+            ScopeStatus::InScope => {
+                // السؤال في النطاق، نتابع المعالجة العادية
+            }
         }
         
         // تطبيع النص
@@ -308,33 +319,206 @@ impl QuestionClassifier {
     }
 }
 
-/// Out of scope detector for non-Islamic questions
+/// Enhanced out of scope detector for non-Islamic questions with fallback responses
 pub struct OutOfScopeDetector {
     out_of_scope_indicators: HashSet<String>,
+    borderline_topics: HashMap<String, String>,
+    fallback_responses: HashMap<String, String>,
+    islamic_context_keywords: HashSet<String>,
 }
 
 impl OutOfScopeDetector {
     pub fn new() -> Self {
         let indicators = [
-            "سياسة", "اقتصاد", "رياضة", "فن", "موسيقى", "سينما",
-            "طب", "هندسة", "رياضيات", "فيزياء", "كيمياء",
-            "برمجة", "تكنولوجيا", "كمبيوتر"
+            // تكنولوجيا ومعلومات
+            "برمجة", "كمبيوتر", "تكنولوجيا", "إنترنت", "هاتف", "تطبيق",
+            "ذكي", "روبوت", "ذكاء اصطناعي",
+            
+            // علوم طبيعية
+            "فيزياء", "كيمياء", "رياضيات", "جيولوجيا", "فلك", "بيولوجيا",
+            
+            // طب وصحة (غير الطب النبوي)
+            "دواء", "علاج", "مرض", "طبيب", "مستشفى", "عملية جراحية",
+            
+            // رياضة وترفيه
+            "كرة قدم", "رياضة", "لعبة", "فيلم", "مسلسل", "موسيقى", "غناء",
+            
+            // سياسة واقتصاد
+            "سياسة", "حكومة", "انتخابات", "رئيس", "وزير", "اقتصاد", "بورصة",
+            "أسهم", "بنك", "فوائد", "ربا", // ربا قد يكون إسلامي
+            
+            // طبخ وطعام (غير الحلال والحرام)
+            "طبخ", "وصفة", "مطعم", "طعام", "أكل",
+            
+            // سفر وسياحة
+            "سفر", "سياحة", "فندق", "طيران", "تذكرة",
+            
+            // موضة وجمال
+            "موضة", "أزياء", "مكياج", "تجميل", "شعر",
         ].iter().map(|s| s.to_string()).collect();
+
+        let mut borderline_topics = HashMap::new();
+        borderline_topics.insert("طب".to_string(), "الطب النبوي والعلاج بالقرآن والسنة".to_string());
+        borderline_topics.insert("اقتصاد".to_string(), "الاقتصاد الإسلامي والمعاملات المالية".to_string());
+        borderline_topics.insert("قانون".to_string(), "الفقه الإسلامي والأحكام الشرعية".to_string());
+        borderline_topics.insert("تاريخ".to_string(), "التاريخ الإسلامي والسيرة النبوية".to_string());
+        borderline_topics.insert("فلسفة".to_string(), "الفلسفة الإسلامية وعلم الكلام".to_string());
+        borderline_topics.insert("علم نفس".to_string(), "التزكية والأخلاق الإسلامية".to_string());
+
+        let mut fallback_responses = HashMap::new();
+        fallback_responses.insert("تكنولوجيا".to_string(), 
+            "أعتذر، لكن تخصصي في الشؤون الإسلامية. إذا كان لديك سؤال حول الاستخدام الإسلامي للتكنولوجيا أو آدابها في الإسلام، فسأكون سعيداً لمساعدتك.".to_string());
         
+        fallback_responses.insert("طب".to_string(),
+            "تخصصي في الشؤون الإسلامية وليس الطب. لكن يمكنني مساعدتك في موضوعات الطب النبوي، أو الأحكام الشرعية المتعلقة بالعلاج والصحة.".to_string());
+        
+        fallback_responses.insert("عام".to_string(),
+            "أعتذر، هذا السؤال خارج نطاق تخصصي في الشؤون الإسلامية. أنا هنا لمساعدتك في أمور الدين والفقه والعقيدة والقرآن والسنة. هل لديك سؤال إسلامي يمكنني مساعدتك فيه؟".to_string());
+
+        let islamic_context_keywords = [
+            "إسلام", "مسلم", "قرآن", "حديث", "سنة", "فقه", "شريعة", "حلال", "حرام",
+            "صلاة", "زكاة", "صوم", "حج", "عمرة", "دعاء", "ذكر", "تسبيح",
+            "نبي", "رسول", "صحابة", "تابعين", "علماء", "مذهب", "عقيدة",
+            "جنة", "نار", "آخرة", "يوم القيامة", "ملائكة", "جن", "شيطان"
+        ].iter().map(|s| s.to_string()).collect();
+
         Self {
             out_of_scope_indicators: indicators,
+            borderline_topics,
+            fallback_responses,
+            islamic_context_keywords,
         }
     }
     
     pub fn is_out_of_scope(&self, text: &str) -> bool {
         let normalized = text.to_lowercase();
         
-        for indicator in &self.out_of_scope_indicators {
-            if normalized.contains(indicator) {
-                return true;
-            }
+        // فحص وجود كلمات إسلامية - إذا وجدت، فالسؤال قد يكون في النطاق
+        let has_islamic_context = self.islamic_context_keywords.iter()
+            .any(|keyword| normalized.contains(keyword));
+        
+        if has_islamic_context {
+            return false; // لا نرفض الأسئلة التي تحتوي على سياق إسلامي
         }
         
-        false
+        // فحص المؤشرات الواضحة لخروج عن النطاق
+        let out_of_scope_count = self.out_of_scope_indicators.iter()
+            .filter(|indicator| normalized.contains(&indicator.to_lowercase()))
+            .count();
+        
+        // إذا كان هناك أكثر من مؤشر واحد، أو مؤشر واحد قوي
+        out_of_scope_count > 0
     }
+    
+    pub fn get_scope_analysis(&self, text: &str) -> ScopeAnalysis {
+        let normalized = text.to_lowercase();
+        
+        // تحليل السياق الإسلامي
+        let islamic_keywords: Vec<String> = self.islamic_context_keywords.iter()
+            .filter(|keyword| normalized.contains(&keyword.to_lowercase()))
+            .cloned()
+            .collect();
+        
+        // تحليل المؤشرات خارج النطاق
+        let out_of_scope_keywords: Vec<String> = self.out_of_scope_indicators.iter()
+            .filter(|indicator| normalized.contains(&indicator.to_lowercase()))
+            .cloned()
+            .collect();
+        
+        // تحليل الموضوعات الحدودية
+        let borderline_topics: Vec<String> = self.borderline_topics.keys()
+            .filter(|topic| normalized.contains(&topic.to_lowercase()))
+            .cloned()
+            .collect();
+        
+        // حساب درجة الانتماء للنطاق الإسلامي
+        let islamic_score = islamic_keywords.len() as f32;
+        let out_of_scope_score = out_of_scope_keywords.len() as f32;
+        let borderline_score = borderline_topics.len() as f32 * 0.5;
+        
+        let total_score = islamic_score - out_of_scope_score + borderline_score;
+        
+        let scope_status = if total_score > 0.5 {
+            ScopeStatus::InScope
+        } else if total_score > -0.5 || !borderline_topics.is_empty() {
+            ScopeStatus::Borderline
+        } else {
+            ScopeStatus::OutOfScope
+        };
+        
+        ScopeAnalysis {
+            scope_status,
+            islamic_keywords,
+            out_of_scope_keywords,
+            borderline_topics,
+            confidence_score: (total_score + 2.0) / 4.0, // تطبيع بين 0 و 1
+            suggested_islamic_angle: self.suggest_islamic_angle(&borderline_topics),
+        }
+    }
+    
+    pub fn generate_fallback_response(&self, analysis: &ScopeAnalysis) -> String {
+        match analysis.scope_status {
+            ScopeStatus::InScope => {
+                "هذا السؤال في نطاق تخصصي. سأحاول الإجابة عليه بإذن الله.".to_string()
+            },
+            ScopeStatus::Borderline => {
+                if let Some(suggestion) = &analysis.suggested_islamic_angle {
+                    format!(
+                        "هذا الموضوع يمكن أن يكون له جانب إسلامي. {}. هل تريد أن أركز على الجانب الإسلامي؟",
+                        suggestion
+                    )
+                } else {
+                    "هذا الموضوع قد يكون له جوانب إسلامية. هل يمكنك توضيح السؤال أكثر ليكون في نطاق الشؤون الإسلامية؟".to_string()
+                }
+            },
+            ScopeStatus::OutOfScope => {
+                // اختيار الرد المناسب بناءً على الموضوع
+                let category = self.categorize_out_of_scope_topic(&analysis.out_of_scope_keywords);
+                self.fallback_responses.get(&category)
+                    .unwrap_or(&self.fallback_responses["عام"])
+                    .clone()
+            }
+        }
+    }
+    
+    fn suggest_islamic_angle(&self, borderline_topics: &[String]) -> Option<String> {
+        for topic in borderline_topics {
+            if let Some(islamic_angle) = self.borderline_topics.get(topic) {
+                return Some(format!("يمكنني مساعدتك في {}", islamic_angle));
+            }
+        }
+        None
+    }
+    
+    fn categorize_out_of_scope_topic(&self, keywords: &[String]) -> String {
+        for keyword in keywords {
+            if ["برمجة", "كمبيوتر", "تكنولوجيا"].contains(&keyword.as_str()) {
+                return "تكنولوجيا".to_string();
+            }
+            if ["دواء", "علاج", "طبيب"].contains(&keyword.as_str()) {
+                return "طب".to_string();
+            }
+            if ["رياضة", "لعبة", "فيلم"].contains(&keyword.as_str()) {
+                return "ترفيه".to_string();
+            }
+        }
+        "عام".to_string()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ScopeAnalysis {
+    pub scope_status: ScopeStatus,
+    pub islamic_keywords: Vec<String>,
+    pub out_of_scope_keywords: Vec<String>,
+    pub borderline_topics: Vec<String>,
+    pub confidence_score: f32,
+    pub suggested_islamic_angle: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ScopeStatus {
+    InScope,      // داخل النطاق الإسلامي
+    Borderline,   // على الحدود - يمكن أن يكون له جانب إسلامي
+    OutOfScope,   // خارج النطاق تماماً
 }

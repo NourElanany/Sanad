@@ -1,0 +1,11 @@
+[package]
+name = "anti_hallucination_test"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "test_anti_hallucination"
+path = "test_anti_hallucination.rs"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }

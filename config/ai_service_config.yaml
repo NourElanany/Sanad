@@ -1,0 +1,252 @@
+# AI Service Configuration for Islamic Application
+# This configuration file sets up the integration between Hugging Face and Vector Database
+
+# Hugging Face Configuration
+hugging_face:
+  api_key: "${HUGGING_FACE_API_KEY}" # Set via environment variable
+  base_url: "https://api-inference.huggingface.co"
+  timeout_seconds: 30
+  max_retries: 3
+  requests_per_minute: 60
+  default_model: "microsoft/DialoGPT-medium"
+  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  
+  # Islamic-specific models configuration
+  islamic_models:
+    - name: "Arabic Islamic General"
+      model_id: "aubmindlab/bert-base-arabertv02"
+      specialization: "General"
+      language: "Arabic"
+      priority: 1
+      max_tokens: 1000
+      temperature: 0.3
+    
+    - name: "Arabic BERT CamelBERT"
+      model_id: "CAMeL-Lab/bert-base-arabic-camelbert-mix"
+      specialization: "Arabic"
+      language: "Arabic"
+      priority: 2
+      max_tokens: 1000
+      temperature: 0.3
+    
+    - name: "Multilingual Sentence Transformer"
+      model_id: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+      specialization: "General"
+      language: "Multilingual"
+      priority: 3
+      max_tokens: 512
+      temperature: 0.2
+
+# Vector Database (Qdrant) Configuration
+vector_database:
+  host: "${QDRANT_HOST:-localhost}"
+  port: 6333
+  collection_name: "islamic_sources"
+  vector_size: 384
+  distance_metric: "Cosine"
+  timeout_seconds: 30
+  max_retries: 3
+  batch_size: 100
+  
+  # Index optimization settings
+  index_settings:
+    hnsw_ef_construct: 200
+    hnsw_m: 16
+    quantization_enabled: false
+    on_disk_payload: true
+
+# Cache Configuration
+cache:
+  enable_query_cache: true
+  enable_response_cache: true
+  enable_embedding_cache: true
+  query_cache_ttl_seconds: 3600      # 1 hour
+  response_cache_ttl_seconds: 1800   # 30 minutes
+  embedding_cache_ttl_seconds: 7200  # 2 hours
+  max_cache_size: 10000
+  
+  # Redis configuration (optional, falls back to local cache if not available)
+  redis:
+    url: "${REDIS_URL:-redis://localhost:6379}"
+    pool_size: 10
+    timeout_seconds: 5
+    cluster_mode: false
+    cluster_nodes: []
+  
+  # Local cache fallback
+  local_cache:
+    max_memory_mb: 512
+    eviction_policy: "LRU"
+    compression_enabled: true
+
+# Fallback Configuration
+fallback:
+  enable_fallback: true
+  max_fallback_attempts: 3
+  fallback_delay_seconds: 2
+  enable_offline_mode: true
+  
+  # Fallback models in priority order
+  fallback_models:
+    - "aubmindlab/bert-base-arabertv02"
+    - "CAMeL-Lab/bert-base-arabic-camelbert-mix"
+    - "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  
+  # Offline responses for different scenarios
+  offline_responses:
+    default: "عذراً، الخدمة غير متاحة حالياً. يرجى المحاولة لاحقاً أو استشارة العلماء المختصين."
+    network_error: "حدث خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى."
+    service_unavailable: "الخدمة غير متاحة مؤقتاً. نعمل على حل المشكلة. يرجى المحاولة لاحقاً."
+    rate_limit_exceeded: "تم تجاوز الحد المسموح من الطلبات. يرجى الانتظار قليلاً قبل المحاولة مرة أخرى."
+    model_loading: "النموذج قيد التحميل. يرجى الانتظار قليلاً والمحاولة مرة أخرى."
+  
+  # Circuit breaker configuration
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout_seconds: 60
+    half_open_max_calls: 3
+
+# Rate Limiting Configuration
+rate_limiting:
+  requests_per_minute: 60
+  requests_per_hour: 1000
+  burst_limit: 10
+  enable_adaptive_rate_limiting: true
+  
+  # Per-user rate limits (can be customized)
+  per_user_limits:
+    premium_user:
+      requests_per_minute: 120
+      requests_per_hour: 2000
+      priority: 1
+    
+    scholar_user:
+      requests_per_minute: 100
+      requests_per_hour: 1500
+      priority: 2
+    
+    regular_user:
+      requests_per_minute: 60
+      requests_per_hour: 1000
+      priority: 3
+
+# Monitoring Configuration
+monitoring:
+  enable_metrics: true
+  enable_tracing: true
+  metrics_endpoint: "/metrics"
+  log_level: "INFO"
+  health_check_interval_seconds: 30
+
+# Development and Testing Settings
+development:
+  enable_debug_mode: false
+  enable_test_mode: false
+  mock_external_apis: false
+  
+  # Test configuration overrides
+  test_overrides:
+    hugging_face:
+      timeout_seconds: 5
+      max_retries: 1
+    vector_database:
+      collection_name: "test_islamic_sources"
+    cache:
+      max_cache_size: 100
+
+# Production Optimizations
+production:
+  # Connection pooling
+  connection_pools:
+    hugging_face_pool_size: 10
+    vector_db_pool_size: 20
+    redis_pool_size: 15
+  
+  # Performance tuning
+  performance:
+    max_concurrent_requests: 100
+    request_timeout_seconds: 45
+    batch_processing_size: 50
+    enable_request_compression: true
+  
+  # Security settings
+  security:
+    enable_request_validation: true
+    enable_response_sanitization: true
+    max_request_size_mb: 10
+    enable_audit_logging: true
+
+# Backup and Recovery
+backup:
+  enable_automatic_backup: true
+  backup_interval_hours: 24
+  backup_retention_days: 30
+  backup_location: "/data/backups/ai_service"
+  
+  # What to backup
+  backup_components:
+    - cache_data
+    - configuration
+    - metrics
+    - logs
+
+# Quality Assurance
+quality_assurance:
+  # Response validation
+  enable_response_validation: true
+  min_response_length: 10
+  max_response_length: 5000
+  
+  # Content filtering
+  enable_content_filtering: true
+  blocked_patterns:
+    - "من قرأ هذا الحديث"
+    - "من نشر هذا الحديث"
+    - "ثواب عظيم لمن قرأ"
+    - "من أرسل هذا"
+  
+  # Quality metrics targets
+  target_metrics:
+    response_accuracy: 0.95
+    source_relevance: 0.90
+    user_satisfaction: 0.85
+    hallucination_rate: 0.01
+
+# Alerting Configuration
+alerting:
+  enable_alerts: true
+  alert_channels:
+    - email
+    - slack
+    - webhook
+  
+  # Alert thresholds
+  thresholds:
+    error_rate_percent: 5.0
+    response_time_ms: 10000
+    cache_hit_rate_percent: 70.0
+    service_availability_percent: 99.0
+  
+  # Alert recipients
+  recipients:
+    email: ["admin@islamicapp.com", "devops@islamicapp.com"]
+    slack_webhook: "${SLACK_WEBHOOK_URL}"
+    webhook_url: "${ALERT_WEBHOOK_URL}"
+
+# Feature Flags
+feature_flags:
+  enable_semantic_search: true
+  enable_rag_system: true
+  enable_hadith_verification: true
+  enable_anti_hallucination: true
+  enable_multilingual_support: true
+  enable_advanced_caching: true
+  enable_circuit_breaker: true
+  enable_adaptive_rate_limiting: true
+
+# Experimental Features (use with caution)
+experimental:
+  enable_model_fine_tuning: false
+  enable_dynamic_model_selection: false
+  enable_federated_search: false
+  enable_real_time_learning: false
