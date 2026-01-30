@@ -17,6 +17,9 @@ use crate::spectrum_analyzer::SpectrumAnalyzer;
 use crate::reference_manager::ReferenceManager;
 use crate::comparison_engine::ComparisonEngine;
 use crate::scoring_system::RecitationScoringSystem;
+use crate::progress_tracker::{ProgressTracker, UserProgressData, ProgressUpdate};
+use crate::improvement_engine::{ImprovementEngine, LearningPlan, AdaptiveRecommendation, ProgressPrediction, MotivationalInsights};
+use crate::reward_system::{RewardSystem, UserRewardStatus, RewardUpdate, GamificationStatus, Challenge, DailyGoal, WeeklyGoal};
 use crate::models::*;
 
 /// Main service for audio analysis and recitation correction
@@ -27,6 +30,9 @@ pub struct AudioAnalysisService {
     reference_manager: Arc<Mutex<ReferenceManager>>,
     comparison_engine: ComparisonEngine,
     scoring_system: RecitationScoringSystem,
+    progress_tracker: Arc<Mutex<ProgressTracker>>,
+    improvement_engine: ImprovementEngine,
+    reward_system: RewardSystem,
     active_sessions: Arc<Mutex<HashMap<String, RecordingSession>>>,
     // Store recordings in memory for now (in production, use database)
     recordings: Arc<Mutex<HashMap<Uuid, AudioRecording>>>,
@@ -44,6 +50,9 @@ impl AudioAnalysisService {
         let reference_manager = Arc::new(Mutex::new(ReferenceManager::new("reference_audio")?));
         let comparison_engine = ComparisonEngine::new();
         let scoring_system = RecitationScoringSystem::new();
+        let progress_tracker = Arc::new(Mutex::new(ProgressTracker::new()));
+        let improvement_engine = ImprovementEngine::new();
+        let reward_system = RewardSystem::new();
         let active_sessions = Arc::new(Mutex::new(HashMap::new()));
         let recordings = Arc::new(Mutex::new(HashMap::new()));
         
@@ -60,6 +69,9 @@ impl AudioAnalysisService {
             reference_manager,
             comparison_engine,
             scoring_system,
+            progress_tracker,
+            improvement_engine,
+            reward_system,
             active_sessions,
             recordings,
         })
@@ -221,13 +233,30 @@ impl AudioAnalysisService {
             tajweed_accuracy: detailed_scores.tajweed_accuracy,
             pronunciation_accuracy: detailed_scores.pronunciation_accuracy,
             timing_accuracy: detailed_scores.timing_accuracy,
-            errors: tajweed_errors,
+            errors: tajweed_errors.clone(),
             improvements,
             next_steps,
             analyzed_at: Utc::now(),
         };
         
         info!("Analyzed recording: {} (score: {:.2})", recording_id, detailed_scores.overall_score);
+        
+        // Update user progress if user_id is available
+        if let Some(user_id) = recording.user_id {
+            let session_duration = 5; // Would calculate actual duration
+            let progress_update = self.update_user_progress(
+                user_id,
+                recording.surah_number,
+                recording.ayah_start,
+                detailed_scores.overall_score,
+                &tajweed_errors,
+                session_duration,
+            ).await?;
+            
+            info!("Updated progress for user: {} (new achievements: {})", 
+                  user_id, progress_update.new_achievements.len());
+        }
+        
         Ok(analysis)
     }
     
@@ -340,6 +369,176 @@ impl AudioAnalysisService {
             audio_devices,
             storage,
             performance,
+            last_updated: Utc::now(),
+        })
+    }
+    
+    // === TRACKING AND IMPROVEMENT SYSTEM METHODS ===
+    
+    /// Initialize progress tracking for a new user
+    pub async fn initialize_user_progress(&self, user_id: Uuid) -> Result<()> {
+        let mut tracker = self.progress_tracker.lock().await;
+        tracker.initialize_user_progress(user_id)?;
+        info!("Initialized progress tracking for user: {}", user_id);
+        Ok(())
+    }
+    
+    /// Update user progress after a practice session
+    pub async fn update_user_progress(
+        &self,
+        user_id: Uuid,
+        surah: u8,
+        ayah: u16,
+        score: f64,
+        errors: &[TajweedError],
+        session_duration_minutes: u32,
+    ) -> Result<ProgressUpdate> {
+        let mut tracker = self.progress_tracker.lock().await;
+        let progress_update = tracker.update_progress(
+            user_id,
+            surah,
+            ayah,
+            score,
+            errors,
+            session_duration_minutes,
+        )?;
+        
+        // Check for rewards
+        if let Ok(user_progress) = self.get_user_progress_data(user_id).await {
+            let reward_update = self.reward_system.check_rewards(&user_progress)?;
+            
+            if !reward_update.new_achievements.is_empty() || !reward_update.new_badges.is_empty() {
+                info!("User {} earned {} new achievements and {} new badges", 
+                      user_id, reward_update.new_achievements.len(), reward_update.new_badges.len());
+            }
+        }
+        
+        Ok(progress_update)
+    }
+    
+    /// Get user's progress data
+    pub async fn get_user_progress_data(&self, user_id: Uuid) -> Result<UserProgressData> {
+        let tracker = self.progress_tracker.lock().await;
+        tracker.get_user_progress(&user_id)
+            .cloned()
+            .context("User progress not found")
+    }
+    
+    /// Generate personalized exercises for a user
+    pub async fn generate_personalized_exercises(&self, user_id: Uuid) -> Result<Vec<crate::progress_tracker::Exercise>> {
+        let tracker = self.progress_tracker.lock().await;
+        tracker.generate_personalized_exercises(user_id)
+    }
+    
+    /// Get detailed performance statistics for a user
+    pub async fn get_performance_statistics(&self, user_id: Uuid) -> Result<crate::progress_tracker::PerformanceStatistics> {
+        let tracker = self.progress_tracker.lock().await;
+        tracker.get_performance_statistics(user_id)
+    }
+    
+    /// Generate improvement recommendations
+    pub async fn generate_improvement_recommendations(
+        &self,
+        user_id: Uuid,
+        recent_errors: &[TajweedError],
+        session_count: u32,
+    ) -> Result<Vec<crate::progress_tracker::ImprovementRecommendation>> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.improvement_engine.generate_recommendations(&user_progress, recent_errors, session_count)
+    }
+    
+    /// Create a personalized learning plan
+    pub async fn create_learning_plan(
+        &self,
+        user_id: Uuid,
+        target_duration_weeks: u32,
+        daily_practice_minutes: u32,
+    ) -> Result<LearningPlan> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.improvement_engine.create_learning_plan(&user_progress, target_duration_weeks, daily_practice_minutes)
+    }
+    
+    /// Generate adaptive recommendations based on recent performance
+    pub async fn generate_adaptive_recommendations(&self, user_id: Uuid) -> Result<Vec<AdaptiveRecommendation>> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.improvement_engine.generate_adaptive_recommendations(&user_progress, &user_progress.practice_history)
+    }
+    
+    /// Predict user progress
+    pub async fn predict_progress(&self, user_id: Uuid, weeks_ahead: u32) -> Result<ProgressPrediction> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.improvement_engine.predict_progress(&user_progress, weeks_ahead)
+    }
+    
+    /// Generate motivational insights
+    pub async fn generate_motivational_insights(&self, user_id: Uuid) -> Result<MotivationalInsights> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.improvement_engine.generate_motivational_insights(&user_progress, None)
+    }
+    
+    /// Get user's reward status
+    pub async fn get_user_reward_status(&self, user_id: Uuid) -> Result<UserRewardStatus> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.reward_system.get_user_reward_status(&user_progress)
+    }
+    
+    /// Generate daily goals for a user
+    pub async fn generate_daily_goals(&self, user_id: Uuid) -> Result<Vec<DailyGoal>> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.reward_system.generate_daily_goals(&user_progress)
+    }
+    
+    /// Generate weekly goals for a user
+    pub async fn generate_weekly_goals(&self, user_id: Uuid) -> Result<Vec<WeeklyGoal>> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.reward_system.generate_weekly_goals(&user_progress)
+    }
+    
+    /// Generate challenges for a user
+    pub async fn generate_challenges(&self, user_id: Uuid) -> Result<Vec<Challenge>> {
+        let user_progress = self.get_user_progress_data(user_id).await?;
+        self.reward_system.generate_challenges(&user_progress)
+    }
+    
+    /// Get gamification status for a user
+    pub async fn get_gamification_status(&self, user_id: Uuid) -> Result<GamificationStatus> {
+        let daily_goals = self.generate_daily_goals(user_id).await?;
+        let weekly_goals = self.generate_weekly_goals(user_id).await?;
+        let challenges = self.generate_challenges(user_id).await?;
+        
+        Ok(GamificationStatus {
+            user_id,
+            current_challenges: challenges,
+            leaderboard_position: None, // Would implement leaderboard system
+            seasonal_events: Vec::new(), // Would implement seasonal events
+            daily_goals,
+            weekly_goals,
+        })
+    }
+    
+    /// Get comprehensive user dashboard data
+    pub async fn get_user_dashboard(&self, user_id: Uuid) -> Result<UserDashboard> {
+        let progress_data = self.get_user_progress_data(user_id).await?;
+        let performance_stats = self.get_performance_statistics(user_id).await?;
+        let reward_status = self.get_user_reward_status(user_id).await?;
+        let gamification_status = self.get_gamification_status(user_id).await?;
+        let personalized_exercises = self.generate_personalized_exercises(user_id).await?;
+        let improvement_recommendations = self.generate_improvement_recommendations(
+            user_id, 
+            &[], // Would pass recent errors
+            progress_data.practice_history.len() as u32
+        ).await?;
+        let motivational_insights = self.generate_motivational_insights(user_id).await?;
+        
+        Ok(UserDashboard {
+            user_id,
+            progress_data,
+            performance_stats,
+            reward_status,
+            gamification_status,
+            personalized_exercises,
+            improvement_recommendations,
+            motivational_insights,
             last_updated: Utc::now(),
         })
     }

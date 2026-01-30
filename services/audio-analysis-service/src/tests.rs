@@ -2,7 +2,11 @@ use crate::audio_processor::AudioProcessor;
 use crate::audio_recorder::AudioRecorder;
 use crate::spectrum_analyzer::{SpectrumAnalyzer, WindowType};
 use crate::comparison_engine::ComparisonEngine;
+use crate::service::AudioAnalysisService;
+use crate::models::*;
 use std::f32::consts::PI;
+use uuid::Uuid;
+use shared::{TajweedError, TajweedErrorType, ErrorSeverity};
 
 /// Generate a sine wave for testing
 fn generate_sine_wave(frequency: f32, sample_rate: u32, duration: f32) -> Vec<f32> {
@@ -167,6 +171,181 @@ fn test_audio_recorder_duration_limits() {
     let (min, max) = recorder.get_limits();
     assert_eq!(min, std::time::Duration::from_millis(500));
     assert_eq!(max, std::time::Duration::from_secs(60));
+}
+
+// === TRACKING AND IMPROVEMENT SYSTEM TESTS ===
+
+#[tokio::test]
+async fn test_user_progress_tracking() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    let result = service.initialize_user_progress(user_id).await;
+    assert!(result.is_ok());
+    
+    // Update progress
+    let errors = vec![
+        TajweedError {
+            error_type: TajweedErrorType::Ghunnah,
+            start_time: 1.0,
+            end_time: 2.0,
+            severity: ErrorSeverity::Minor,
+            description: "Weak Ghunnah".to_string(),
+            correction_suggestion: "Increase nasal resonance".to_string(),
+            reference_audio_path: None,
+        }
+    ];
+    
+    let update_result = service.update_user_progress(user_id, 1, 1, 0.8, &errors, 20).await;
+    assert!(update_result.is_ok());
+    
+    let update = update_result.unwrap();
+    // First update might or might not have achievements
+    
+    // Get progress data
+    let progress_result = service.get_user_progress_data(user_id).await;
+    assert!(progress_result.is_ok());
+    
+    let progress = progress_result.unwrap();
+    assert_eq!(progress.user_id, user_id);
+    assert_eq!(progress.overall_stats.total_recordings, 1);
+    assert_eq!(progress.overall_stats.best_score, 0.8);
+}
+
+#[tokio::test]
+async fn test_personalized_exercises() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Generate exercises
+    let result = service.generate_personalized_exercises(user_id).await;
+    assert!(result.is_ok());
+    
+    let exercises = result.unwrap();
+    assert!(!exercises.is_empty());
+    
+    // Exercises should have proper structure
+    for exercise in &exercises {
+        assert!(!exercise.title.is_empty());
+        assert!(!exercise.description.is_empty());
+        assert!(!exercise.instructions.is_empty());
+        assert!(exercise.estimated_duration_minutes > 0);
+    }
+}
+
+#[tokio::test]
+async fn test_improvement_recommendations() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Generate recommendations
+    let result = service.generate_improvement_recommendations(user_id, &[], 5).await;
+    assert!(result.is_ok());
+    
+    let recommendations = result.unwrap();
+    assert!(!recommendations.is_empty());
+    
+    // Recommendations should have proper structure
+    for rec in &recommendations {
+        assert!(!rec.title.is_empty());
+        assert!(!rec.description.is_empty());
+        assert!(rec.estimated_time_minutes > 0);
+        assert!(!rec.exercises.is_empty());
+    }
+}
+
+#[tokio::test]
+async fn test_learning_plan_creation() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Create learning plan
+    let result = service.create_learning_plan(user_id, 12, 30).await;
+    assert!(result.is_ok());
+    
+    let plan = result.unwrap();
+    assert_eq!(plan.user_id, user_id);
+    assert_eq!(plan.estimated_duration_weeks, 12);
+    assert_eq!(plan.daily_practice_minutes, 30);
+    assert!(!plan.phases.is_empty());
+    
+    // Phases should be properly structured
+    for (i, phase) in plan.phases.iter().enumerate() {
+        assert_eq!(phase.phase_number, (i + 1) as u32);
+        assert!(!phase.title.is_empty());
+        assert!(!phase.focus_skills.is_empty());
+        assert!(!phase.exercises.is_empty());
+    }
+}
+
+#[tokio::test]
+async fn test_reward_system() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Get reward status
+    let result = service.get_user_reward_status(user_id).await;
+    assert!(result.is_ok());
+    
+    let status = result.unwrap();
+    assert_eq!(status.user_id, user_id);
+    assert!(status.current_level >= 1);
+    assert!(!status.level_title.is_empty());
+}
+
+#[tokio::test]
+async fn test_daily_goals() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Generate daily goals
+    let result = service.generate_daily_goals(user_id).await;
+    assert!(result.is_ok());
+    
+    let goals = result.unwrap();
+    assert!(!goals.is_empty());
+    
+    // Goals should have proper structure
+    for goal in &goals {
+        assert!(!goal.description.is_empty());
+        assert!(goal.target_value > 0.0);
+        assert!(goal.reward_points > 0);
+    }
+}
+
+#[tokio::test]
+async fn test_user_dashboard() {
+    let service = AudioAnalysisService::new().await.unwrap();
+    let user_id = Uuid::new_v4();
+    
+    // Initialize user progress
+    service.initialize_user_progress(user_id).await.unwrap();
+    
+    // Get dashboard
+    let result = service.get_user_dashboard(user_id).await;
+    assert!(result.is_ok());
+    
+    let dashboard = result.unwrap();
+    assert_eq!(dashboard.user_id, user_id);
+    assert!(!dashboard.personalized_exercises.is_empty());
+    assert!(!dashboard.improvement_recommendations.is_empty());
+    assert!(!dashboard.motivational_insights.encouragement_message.is_empty());
 }
 
 /// Property-based test for spectrum analysis consistency

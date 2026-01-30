@@ -294,3 +294,17 @@ pub struct PerformanceMetrics {
     pub memory_usage_mb: f64,
     pub active_threads: usize,
 }
+
+/// Comprehensive user dashboard data
+#[derive(Debug, Clone, Serialize)]
+pub struct UserDashboard {
+    pub user_id: Uuid,
+    pub progress_data: crate::progress_tracker::UserProgressData,
+    pub performance_stats: crate::progress_tracker::PerformanceStatistics,
+    pub reward_status: crate::reward_system::UserRewardStatus,
+    pub gamification_status: crate::reward_system::GamificationStatus,
+    pub personalized_exercises: Vec<crate::progress_tracker::Exercise>,
+    pub improvement_recommendations: Vec<crate::progress_tracker::ImprovementRecommendation>,
+    pub motivational_insights: crate::improvement_engine::MotivationalInsights,
+    pub last_updated: DateTime<Utc>,
+}
