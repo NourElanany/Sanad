@@ -75,6 +75,7 @@ members = [
     "services/audio-analysis-service",
     "services/khatma-service",
     "services/notification-service",
+    "services/widgets-service",
     "services/cache-service",
     "gateway",
     "shared"

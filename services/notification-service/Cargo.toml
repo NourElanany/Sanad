@@ -5,8 +5,17 @@ edition = "2021"
 
 [dependencies]
 shared = { path = "../../shared" }
-tokio = { workspace = true }
-axum = { workspace = true }
-serde = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+axum = { workspace = true, features = ["macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde"] }
+anyhow = { workspace = true }
+rust_decimal = { version = "1.33", features = ["serde"] }
+
+[dev-dependencies]
+proptest = "1.4"

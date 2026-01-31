@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الودجات - التطبيق الإسلامي الشامل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .widgets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4CAF50, #2196F3, #FF9800);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .widget-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .widget-refresh {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .widget-refresh:hover {
+            background-color: #f0f0f0;
+        }
+
+        .widget-content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* Prayer Time Widget */
+        .prayer-time-widget .prayer-info {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .prayer-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+
+        .prayer-name-arabic {
+            font-size: 1.8rem;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .time-remaining {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #FF5722;
+            margin-bottom: 5px;
+        }
+
+        .prayer-time {
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        /* Verse of Day Widget */
+        .verse-widget .verse-arabic {
+            font-size: 1.4rem;
+            line-height: 2;
+            color: #2E7D32;
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-right: 4px solid #4CAF50;
+        }
+
+        .verse-translation {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .verse-reference {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Khatma Progress Widget */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .khatma-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Quick Stats Widget */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .quick-stat {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .quick-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .quick-stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Dhikr Widget */
+        .dhikr-widget .dhikr-arabic {
+            font-size: 1.6rem;
+            color: #2E7D32;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+
+        .dhikr-translation {
+            text-align: center;
+            color: #555;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .dhikr-counter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+
+        .counter-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .counter-button:hover {
+            background: #45a049;
+        }
+
+        /* Loading state */
+        .widget.loading {
+            opacity: 0.7;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .widgets-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .quick-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>لوحة الودجات التفاعلية</h1>
+            <p>الشاشة الرئيسية للتطبيق الإسلامي الشامل</p>
+        </div>
+
+        <div class="widgets-grid">
+            <!-- Next Prayer Time Widget -->
+            <div class="widget prayer-time-widget" id="prayer-widget">
+                <div class="widget-header">
+                    <div class="widget-title">وقت الصلاة التالي</div>
+                    <button class="widget-refresh" onclick="refreshWidget('prayer-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div class="prayer-info">
+                        <div class="prayer-name-arabic">المغرب</div>
+                        <div class="prayer-name">Maghrib</div>
+                        <div class="time-remaining">2:15</div>
+                        <div class="prayer-time">يبقى ساعتان و 15 دقيقة</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verse of the Day Widget -->
+            <div class="widget verse-widget" id="verse-widget">
+                <div class="widget-header">
+                    <div class="widget-title">آية اليوم</div>
+                    <button class="widget-refresh" onclick="refreshWidget('verse-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div class="verse-arabic">
+                        اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ
+                    </div>
+                    <div class="verse-translation">
+                        "Allah - there is no deity except Him, the Ever-Living, the Sustainer of existence. Neither drowsiness overtakes Him nor sleep."
+                    </div>
+                    <div class="verse-reference">
+                        سورة البقرة - آية 255 (آية الكرسي)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khatma Progress Widget -->
+            <div class="widget khatma-widget" id="khatma-widget">
+                <div class="widget-header">
+                    <div class="widget-title">تقدم الختمة</div>
+                    <button class="widget-refresh" onclick="refreshWidget('khatma-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div class="progress-text">35.5% مكتمل</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35.5%"></div>
+                    </div>
+                    <div class="khatma-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">215</div>
+                            <div class="stat-label">صفحة مقروءة</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">45</div>
+                            <div class="stat-label">يوم متبقي</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">أيام متتالية</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">2.0</div>
+                            <div class="stat-label">صفحات اليوم</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats Widget -->
+            <div class="widget stats-widget" id="stats-widget">
+                <div class="widget-header">
+                    <div class="widget-title">الإحصائيات السريعة</div>
+                    <button class="widget-refresh" onclick="refreshWidget('stats-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div class="quick-stats">
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">4/5</div>
+                            <div class="quick-stat-label">صلوات اليوم</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">3.5</div>
+                            <div class="quick-stat-label">صفحات قرآن</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">25</div>
+                            <div class="quick-stat-label">أذكار مكتملة</div>
+                        </div>
+                        <div class="quick-stat">
+                            <div class="quick-stat-value">8</div>
+                            <div class="quick-stat-label">أيام متتالية</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dhikr Reminder Widget -->
+            <div class="widget dhikr-widget" id="dhikr-widget">
+                <div class="widget-header">
+                    <div class="widget-title">تذكير الأذكار</div>
+                    <button class="widget-refresh" onclick="refreshWidget('dhikr-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div class="dhikr-arabic">
+                        سُبْحَانَ اللَّهِ وَبِحَمْدِهِ
+                    </div>
+                    <div class="dhikr-translation">
+                        "Glory is to Allah and praise is to Him"
+                    </div>
+                    <div class="dhikr-counter">
+                        <span>التكرار: <span id="dhikr-count">0</span> / 100</span>
+                        <button class="counter-button" onclick="incrementDhikr()">سبح الله</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Islamic Calendar Widget -->
+            <div class="widget calendar-widget" id="calendar-widget">
+                <div class="widget-header">
+                    <div class="widget-title">التقويم الهجري</div>
+                    <button class="widget-refresh" onclick="refreshWidget('calendar-widget')">🔄</button>
+                </div>
+                <div class="widget-content">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #2196F3;">
+                            15 ربيع الأول 1445
+                        </div>
+                        <div style="color: #666; margin-top: 5px;">
+                            الموافق 29 سبتمبر 2023
+                        </div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+                        <div style="font-weight: bold; color: #4CAF50; margin-bottom: 5px;">
+                            شهر ربيع الأول
+                        </div>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            شهر مولد النبي الكريم ﷺ
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Widget refresh functionality
+        function refreshWidget(widgetId) {
+            const widget = document.getElementById(widgetId);
+            const refreshButton = widget.querySelector('.widget-refresh');
+            
+            // Add loading state
+            widget.classList.add('loading');
+            refreshButton.innerHTML = '<div class="loading-spinner"></div>';
+            
+            // Simulate API call
+            setTimeout(() => {
+                widget.classList.remove('loading');
+                refreshButton.innerHTML = '🔄';
+                
+                // Update last updated time (you would fetch real data here)
+                console.log(`Refreshed widget: ${widgetId}`);
+            }, 1000);
+        }
+
+        // Dhikr counter functionality
+        let dhikrCount = 0;
+        function incrementDhikr() {
+            dhikrCount++;
+            document.getElementById('dhikr-count').textContent = dhikrCount;
+            
+            if (dhikrCount >= 100) {
+                alert('مبروك! لقد أكملت 100 تسبيحة 🎉');
+                dhikrCount = 0;
+                document.getElementById('dhikr-count').textContent = dhikrCount;
+            }
+        }
+
+        // Auto-refresh widgets every 5 minutes
+        setInterval(() => {
+            refreshWidget('prayer-widget');
+        }, 5 * 60 * 1000);
+
+        // Update prayer time countdown every minute
+        setInterval(() => {
+            // This would update the countdown timer in real implementation
+            console.log('Updating prayer time countdown...');
+        }, 60 * 1000);
+
+        // Initialize widgets on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Widgets dashboard loaded');
+            
+            // You would make API calls here to fetch real widget data
+            // Example:
+            // fetchWidgetData('prayer-widget');
+            // fetchWidgetData('verse-widget');
+            // etc.
+        });
+
+        // Example API integration (commented out - would need actual backend)
+        /*
+        async function fetchWidgetData(widgetId) {
+            try {
+                const response = await fetch(`/api/widgets/${widgetId}?user_id=USER_ID`);
+                const data = await response.json();
+                updateWidgetDisplay(widgetId, data);
+            } catch (error) {
+                console.error('Failed to fetch widget data:', error);
+            }
+        }
+
+        function updateWidgetDisplay(widgetId, data) {
+            // Update the widget display with real data
+            const widget = document.getElementById(widgetId);
+            // ... update widget content based on data
+        }
+        */
+    </script>
+</body>
+</html>
