@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islamic App Integration Demo - عرض تكامل التطبيق الإسلامي</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 30px;
+        }
+        .service-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            transition: transform 0.3s ease;
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+        }
+        .integration-flow {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-failure {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .response-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #007bff;
+        }
+        .source-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        .arabic-text {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary">
+                    <i class="fas fa-mosque"></i>
+                    عرض تكامل التطبيق الإسلامي
+                </h1>
+                <p class="lead">Islamic App Integration Demo</p>
+                <p class="text-muted">اختبار تكامل خدمات المحتوى والذكاء الاصطناعي</p>
+            </div>
+            <!-- Service Status Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="service-card">
+                        <h5><i class="fas fa-book-quran"></i> خدمة القرآن</h5>
+                        <p>Quran Service</p>
+                        <span class="badge bg-success" id="quran-status">متصل</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="service-card">
+                        <h5><i class="fas fa-scroll"></i> خدمة الأحاديث</h5>
+                        <p>Hadith Service</p>
+                        <span class="badge bg-success" id="hadith-status">متصل</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="service-card">
+                        <h5><i class="fas fa-search"></i> خدمة البحث</h5>
+                        <p>Search Service</p>
+                        <span class="badge bg-success" id="search-status">متصل</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="service-card">
+                        <h5><i class="fas fa-robot"></i> خدمة الذكاء الاصطناعي</h5>
+                        <p>AI Service</p>
+                        <span class="badge bg-success" id="ai-status">متصل</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3 id="total-requests">0</h3>
+                        <p>إجمالي الطلبات</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3 id="success-rate">0%</h3>
+                        <p>معدل النجاح</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3 id="avg-response-time">0ms</h3>
+                        <p>متوسط وقت الاستجابة</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3 id="integration-status">✅</h3>
+                        <p>حالة التكامل</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integration Test Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-vial"></i> اختبار التكامل الشامل</h4>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success btn-lg" onclick="runIntegrationTest()">
+                        <i class="fas fa-play"></i> تشغيل اختبار التكامل
+                    </button>
+                    <div class="loading mt-3" id="integration-loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري الاختبار...</span>
+                        </div>
+                        <span class="ms-2">جاري اختبار التكامل...</span>
+                    </div>
+                    <div id="integration-results" class="mt-3"></div>
+                </div>
+            </div>
+            <!-- AI Question Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4><i class="fas fa-comments"></i> اختبار المساعد الذكي (RAG System)</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="ai-question" class="form-label">اطرح سؤالاً إسلامياً:</label>
+                        <textarea class="form-control" id="ai-question" rows="3" 
+                                  placeholder="مثال: ما هي أركان الإسلام؟"></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="askAI()">
+                        <i class="fas fa-paper-plane"></i> اسأل المساعد الذكي
+                    </button>
+                    <div class="loading mt-3" id="ai-loading">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">جاري المعالجة...</span>
+                        </div>
+                        <span class="ms-2">جاري معالجة السؤال...</span>
+                    </div>
+                    <div id="ai-response" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4><i class="fas fa-search"></i> اختبار البحث الدلالي</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="search-query" 
+                                   placeholder="ابحث في القرآن والأحاديث...">
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="content-type">
+                                <option value="">جميع المحتويات</option>
+                                <option value="quran">القرآن الكريم</option>
+                                <option value="hadith">الأحاديث النبوية</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-info mt-2" onclick="performSearch()">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                    <div class="loading mt-3" id="search-loading">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">جاري البحث...</span>
+                        </div>
+                        <span class="ms-2">جاري البحث...</span>
+                    </div>
+                    <div id="search-results" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- Quran Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4><i class="fas fa-book-quran"></i> اختبار خدمة القرآن</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="surah-number" class="form-label">رقم السورة:</label>
+                            <input type="number" class="form-control" id="surah-number" 
+                                   min="1" max="114" value="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-warning d-block" onclick="getSurah()">
+                                <i class="fas fa-book"></i> عرض السورة
+                            </button>
+                        </div>
+                    </div>
+                    <div class="loading mt-3" id="quran-loading">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <span class="ms-2">جاري تحميل السورة...</span>
+                    </div>
+                    <div id="quran-content" class="mt-3"></div>
+                </div>
+            </div>
+            <!-- Integration Flow Visualization -->
+            <div class="integration-flow">
+                <h4><i class="fas fa-project-diagram"></i> تدفق التكامل (Integration Flow)</h4>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="text-center m-2">
+                                <div class="bg-primary text-white rounded-circle p-3 mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-question"></i>
+                                </div>
+                                <small>سؤال المستخدم</small>
+                            </div>
+                            <div class="text-center m-2">
+                                <i class="fas fa-arrow-left text-primary"></i>
+                            </div>
+                            <div class="text-center m-2">
+                                <div class="bg-info text-white rounded-circle p-3 mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <small>البحث الدلالي</small>
+                            </div>
+                            <div class="text-center m-2">
+                                <i class="fas fa-arrow-left text-primary"></i>
+                            </div>
+                            <div class="text-center m-2">
+                                <div class="bg-success text-white rounded-circle p-3 mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <small>التحقق من المصادر</small>
+                            </div>
+                            <div class="text-center m-2">
+                                <i class="fas fa-arrow-left text-primary"></i>
+                            </div>
+                            <div class="text-center m-2">
+                                <div class="bg-warning text-dark rounded-circle p-3 mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <small>توليد الإجابة</small>
+                            </div>
+                            <div class="text-center m-2">
+                                <i class="fas fa-arrow-left text-primary"></i>
+                            </div>
+                            <div class="text-center m-2">
+                                <div class="bg-danger text-white rounded-circle p-3 mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-quote-right"></i>
+                                </div>
+                                <small>إضافة المراجع</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-4 pt-4 border-top">
+                <p class="text-muted">
+                    <i class="fas fa-code"></i> 
+                    Islamic App Integration Demo - Built with Rust & Axum
+                </p>
+                <p class="small text-muted">
+                    This demo showcases the integration between content services and AI services
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let stats = {
+            totalRequests: 0,
+            successfulRequests: 0,
+            failedRequests: 0,
+            averageResponseTime: 0
+        };
+
+        // Initialize the demo
+        document.addEventListener('DOMContentLoaded', function() {
+            checkServiceHealth();
+            updateStats();
+            
+            // Set up periodic health checks
+            setInterval(checkServiceHealth, 30000); // Every 30 seconds
+            setInterval(updateStats, 10000); // Every 10 seconds
+        });
+
+        // Check service health
+        async function checkServiceHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const health = await response.json();
+                
+                // Update service status indicators
+                document.getElementById('quran-status').textContent = 
+                    health.services.quran === 'healthy' ? 'متصل' : 'غير متصل';
+                document.getElementById('hadith-status').textContent = 
+                    health.services.hadith === 'healthy' ? 'متصل' : 'غير متصل';
+                document.getElementById('search-status').textContent = 
+                    health.services.search === 'healthy' ? 'متصل' : 'غير متصل';
+                document.getElementById('ai-status').textContent = 
+                    health.services.ai === 'healthy' ? 'متصل' : 'غير متصل';
+                    
+                // Update integration status
+                const allHealthy = Object.values(health.services).every(status => status === 'healthy');
+                document.getElementById('integration-status').textContent = allHealthy ? '✅' : '⚠️';
+                
+            } catch (error) {
+                console.error('Health check failed:', error);
+                // Update all statuses to disconnected
+                ['quran-status', 'hadith-status', 'search-status', 'ai-status'].forEach(id => {
+                    document.getElementById(id).textContent = 'غير متصل';
+                });
+                document.getElementById('integration-status').textContent = '❌';
+            }
+        }
+        // Update statistics
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const newStats = await response.json();
+                
+                document.getElementById('total-requests').textContent = newStats.total_requests;
+                
+                const successRate = newStats.total_requests > 0 
+                    ? Math.round((newStats.successful_requests / newStats.total_requests) * 100)
+                    : 0;
+                document.getElementById('success-rate').textContent = successRate + '%';
+                
+                document.getElementById('avg-response-time').textContent = 
+                    Math.round(newStats.average_response_time_ms) + 'ms';
+                    
+            } catch (error) {
+                console.error('Stats update failed:', error);
+            }
+        }
+
+        // Run integration test
+        async function runIntegrationTest() {
+            const loadingEl = document.getElementById('integration-loading');
+            const resultsEl = document.getElementById('integration-results');
+            
+            loadingEl.classList.add('show');
+            resultsEl.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/test-integration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        test_name: 'Full Integration Test',
+                        test_scenarios: ['content_integration', 'ai_rag_integration', 'end_to_end']
+                    })
+                });
+                
+                const result = await response.json();
+                
+                let html = `<div class="alert ${result.overall_success ? 'alert-success' : 'alert-danger'}">
+                    <h5><i class="fas ${result.overall_success ? 'fa-check-circle' : 'fa-times-circle'}"></i> 
+                    ${result.overall_success ? 'اختبار التكامل نجح' : 'اختبار التكامل فشل'}</h5>
+                    <p>إجمالي الوقت: ${result.total_duration_ms}ms</p>
+                </div>`;
+                
+                result.test_results.forEach(test => {
+                    html += `<div class="test-result ${test.success ? 'test-success' : 'test-failure'}">
+                        <strong>${test.test_name}</strong>: ${test.message} (${test.duration_ms}ms)
+                    </div>`;
+                });
+                
+                resultsEl.innerHTML = html;
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> خطأ في الاختبار</h5>
+                    <p>${error.message}</p>
+                </div>`;
+            } finally {
+                loadingEl.classList.remove('show');
+            }
+        }
+
+        // Ask AI function
+        async function askAI() {
+            const question = document.getElementById('ai-question').value.trim();
+            if (!question) {
+                alert('يرجى إدخال سؤال');
+                return;
+            }
+            
+            const loadingEl = document.getElementById('ai-loading');
+            const responseEl = document.getElementById('ai-response');
+            
+            loadingEl.classList.add('show');
+            responseEl.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        max_sources: 5
+                    })
+                });
+                
+                const result = await response.json();
+                
+                let html = `<div class="response-section">
+                    <h5><i class="fas fa-robot"></i> إجابة المساعد الذكي</h5>
+                    <div class="arabic-text mb-3">${result.answer}</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>مستوى الثقة:</strong> 
+                            <span class="badge ${result.confidence > 0.7 ? 'bg-success' : result.confidence > 0.5 ? 'bg-warning' : 'bg-danger'}">
+                                ${Math.round(result.confidence * 100)}%
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>وقت الاستجابة:</strong> ${result.response_time_ms}ms
+                        </div>
+                    </div>
+                </div>`;
+                
+                if (result.sources && result.sources.length > 0) {
+                    html += `<div class="mt-3">
+                        <h6><i class="fas fa-book"></i> المصادر المستخدمة (${result.sources.length})</h6>`;
+                    
+                    result.sources.forEach((source, index) => {
+                        html += `<div class="source-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>${source.reference}</strong>
+                                <span class="badge bg-primary">${source.content_type}</span>
+                            </div>
+                            <div class="arabic-text mt-2">${source.text}</div>
+                            <small class="text-muted">
+                                درجة الصلة: ${Math.round(source.relevance_score * 100)}% | 
+                                الموثوقية: ${source.authenticity}
+                            </small>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                if (result.integration_flow && result.integration_flow.length > 0) {
+                    html += `<div class="mt-3">
+                        <h6><i class="fas fa-project-diagram"></i> تدفق المعالجة</h6>
+                        <ol>`;
+                    result.integration_flow.forEach(step => {
+                        html += `<li>${step}</li>`;
+                    });
+                    html += '</ol></div>';
+                }
+                
+                if (result.warnings && result.warnings.length > 0) {
+                    html += `<div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> تحذيرات</h6>
+                        <ul>`;
+                    result.warnings.forEach(warning => {
+                        html += `<li>${warning}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                responseEl.innerHTML = html;
+                
+            } catch (error) {
+                responseEl.innerHTML = `<div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> خطأ في المعالجة</h5>
+                    <p>${error.message}</p>
+                </div>`;
+            } finally {
+                loadingEl.classList.remove('show');
+            }
+        }
+        // Perform search function
+        async function performSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            if (!query) {
+                alert('يرجى إدخال كلمة البحث');
+                return;
+            }
+            
+            const contentType = document.getElementById('content-type').value;
+            const loadingEl = document.getElementById('search-loading');
+            const resultsEl = document.getElementById('search-results');
+            
+            loadingEl.classList.add('show');
+            resultsEl.innerHTML = '';
+            
+            try {
+                const requestBody = {
+                    query: query,
+                    content_types: contentType ? [contentType] : null,
+                    limit: 10
+                };
+                
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const result = await response.json();
+                
+                let html = `<div class="alert alert-info">
+                    <h6><i class="fas fa-search"></i> نتائج البحث</h6>
+                    <p>تم العثور على ${result.total_count} نتيجة في ${result.response_time_ms}ms</p>
+                    <small class="text-muted">تكامل الخدمات: ${result.service_integration}</small>
+                </div>`;
+                
+                if (result.results && result.results.length > 0) {
+                    result.results.forEach((item, index) => {
+                        html += `<div class="source-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>${item.title}</strong>
+                                <span class="badge bg-info">${item.content_type}</span>
+                            </div>
+                            <div class="arabic-text mt-2">${item.content}</div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    المصدر: ${item.source} | 
+                                    درجة الصلة: ${Math.round(item.relevance_score * 100)}%
+                                </small>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    html += `<div class="alert alert-warning">
+                        <p>لم يتم العثور على نتائج للبحث "${query}"</p>
+                    </div>`;
+                }
+                
+                resultsEl.innerHTML = html;
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> خطأ في البحث</h5>
+                    <p>${error.message}</p>
+                </div>`;
+            } finally {
+                loadingEl.classList.remove('show');
+            }
+        }
+
+        // Get Surah function
+        async function getSurah() {
+            const surahNumber = document.getElementById('surah-number').value;
+            if (!surahNumber || surahNumber < 1 || surahNumber > 114) {
+                alert('يرجى إدخال رقم سورة صحيح (1-114)');
+                return;
+            }
+            
+            const loadingEl = document.getElementById('quran-loading');
+            const contentEl = document.getElementById('quran-content');
+            
+            loadingEl.classList.add('show');
+            contentEl.innerHTML = '';
+            
+            try {
+                const response = await fetch(`/api/quran/${surahNumber}`);
+                
+                if (response.status === 404) {
+                    contentEl.innerHTML = `<div class="alert alert-warning">
+                        <p>السورة رقم ${surahNumber} غير موجودة</p>
+                    </div>`;
+                    return;
+                }
+                
+                const result = await response.json();
+                const surah = result.surah;
+                
+                let html = `<div class="response-section">
+                    <h5><i class="fas fa-book-quran"></i> ${surah.arabic_name} (${surah.english_name})</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>رقم السورة:</strong> ${surah.number}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>عدد الآيات:</strong> ${surah.number_of_ayahs}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>نوع النزول:</strong> ${surah.revelation_type}
+                        </div>
+                    </div>
+                </div>`;
+                
+                if (surah.ayahs && surah.ayahs.length > 0) {
+                    html += `<div class="mt-3">
+                        <h6><i class="fas fa-list"></i> الآيات</h6>`;
+                    
+                    surah.ayahs.forEach(ayah => {
+                        html += `<div class="source-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>آية ${ayah.number}</strong>
+                                <span class="badge bg-warning text-dark">${surah.arabic_name}</span>
+                            </div>
+                            <div class="arabic-text mt-2">${ayah.text}</div>
+                            ${ayah.translation ? `<div class="mt-2 text-muted">${ayah.translation}</div>` : ''}
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                html += `<div class="mt-3">
+                    <small class="text-muted">تم التحميل في ${result.response_time_ms}ms</small>
+                </div>`;
+                
+                contentEl.innerHTML = html;
+                
+            } catch (error) {
+                contentEl.innerHTML = `<div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> خطأ في تحميل السورة</h5>
+                    <p>${error.message}</p>
+                </div>`;
+            } finally {
+                loadingEl.classList.remove('show');
+            }
+        }
+
+        // Add Enter key support for inputs
+        document.getElementById('ai-question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askAI();
+            }
+        });
+
+        document.getElementById('search-query').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        document.getElementById('surah-number').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getSurah();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -158,7 +158,7 @@ impl SourceScoringSystem {
     }
     
     async fn calculate_authenticity_score(&self, source: &IslamicSource) -> Result<ScoringResult> {
-        let mut score = match source.authenticity {
+        let mut score: f32 = match source.authenticity {
             AuthenticityLevel::Verified => 1.0,
             AuthenticityLevel::Reliable => 0.8,
             AuthenticityLevel::Questionable => 0.5,
@@ -485,7 +485,7 @@ impl ConsensusChecker {
     }
     
     pub async fn check_consensus(&self, source: &IslamicSource, query: &ProcessedQuestion) -> Result<ScoringResult> {
-        let mut score = 0.5;
+        let mut score: f32 = 0.5;
         let mut factors = Vec::new();
         
         // فحص إذا كان الموضوع خلافياً

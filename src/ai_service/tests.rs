@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::{
+    ConfidenceLevel, QuestionType, ComplexityLevel, Language, 
+    IslamicSource, SourceType, AuthenticityLevel
+};
     use crate::ai_service::{
         rag_system::{RAGSystem, RAGRequest},
         question_processor::QuestionProcessor,

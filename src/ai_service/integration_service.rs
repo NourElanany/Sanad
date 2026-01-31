@@ -808,8 +808,8 @@ mod tests {
         // assert!(service.is_ok());
     }
 
-    #[test]
-    fn test_cache_key_generation() {
+    #[tokio::test]
+    async fn test_cache_key_generation() {
         let config = IntegrationConfig::default();
         let service = IntegrationService {
             hf_client: HuggingFaceClient::new(config.hugging_face.clone()).unwrap(),
@@ -836,8 +836,8 @@ mod tests {
         assert!(key1.starts_with("rag_request_"));
     }
 
-    #[test]
-    fn test_confidence_calculation() {
+    #[tokio::test]
+    async fn test_confidence_calculation() {
         let config = IntegrationConfig::default();
         let service = IntegrationService {
             hf_client: HuggingFaceClient::new(config.hugging_face.clone()).unwrap(),

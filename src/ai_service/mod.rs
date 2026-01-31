@@ -63,7 +63,7 @@ pub enum AuthenticityLevel {
     Unknown,       // غير معروف
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Language {
     Arabic,
     English,

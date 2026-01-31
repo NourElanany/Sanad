@@ -1,0 +1,11 @@
+D:\project\demo\integration_demo\target\debug\deps\convert_case-3e505c8e44d6663a.d: C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\lib.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\case.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\converter.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\pattern.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\segmentation.rs
+
+D:\project\demo\integration_demo\target\debug\deps\libconvert_case-3e505c8e44d6663a.rlib: C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\lib.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\case.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\converter.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\pattern.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\segmentation.rs
+
+D:\project\demo\integration_demo\target\debug\deps\libconvert_case-3e505c8e44d6663a.rmeta: C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\lib.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\case.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\converter.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\pattern.rs C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\segmentation.rs
+
+C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\lib.rs:
+C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\case.rs:
+C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\converter.rs:
+C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\pattern.rs:
+C:\Users\Nour\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\convert_case-0.6.0\src\segmentation.rs:

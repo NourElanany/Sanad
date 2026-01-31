@@ -1331,7 +1331,7 @@ impl LLMInterface {
         }
         
         if weight_sum > 0.0 {
-            (total_confidence / weight_sum).min(1.0)
+            ((total_confidence / weight_sum) as f32).min(1.0)
         } else {
             0.5
         }

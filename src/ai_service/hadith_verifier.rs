@@ -22,7 +22,7 @@ pub struct HadithVerificationResult {
     pub alternative_versions: Vec<HadithVersion>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum HadithGrade {
     Sahih,      // صحيح
     Hasan,      // حسن

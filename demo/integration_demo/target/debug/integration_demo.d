@@ -1,0 +1,1 @@
+D:\project\demo\integration_demo\target\debug\integration_demo.exe: D:\project\demo\integration_demo\src\main.rs D:\project\demo\integration_demo\src\models.rs D:\project\demo\integration_demo\src\services.rs D:\project\demo\integration_demo\static\index.html

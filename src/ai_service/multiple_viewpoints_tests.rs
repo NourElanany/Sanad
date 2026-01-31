@@ -1,4 +1,4 @@
-use super::*;
+use crate::ai_service::rag_system::{RAGRequest, UserPreferences, DetailLevel};
 use crate::ai_service::{
     multiple_viewpoints_system::*,
     question_processor::QuestionProcessor,

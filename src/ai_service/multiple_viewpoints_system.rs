@@ -441,7 +441,7 @@ impl ControlversyDetector {
         sources: &[ScoredSource],
     ) -> Result<ControlversyAnalysis> {
         let mut indicators = Vec::new();
-        let mut controversy_score = 0.0;
+        let mut controversy_score: f32 = 0.0;
         
         let question_lower = question.normalized_text.to_lowercase();
         
@@ -973,7 +973,7 @@ impl SourceReliabilityEvaluator {
     }
     
     async fn calculate_source_reliability(&self, source: &IslamicSource) -> Result<SourceReliabilityScore> {
-        let mut score = 0.5; // Base score
+        let mut score: f32 = 0.5; // Base score
         let mut factors = Vec::new();
         
         // Score based on content type
