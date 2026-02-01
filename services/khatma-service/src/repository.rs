@@ -2,7 +2,7 @@ use crate::models::*;
 use anyhow::{Result, anyhow};
 use sqlx::PgPool;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::info;
 
 /// Repository for Khatma service data access
 pub struct KhatmaRepository {

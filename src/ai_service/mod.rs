@@ -12,6 +12,7 @@ pub mod config;
 pub mod service_manager;
 pub mod error_handler;
 pub mod multiple_viewpoints_system;
+pub mod religious_query_processor;
 
 #[cfg(test)]
 pub mod tests;
@@ -21,6 +22,9 @@ pub mod ai_answer_quality_tests;
 
 #[cfg(test)]
 pub mod multiple_viewpoints_tests;
+
+#[cfg(test)]
+pub mod religious_query_processor_tests;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

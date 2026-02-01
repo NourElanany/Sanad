@@ -207,7 +207,7 @@ mod property_tests {
             prayer_name in arb_prayer_name(),
             minutes_before in 0..120i32,
             is_final in any::<bool>(),
-            custom_message in option::of("[أ-ي\\s]+"),
+            custom_message in proptest::option::of("[أ-ي\\s]+"),
         ) {
             let service = create_mock_service();
             

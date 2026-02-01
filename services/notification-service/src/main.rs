@@ -9,6 +9,9 @@ mod tests;
 #[cfg(test)]
 mod property_tests;
 
+#[cfg(test)]
+mod simple_logic_test;
+
 use handlers::{create_router, SharedNotificationService};
 use repository::NotificationRepository;
 use service::NotificationService;

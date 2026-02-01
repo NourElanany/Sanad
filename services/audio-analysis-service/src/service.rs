@@ -19,7 +19,7 @@ use crate::comparison_engine::ComparisonEngine;
 use crate::scoring_system::RecitationScoringSystem;
 use crate::progress_tracker::{ProgressTracker, UserProgressData, ProgressUpdate};
 use crate::improvement_engine::{ImprovementEngine, LearningPlan, AdaptiveRecommendation, ProgressPrediction, MotivationalInsights};
-use crate::reward_system::{RewardSystem, UserRewardStatus, RewardUpdate, GamificationStatus, Challenge, DailyGoal, WeeklyGoal};
+use crate::reward_system::{RewardSystem, UserRewardStatus, GamificationStatus, Challenge, DailyGoal, WeeklyGoal};
 use crate::models::*;
 
 /// Main service for audio analysis and recitation correction

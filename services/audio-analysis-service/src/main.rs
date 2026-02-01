@@ -20,6 +20,9 @@ mod reference_manager;
 mod comparison_engine;
 mod tajweed_analyzer;
 mod scoring_system;
+mod progress_tracker;
+mod improvement_engine;
+mod reward_system;
 mod models;
 mod service;
 

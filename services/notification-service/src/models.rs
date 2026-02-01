@@ -3,7 +3,7 @@ use uuid::Uuid;
 use chrono::{DateTime, Utc, NaiveTime, NaiveDate};
 
 /// Notification types for the Islamic app
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "notification_type", rename_all = "snake_case")]
 pub enum NotificationType {
     PrayerReminder,
@@ -18,7 +18,7 @@ pub enum NotificationType {
 }
 
 /// Notification priority levels
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "notification_priority", rename_all = "snake_case")]
 pub enum NotificationPriority {
     Low,
@@ -51,7 +51,7 @@ pub enum PrayerName {
 }
 
 /// Islamic seasons and special periods
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "islamic_season", rename_all = "snake_case")]
 pub enum IslamicSeason {
     Ramadan,
@@ -66,7 +66,7 @@ pub enum IslamicSeason {
 }
 
 /// Dhikr categories for time-appropriate reminders
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "dhikr_category", rename_all = "snake_case")]
 pub enum DhikrCategory {
     Morning,

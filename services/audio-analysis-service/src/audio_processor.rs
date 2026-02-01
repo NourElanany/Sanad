@@ -15,8 +15,7 @@ use chrono::Utc;
 pub struct AudioProcessor {
     host: Host,
     input_device: Option<Device>,
-    output_device: Option<Device>,
-    recording_stream: Option<Stream>,
+    // Removed problematic fields to make it Send + Sync
     is_recording: Arc<Mutex<bool>>,
     recorded_samples: Arc<Mutex<Vec<f32>>>,
 }
@@ -42,8 +41,6 @@ impl AudioProcessor {
         Ok(Self {
             host,
             input_device,
-            output_device,
-            recording_stream: None,
             is_recording: Arc::new(Mutex::new(false)),
             recorded_samples: Arc::new(Mutex::new(Vec::new())),
         })
