@@ -80,6 +80,7 @@ members = [
     "services/security-service",
     "services/state-management-service",
     "services/i18n-service",
+    "services/offline-service",
     "gateway",
     "shared"
 ]

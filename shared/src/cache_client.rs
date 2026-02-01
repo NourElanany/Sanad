@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
 use tracing::{debug, error, warn};
+use base64::Engine;
 
 /// Client for interacting with the cache service
 #[derive(Clone)]
@@ -52,6 +53,12 @@ pub struct CacheStats {
     pub memory_cache_entries: usize,
     pub memory_cache_entries_by_type: HashMap<String, usize>,
     pub total_cache_operations: u64,
+    pub heavy_content_entries: usize,
+    pub total_heavy_content_size_bytes: usize,
+    pub average_compression_ratio: f64,
+    pub frequent_queries_count: usize,
+    pub query_tracking_enabled: bool,
+    pub adaptive_ttl_enabled: bool,
 }
 
 impl CacheClient {
@@ -448,6 +455,146 @@ impl CacheClient {
             }
         }
     }
+
+    /// Cache frequent query with intelligent tracking
+    pub async fn cache_frequent_query<T>(&self, query: &str, result: &T) -> SanadResult<()>
+    where
+        T: Serialize,
+    {
+        let url = format!("{}/cache/frequent-query", self.base_url);
+        let request = serde_json::json!({
+            "query": query,
+            "result": result
+        });
+
+        let response = self.client
+            .post(&url)
+            .json(&request)
+            .send()
+            .await
+            .map_err(SanadError::HttpClient)?;
+
+        if response.status().is_success() {
+            debug!("Successfully cached frequent query");
+            Ok(())
+        } else {
+            error!("Failed to cache frequent query: {}", response.status());
+            Err(SanadError::ExternalApi {
+                service: "cache-service".to_string(),
+                message: format!("HTTP {}", response.status()),
+            })
+        }
+    }
+
+    /// Get frequent query result
+    pub async fn get_frequent_query<T>(&self, query: &str) -> SanadResult<Option<T>>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let url = format!("{}/cache/frequent-query", self.base_url);
+        let request = serde_json::json!({ "query": query });
+
+        let response = self.client
+            .get(&url)
+            .json(&request)
+            .send()
+            .await
+            .map_err(SanadError::HttpClient)?;
+
+        if response.status().is_success() {
+            let api_response: crate::models::ApiResponse<Option<serde_json::Value>> = response
+                .json()
+                .await
+                .map_err(SanadError::HttpClient)?;
+
+            if let Some(value) = api_response.data.flatten() {
+                let typed_value: T = serde_json::from_value(value)
+                    .map_err(SanadError::Serialization)?;
+                debug!("Frequent query cache hit");
+                Ok(Some(typed_value))
+            } else {
+                debug!("Frequent query cache miss");
+                Ok(None)
+            }
+        } else if response.status() == 404 {
+            debug!("Frequent query cache miss");
+            Ok(None)
+        } else {
+            error!("Failed to get frequent query: {}", response.status());
+            Err(SanadError::ExternalApi {
+                service: "cache-service".to_string(),
+                message: format!("HTTP {}", response.status()),
+            })
+        }
+    }
+
+    /// Cache heavy content with compression
+    pub async fn cache_heavy_content(&self, content_id: &str, data: &[u8], content_type: &str) -> SanadResult<()> {
+        let url = format!("{}/cache/heavy-content/{}", self.base_url, content_id);
+        let request = serde_json::json!({
+            "data": base64::engine::general_purpose::STANDARD.encode(data),
+            "content_type": content_type
+        });
+
+        let response = self.client
+            .put(&url)
+            .json(&request)
+            .send()
+            .await
+            .map_err(SanadError::HttpClient)?;
+
+        if response.status().is_success() {
+            debug!("Successfully cached heavy content: {} bytes", data.len());
+            Ok(())
+        } else {
+            error!("Failed to cache heavy content: {}", response.status());
+            Err(SanadError::ExternalApi {
+                service: "cache-service".to_string(),
+                message: format!("HTTP {}", response.status()),
+            })
+        }
+    }
+
+    /// Get heavy content with decompression
+    pub async fn get_heavy_content(&self, content_id: &str) -> SanadResult<Option<Vec<u8>>> {
+        let url = format!("{}/cache/heavy-content/{}", self.base_url, content_id);
+
+        let response = self.client
+            .get(&url)
+            .send()
+            .await
+            .map_err(SanadError::HttpClient)?;
+
+        if response.status().is_success() {
+            let api_response: crate::models::ApiResponse<Option<serde_json::Value>> = response
+                .json()
+                .await
+                .map_err(SanadError::HttpClient)?;
+
+            if let Some(value) = api_response.data.flatten() {
+                if let Some(encoded_data) = value.get("data").and_then(|v| v.as_str()) {
+                    let decoded_data = base64::engine::general_purpose::STANDARD.decode(encoded_data)
+                        .map_err(|e| SanadError::Internal(format!("Base64 decode error: {}", e)))?;
+                    debug!("Heavy content cache hit: {} bytes", decoded_data.len());
+                    Ok(Some(decoded_data))
+                } else {
+                    Ok(None)
+                }
+            } else {
+                debug!("Heavy content cache miss");
+                Ok(None)
+            }
+        } else if response.status() == 404 {
+            debug!("Heavy content cache miss");
+            Ok(None)
+        } else {
+            error!("Failed to get heavy content: {}", response.status());
+            Err(SanadError::ExternalApi {
+                service: "cache-service".to_string(),
+                message: format!("HTTP {}", response.status()),
+            })
+        }
+    }
 }
 
 impl Default for CacheStats {
@@ -457,6 +604,12 @@ impl Default for CacheStats {
             memory_cache_entries: 0,
             memory_cache_entries_by_type: HashMap::new(),
             total_cache_operations: 0,
+            heavy_content_entries: 0,
+            total_heavy_content_size_bytes: 0,
+            average_compression_ratio: 0.0,
+            frequent_queries_count: 0,
+            query_tracking_enabled: false,
+            adaptive_ttl_enabled: false,
         }
     }
 }

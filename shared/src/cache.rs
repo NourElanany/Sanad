@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
+use base64::Engine;
 
 /// Advanced caching system for the Sanad Islamic application
 /// Supports Redis Cluster, intelligent cache invalidation, and specialized caching strategies
@@ -18,6 +19,10 @@ pub struct AdvancedCacheManager {
     memory_cache: Arc<RwLock<HashMap<String, CacheEntry>>>,
     /// Cache configuration
     config: CacheConfig,
+    /// Query frequency tracker for intelligent caching
+    query_tracker: Arc<RwLock<HashMap<String, QueryStats>>>,
+    /// Heavy content cache for large data optimization
+    heavy_content_cache: Arc<RwLock<HashMap<String, HeavyContentEntry>>>,
 }
 
 /// Cache configuration for different data types
@@ -37,6 +42,16 @@ pub struct CacheConfig {
     pub max_memory_cache_size: usize,
     /// Enable smart cache invalidation
     pub enable_smart_invalidation: bool,
+    /// Minimum query frequency to cache (queries per hour)
+    pub min_query_frequency_for_cache: u32,
+    /// Heavy content threshold in bytes (1MB)
+    pub heavy_content_threshold_bytes: usize,
+    /// Heavy content cache TTL (2 hours)
+    pub heavy_content_ttl_seconds: u64,
+    /// Enable query frequency tracking
+    pub enable_query_tracking: bool,
+    /// Enable adaptive TTL based on access patterns
+    pub enable_adaptive_ttl: bool,
 }
 
 impl Default for CacheConfig {
@@ -49,6 +64,11 @@ impl Default for CacheConfig {
             hadith_content_ttl_seconds: 604800, // 7 days
             max_memory_cache_size: 10000,
             enable_smart_invalidation: true,
+            min_query_frequency_for_cache: 5, // 5 queries per hour
+            heavy_content_threshold_bytes: 1024 * 1024, // 1MB
+            heavy_content_ttl_seconds: 7200, // 2 hours
+            enable_query_tracking: true,
+            enable_adaptive_ttl: true,
         }
     }
 }
@@ -74,7 +94,37 @@ pub enum CacheType {
     UserPreferences,
     SearchResults,
     ApiResponse,
+    HeavyContent,
+    FrequentQuery,
     General,
+}
+
+/// Query statistics for intelligent caching decisions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryStats {
+    pub query_hash: String,
+    pub first_seen: DateTime<Utc>,
+    pub last_accessed: DateTime<Utc>,
+    pub access_count: u64,
+    pub hourly_frequency: f64,
+    pub average_response_time_ms: f64,
+    pub cache_hit_ratio: f64,
+    pub is_frequent: bool,
+}
+
+/// Heavy content cache entry for large data optimization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeavyContentEntry {
+    pub content_hash: String,
+    pub compressed_data: Vec<u8>,
+    pub original_size: usize,
+    pub compressed_size: usize,
+    pub compression_ratio: f64,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub access_count: u64,
+    pub last_accessed: DateTime<Utc>,
+    pub content_type: String,
 }
 
 /// Cache key patterns for organized storage
@@ -118,6 +168,16 @@ impl CacheKeys {
     pub fn api_response(endpoint: &str, params_hash: &str) -> String {
         format!("api:{}:{}", endpoint, params_hash)
     }
+
+    /// Frequent query cache key pattern: "frequent_query:{query_hash}"
+    pub fn frequent_query(query_hash: &str) -> String {
+        format!("frequent_query:{}", query_hash)
+    }
+
+    /// Heavy content cache key pattern: "heavy_content:{content_id}"
+    pub fn heavy_content(content_id: &str) -> String {
+        format!("heavy_content:{}", content_id)
+    }
 }
 
 impl AdvancedCacheManager {
@@ -130,13 +190,19 @@ impl AdvancedCacheManager {
 
         let config = config.unwrap_or_default();
         let memory_cache = Arc::new(RwLock::new(HashMap::new()));
+        let query_tracker = Arc::new(RwLock::new(HashMap::new()));
+        let heavy_content_cache = Arc::new(RwLock::new(HashMap::new()));
 
         info!("Advanced cache manager initialized with Redis cluster support");
+        info!("Query tracking enabled: {}", config.enable_query_tracking);
+        info!("Heavy content threshold: {} bytes", config.heavy_content_threshold_bytes);
 
         Ok(Self {
             redis_manager,
             memory_cache,
             config,
+            query_tracker,
+            heavy_content_cache,
         })
     }
 
@@ -146,20 +212,21 @@ impl AdvancedCacheManager {
         T: Serialize,
     {
         let serialized = serde_json::to_string(value).map_err(SanadError::Serialization)?;
-        let ttl = self.get_ttl_for_type(&cache_type);
+        let base_ttl = self.get_ttl_for_type(&cache_type);
+        let adaptive_ttl = self.get_adaptive_ttl(key, base_ttl).await;
         
         let entry = CacheEntry {
             data: serialized.clone(),
             created_at: Utc::now(),
-            expires_at: Utc::now() + Duration::seconds(ttl as i64),
+            expires_at: Utc::now() + Duration::seconds(adaptive_ttl as i64),
             access_count: 0,
             last_accessed: Utc::now(),
             cache_type: cache_type.clone(),
         };
 
-        // Store in Redis with TTL
+        // Store in Redis with adaptive TTL
         let mut conn = self.redis_manager.clone();
-        let _: () = conn.set_ex(key, &serialized, ttl)
+        let _: () = conn.set_ex(key, &serialized, adaptive_ttl)
             .await
             .map_err(SanadError::Redis)?;
 
@@ -168,7 +235,7 @@ impl AdvancedCacheManager {
             self.set_memory_cache(key, entry).await;
         }
 
-        debug!("Cached value for key: {} with type: {:?}", key, cache_type);
+        debug!("Cached value for key: {} with type: {:?} (TTL: {}s)", key, cache_type, adaptive_ttl);
         Ok(())
     }
 
@@ -284,19 +351,43 @@ impl AdvancedCacheManager {
 
     /// Get cache statistics
     pub async fn get_cache_stats(&self) -> SanadResult<CacheStats> {
-        // For now, we'll return basic stats without Redis memory info
-        // In production, this would use a separate connection for INFO commands
-        
         // Get memory cache stats
         let memory_cache = self.memory_cache.read().await;
         let memory_cache_size = memory_cache.len();
         let memory_cache_entries_by_type = self.count_entries_by_type(&memory_cache);
+
+        // Get heavy content cache stats
+        let heavy_cache = self.heavy_content_cache.read().await;
+        let heavy_content_entries = heavy_cache.len();
+        let (total_heavy_size, avg_compression_ratio) = heavy_cache.values().fold(
+            (0usize, 0.0f64),
+            |(total_size, total_ratio), entry| {
+                (total_size + entry.original_size, total_ratio + entry.compression_ratio)
+            }
+        );
+        let average_compression_ratio = if heavy_content_entries > 0 {
+            avg_compression_ratio / heavy_content_entries as f64
+        } else {
+            0.0
+        };
+
+        // Get query tracking stats
+        let query_tracker = self.query_tracker.read().await;
+        let frequent_queries_count = query_tracker.values()
+            .filter(|stats| stats.is_frequent)
+            .count();
 
         Ok(CacheStats {
             redis_memory_usage_bytes: 0, // Would need separate connection for INFO
             memory_cache_entries: memory_cache_size,
             memory_cache_entries_by_type,
             total_cache_operations: 0, // This would be tracked separately in production
+            heavy_content_entries,
+            total_heavy_content_size_bytes: total_heavy_size,
+            average_compression_ratio,
+            frequent_queries_count,
+            query_tracking_enabled: self.config.enable_query_tracking,
+            adaptive_ttl_enabled: self.config.enable_adaptive_ttl,
         })
     }
 
@@ -328,7 +419,264 @@ impl AdvancedCacheManager {
             debug!("Cleaned up {} expired entries from memory cache", cleaned_count);
         }
 
-        cleaned_count
+        // Also cleanup heavy content cache
+        let heavy_cleaned = self.cleanup_heavy_content_cache().await;
+        debug!("Cleaned up {} expired heavy content entries", heavy_cleaned);
+
+        cleaned_count + heavy_cleaned
+    }
+
+    /// Cache frequently accessed queries intelligently
+    pub async fn cache_frequent_query<T>(&self, query: &str, result: &T) -> SanadResult<()>
+    where
+        T: Serialize,
+    {
+        if !self.config.enable_query_tracking {
+            return Ok(());
+        }
+
+        let query_hash = crate::utils::calculate_content_hash(query);
+        
+        // Update query statistics
+        self.update_query_stats(&query_hash, query).await;
+        
+        // Check if query is frequent enough to cache
+        if self.is_frequent_query(&query_hash).await {
+            let key = CacheKeys::frequent_query(&query_hash);
+            self.set(&key, result, CacheType::FrequentQuery).await?;
+            debug!("Cached frequent query: {}", query_hash);
+        }
+
+        Ok(())
+    }
+
+    /// Get cached frequent query result
+    pub async fn get_frequent_query<T>(&self, query: &str) -> SanadResult<Option<T>>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        if !self.config.enable_query_tracking {
+            return Ok(None);
+        }
+
+        let query_hash = crate::utils::calculate_content_hash(query);
+        let key = CacheKeys::frequent_query(&query_hash);
+        
+        // Update access statistics
+        self.record_query_access(&query_hash).await;
+        
+        self.get(&key).await
+    }
+
+    /// Cache heavy content with compression
+    pub async fn cache_heavy_content(&self, content_id: &str, data: &[u8], content_type: &str) -> SanadResult<()> {
+        if data.len() < self.config.heavy_content_threshold_bytes {
+            // Not heavy enough, use regular caching
+            return Ok(());
+        }
+
+        let content_hash = crate::utils::calculate_content_hash(&String::from_utf8_lossy(data));
+        
+        // Compress the data
+        let compressed_data = self.compress_data(data)?;
+        let compression_ratio = compressed_data.len() as f64 / data.len() as f64;
+        
+        let entry = HeavyContentEntry {
+            content_hash: content_hash.clone(),
+            original_size: data.len(),
+            compressed_size: compressed_data.len(),
+            compressed_data,
+            compression_ratio,
+            created_at: Utc::now(),
+            expires_at: Utc::now() + Duration::seconds(self.config.heavy_content_ttl_seconds as i64),
+            access_count: 0,
+            last_accessed: Utc::now(),
+            content_type: content_type.to_string(),
+        };
+
+        let compressed_size = entry.compressed_size;
+
+        // Store in heavy content cache
+        let mut heavy_cache = self.heavy_content_cache.write().await;
+        heavy_cache.insert(content_id.to_string(), entry);
+
+        // Also store in Redis for persistence
+        let key = CacheKeys::heavy_content(content_id);
+        let mut conn = self.redis_manager.clone();
+        let serialized = serde_json::to_string(&heavy_cache.get(content_id).unwrap())
+            .map_err(SanadError::Serialization)?;
+        let _: () = conn.set_ex(&key, &serialized, self.config.heavy_content_ttl_seconds)
+            .await
+            .map_err(SanadError::Redis)?;
+
+        info!("Cached heavy content: {} bytes -> {} bytes (ratio: {:.2})", 
+              data.len(), compressed_size, compression_ratio);
+
+        Ok(())
+    }
+
+    /// Get heavy content with decompression
+    pub async fn get_heavy_content(&self, content_id: &str) -> SanadResult<Option<Vec<u8>>> {
+        // Try memory cache first
+        {
+            let mut heavy_cache = self.heavy_content_cache.write().await;
+            if let Some(entry) = heavy_cache.get_mut(content_id) {
+                if entry.expires_at > Utc::now() {
+                    entry.access_count += 1;
+                    entry.last_accessed = Utc::now();
+                    
+                    let decompressed = self.decompress_data(&entry.compressed_data)?;
+                    debug!("Heavy content cache hit (memory): {}", content_id);
+                    return Ok(Some(decompressed));
+                } else {
+                    // Remove expired entry
+                    heavy_cache.remove(content_id);
+                }
+            }
+        }
+
+        // Try Redis cache
+        let key = CacheKeys::heavy_content(content_id);
+        let mut conn = self.redis_manager.clone();
+        let result: RedisResult<String> = conn.get(&key).await;
+        
+        match result {
+            Ok(serialized) => {
+                let entry: HeavyContentEntry = serde_json::from_str(&serialized)
+                    .map_err(SanadError::Serialization)?;
+                
+                if entry.expires_at > Utc::now() {
+                    let decompressed = self.decompress_data(&entry.compressed_data)?;
+                    
+                    // Update memory cache
+                    let mut heavy_cache = self.heavy_content_cache.write().await;
+                    heavy_cache.insert(content_id.to_string(), entry);
+                    
+                    debug!("Heavy content cache hit (Redis): {}", content_id);
+                    Ok(Some(decompressed))
+                } else {
+                    // Expired, remove from Redis
+                    let _: () = conn.del(&key).await.map_err(SanadError::Redis)?;
+                    Ok(None)
+                }
+            }
+            Err(_) => {
+                debug!("Heavy content cache miss: {}", content_id);
+                Ok(None)
+            }
+        }
+    }
+
+    /// Get adaptive TTL based on access patterns
+    pub async fn get_adaptive_ttl(&self, key: &str, base_ttl: u64) -> u64 {
+        if !self.config.enable_adaptive_ttl {
+            return base_ttl;
+        }
+
+        // Check access patterns from memory cache
+        if let Some(entry) = self.get_memory_cache(key).await {
+            let hours_since_creation = (Utc::now() - entry.created_at).num_hours() as f64;
+            if hours_since_creation > 0.0 {
+                let access_rate = entry.access_count as f64 / hours_since_creation;
+                
+                // Increase TTL for frequently accessed items
+                if access_rate > 10.0 {
+                    return base_ttl * 2; // Double TTL for very frequent access
+                } else if access_rate > 5.0 {
+                    return (base_ttl as f64 * 1.5) as u64; // 1.5x TTL for frequent access
+                } else if access_rate < 1.0 {
+                    return base_ttl / 2; // Half TTL for infrequent access
+                }
+            }
+        }
+
+        base_ttl
+    }
+
+    /// Cleanup expired heavy content cache entries
+    async fn cleanup_heavy_content_cache(&self) -> usize {
+        let mut heavy_cache = self.heavy_content_cache.write().await;
+        let now = Utc::now();
+        let initial_size = heavy_cache.len();
+
+        heavy_cache.retain(|_, entry| entry.expires_at > now);
+
+        initial_size - heavy_cache.len()
+    }
+
+    /// Update query statistics for intelligent caching
+    async fn update_query_stats(&self, query_hash: &str, query: &str) {
+        let mut tracker = self.query_tracker.write().await;
+        let now = Utc::now();
+        
+        match tracker.get_mut(query_hash) {
+            Some(stats) => {
+                stats.access_count += 1;
+                stats.last_accessed = now;
+                
+                // Calculate hourly frequency
+                let hours_since_first = (now - stats.first_seen).num_hours() as f64;
+                if hours_since_first > 0.0 {
+                    stats.hourly_frequency = stats.access_count as f64 / hours_since_first;
+                    stats.is_frequent = stats.hourly_frequency >= self.config.min_query_frequency_for_cache as f64;
+                }
+            }
+            None => {
+                let stats = QueryStats {
+                    query_hash: query_hash.to_string(),
+                    first_seen: now,
+                    last_accessed: now,
+                    access_count: 1,
+                    hourly_frequency: 0.0,
+                    average_response_time_ms: 0.0,
+                    cache_hit_ratio: 0.0,
+                    is_frequent: false,
+                };
+                tracker.insert(query_hash.to_string(), stats);
+            }
+        }
+        
+        debug!("Updated query stats for: {} (query: {})", query_hash, query);
+    }
+
+    /// Check if a query is frequent enough to cache
+    async fn is_frequent_query(&self, query_hash: &str) -> bool {
+        let tracker = self.query_tracker.read().await;
+        tracker.get(query_hash)
+            .map(|stats| stats.is_frequent)
+            .unwrap_or(false)
+    }
+
+    /// Record query access for statistics
+    async fn record_query_access(&self, query_hash: &str) {
+        let mut tracker = self.query_tracker.write().await;
+        if let Some(stats) = tracker.get_mut(query_hash) {
+            stats.access_count += 1;
+            stats.last_accessed = Utc::now();
+        }
+    }
+
+    /// Compress data using gzip
+    fn compress_data(&self, data: &[u8]) -> SanadResult<Vec<u8>> {
+        use flate2::Compression;
+        use flate2::write::GzEncoder;
+        use std::io::Write;
+
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(data).map_err(|e| SanadError::Internal(format!("Compression failed: {}", e)))?;
+        encoder.finish().map_err(|e| SanadError::Internal(format!("Compression failed: {}", e)))
+    }
+
+    /// Decompress data using gzip
+    fn decompress_data(&self, compressed_data: &[u8]) -> SanadResult<Vec<u8>> {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let mut decoder = GzDecoder::new(compressed_data);
+        let mut decompressed = Vec::new();
+        decoder.read_to_end(&mut decompressed)
+            .map_err(|e| SanadError::Internal(format!("Decompression failed: {}", e)))?;
+        Ok(decompressed)
     }
 
     // Private helper methods
@@ -339,6 +687,8 @@ impl AdvancedCacheManager {
             CacheType::SemanticQuery => self.config.semantic_query_ttl_seconds,
             CacheType::QuranContent => self.config.quran_content_ttl_seconds,
             CacheType::HadithContent => self.config.hadith_content_ttl_seconds,
+            CacheType::HeavyContent => self.config.heavy_content_ttl_seconds,
+            CacheType::FrequentQuery => self.config.semantic_query_ttl_seconds * 2, // Longer TTL for frequent queries
             _ => self.config.default_ttl_seconds,
         }
     }
@@ -346,7 +696,10 @@ impl AdvancedCacheManager {
     fn should_cache_in_memory(&self, cache_type: &CacheType) -> bool {
         matches!(
             cache_type,
-            CacheType::QuranContent | CacheType::UserPreferences | CacheType::PrayerTimes
+            CacheType::QuranContent | 
+            CacheType::UserPreferences | 
+            CacheType::PrayerTimes |
+            CacheType::FrequentQuery
         )
     }
 
@@ -423,6 +776,12 @@ pub struct CacheStats {
     pub memory_cache_entries: usize,
     pub memory_cache_entries_by_type: HashMap<String, usize>,
     pub total_cache_operations: u64,
+    pub heavy_content_entries: usize,
+    pub total_heavy_content_size_bytes: usize,
+    pub average_compression_ratio: f64,
+    pub frequent_queries_count: usize,
+    pub query_tracking_enabled: bool,
+    pub adaptive_ttl_enabled: bool,
 }
 
 /// Specialized caching strategies for different data types
@@ -451,6 +810,10 @@ impl CacheStrategies {
     where
         T: Serialize,
     {
+        // Use intelligent caching for frequent queries
+        cache.cache_frequent_query(query, results).await?;
+        
+        // Also cache normally for immediate access
         let query_hash = crate::utils::calculate_content_hash(query);
         let key = CacheKeys::semantic_query(&query_hash);
         cache.set(&key, results, CacheType::SemanticQuery).await
@@ -483,6 +846,59 @@ impl CacheStrategies {
     {
         let key = CacheKeys::hadith_content(collection, book, number);
         cache.set(&key, content, CacheType::HadithContent).await
+    }
+
+    /// Cache heavy content like audio files or large search results
+    pub async fn cache_heavy_content_data(
+        cache: &AdvancedCacheManager,
+        content_id: &str,
+        data: &[u8],
+        content_type: &str,
+    ) -> SanadResult<()> {
+        cache.cache_heavy_content(content_id, data, content_type).await
+    }
+
+    /// Get cached heavy content
+    pub async fn get_heavy_content_data(
+        cache: &AdvancedCacheManager,
+        content_id: &str,
+    ) -> SanadResult<Option<Vec<u8>>> {
+        cache.get_heavy_content(content_id).await
+    }
+
+    /// Cache search results with frequency tracking
+    pub async fn cache_search_results<T>(
+        cache: &AdvancedCacheManager,
+        query: &str,
+        filters: &str,
+        results: &T,
+    ) -> SanadResult<()>
+    where
+        T: Serialize,
+    {
+        let query_hash = crate::utils::calculate_content_hash(query);
+        let filters_hash = crate::utils::calculate_content_hash(filters);
+        let key = CacheKeys::search_results(&query_hash, &filters_hash);
+        
+        // Check if this is a large result set
+        let serialized_size = serde_json::to_string(results)
+            .map_err(SanadError::Serialization)?
+            .len();
+        
+        if serialized_size > cache.config.heavy_content_threshold_bytes {
+            // Use heavy content caching for large results
+            let data = serde_json::to_vec(results).map_err(SanadError::Serialization)?;
+            cache.cache_heavy_content(&key, &data, "application/json").await?;
+        } else {
+            // Use regular caching
+            cache.set(&key, results, CacheType::SearchResults).await?;
+        }
+        
+        // Also track as frequent query
+        let full_query = format!("{}|{}", query, filters);
+        cache.cache_frequent_query(&full_query, results).await?;
+        
+        Ok(())
     }
 }
 

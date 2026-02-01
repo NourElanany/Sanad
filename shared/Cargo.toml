@@ -19,3 +19,8 @@ unicode-normalization = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+flate2 = "1.0"
+base64 = "0.21"
+
+[dev-dependencies]
+proptest = { workspace = true }

@@ -9,6 +9,12 @@ pub mod digital_auth;
 #[cfg(test)]
 pub mod cache_tests;
 
+#[cfg(test)]
+pub mod advanced_cache_tests;
+
+#[cfg(test)]
+pub mod performance_tests;
+
 pub use models::*;
 pub use errors::*;
 pub use config::*;

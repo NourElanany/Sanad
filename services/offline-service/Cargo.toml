@@ -1,0 +1,47 @@
+[package]
+name = "offline-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Database and storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# Compression and serialization
+lz4_flex = "0.11"
+flate2 = "1.0"
+bincode = "1.3"
+base64 = "0.21"
+
+# HTTP and networking
+reqwest = { version = "0.11", features = ["json", "stream"] }
+axum = { version = "0.7", features = ["json", "query", "multipart"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# File system and I/O
+tempfile = "3.8"
+walkdir = "2.4"
+
+# Cryptography and hashing
+sha2 = "0.10"
+
+# Shared dependencies
+shared = { path = "../../shared" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+quickcheck = "1.0"
+quickcheck_macros = "1.0"

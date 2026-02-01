@@ -40,3 +40,4 @@ chrono = { workspace = true }
 dashmap = "5.5"
 metrics = "0.22"
 metrics-exporter-prometheus = "0.13"
+base64 = "0.21"

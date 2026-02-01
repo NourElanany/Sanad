@@ -52,6 +52,11 @@ mod tests {
         assert_eq!(config.hadith_content_ttl_seconds, 604800);
         assert_eq!(config.max_memory_cache_size, 10000);
         assert!(config.enable_smart_invalidation);
+        assert_eq!(config.min_query_frequency_for_cache, 5);
+        assert_eq!(config.heavy_content_threshold_bytes, 1024 * 1024);
+        assert_eq!(config.heavy_content_ttl_seconds, 7200);
+        assert!(config.enable_query_tracking);
+        assert!(config.enable_adaptive_ttl);
     }
 
     #[test]
@@ -81,6 +86,8 @@ mod tests {
             CacheType::UserPreferences,
             CacheType::SearchResults,
             CacheType::ApiResponse,
+            CacheType::HeavyContent,
+            CacheType::FrequentQuery,
             CacheType::General,
         ];
 
@@ -106,12 +113,24 @@ mod tests {
                 map
             },
             total_cache_operations: 1000,
+            heavy_content_entries: 5,
+            total_heavy_content_size_bytes: 5 * 1024 * 1024, // 5MB
+            average_compression_ratio: 0.3,
+            frequent_queries_count: 15,
+            query_tracking_enabled: true,
+            adaptive_ttl_enabled: true,
         };
 
         assert_eq!(stats.redis_memory_usage_bytes, 1024);
         assert_eq!(stats.memory_cache_entries, 100);
         assert_eq!(stats.total_cache_operations, 1000);
         assert_eq!(stats.memory_cache_entries_by_type.len(), 3);
+        assert_eq!(stats.heavy_content_entries, 5);
+        assert_eq!(stats.total_heavy_content_size_bytes, 5 * 1024 * 1024);
+        assert_eq!(stats.average_compression_ratio, 0.3);
+        assert_eq!(stats.frequent_queries_count, 15);
+        assert!(stats.query_tracking_enabled);
+        assert!(stats.adaptive_ttl_enabled);
     }
 
     // Mock tests for cache manager functionality
@@ -162,6 +181,8 @@ mod tests {
         assert_eq!(mock_manager.get_ttl_for_type(&CacheType::SemanticQuery), 21600);
         assert_eq!(mock_manager.get_ttl_for_type(&CacheType::QuranContent), 2592000);
         assert_eq!(mock_manager.get_ttl_for_type(&CacheType::HadithContent), 604800);
+        assert_eq!(mock_manager.get_ttl_for_type(&CacheType::HeavyContent), 7200);
+        assert_eq!(mock_manager.get_ttl_for_type(&CacheType::FrequentQuery), 43200); // 2x semantic query TTL
         assert_eq!(mock_manager.get_ttl_for_type(&CacheType::General), 3600);
     }
 
@@ -187,10 +208,12 @@ mod tests {
         assert!(mock_manager.should_cache_in_memory(&CacheType::QuranContent));
         assert!(mock_manager.should_cache_in_memory(&CacheType::UserPreferences));
         assert!(mock_manager.should_cache_in_memory(&CacheType::PrayerTimes));
+        assert!(mock_manager.should_cache_in_memory(&CacheType::FrequentQuery));
         
         // These should not be cached in memory
         assert!(!mock_manager.should_cache_in_memory(&CacheType::SemanticQuery));
         assert!(!mock_manager.should_cache_in_memory(&CacheType::HadithContent));
+        assert!(!mock_manager.should_cache_in_memory(&CacheType::HeavyContent));
         assert!(!mock_manager.should_cache_in_memory(&CacheType::General));
     }
 
@@ -235,6 +258,8 @@ mod tests {
             ("user_prefs:*", "All user preferences"),
             ("search:*", "All search results"),
             ("api:*", "All API responses"),
+            ("frequent_query:*", "All frequent queries"),
+            ("heavy_content:*", "All heavy content"),
         ];
 
         for (pattern, description) in patterns {
@@ -242,6 +267,62 @@ mod tests {
             assert!(pattern.contains(':'), "Pattern should contain colons: {} ({})", pattern, description);
             assert!(pattern.ends_with('*'), "Pattern should end with wildcard: {} ({})", pattern, description);
         }
+    }
+
+    #[test]
+    fn test_query_stats_creation() {
+        let now = Utc::now();
+        let stats = QueryStats {
+            query_hash: "test_hash".to_string(),
+            first_seen: now,
+            last_accessed: now,
+            access_count: 1,
+            hourly_frequency: 0.0,
+            average_response_time_ms: 100.0,
+            cache_hit_ratio: 0.8,
+            is_frequent: false,
+        };
+
+        assert_eq!(stats.query_hash, "test_hash");
+        assert_eq!(stats.access_count, 1);
+        assert_eq!(stats.average_response_time_ms, 100.0);
+        assert_eq!(stats.cache_hit_ratio, 0.8);
+        assert!(!stats.is_frequent);
+    }
+
+    #[test]
+    fn test_heavy_content_entry_creation() {
+        let now = Utc::now();
+        let entry = HeavyContentEntry {
+            content_hash: "test_hash".to_string(),
+            compressed_data: vec![1, 2, 3, 4, 5],
+            original_size: 1000,
+            compressed_size: 500,
+            compression_ratio: 0.5,
+            created_at: now,
+            expires_at: now + chrono::Duration::hours(2),
+            access_count: 0,
+            last_accessed: now,
+            content_type: "application/json".to_string(),
+        };
+
+        assert_eq!(entry.content_hash, "test_hash");
+        assert_eq!(entry.original_size, 1000);
+        assert_eq!(entry.compressed_size, 500);
+        assert_eq!(entry.compression_ratio, 0.5);
+        assert_eq!(entry.content_type, "application/json");
+        assert_eq!(entry.compressed_data.len(), 5);
+    }
+
+    #[test]
+    fn test_new_cache_key_patterns() {
+        // Test frequent query key generation
+        let frequent_key = CacheKeys::frequent_query("abc123");
+        assert_eq!(frequent_key, "frequent_query:abc123");
+
+        // Test heavy content key generation
+        let heavy_key = CacheKeys::heavy_content("content_123");
+        assert_eq!(heavy_key, "heavy_content:content_123");
     }
 
     #[test]
@@ -463,6 +544,12 @@ mod integration_tests {
                     memory_cache_entries: entry_count,
                     memory_cache_entries_by_type: entries_by_type,
                     total_cache_operations: 100,
+                    heavy_content_entries: 0,
+                    total_heavy_content_size_bytes: 0,
+                    average_compression_ratio: 0.0,
+                    frequent_queries_count: 0,
+                    query_tracking_enabled: false,
+                    adaptive_ttl_enabled: false,
                 })
             }
             

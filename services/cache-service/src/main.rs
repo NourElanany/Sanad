@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
     routing::{delete, get, post, put},
@@ -16,6 +16,7 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{error, info, warn};
+use base64::Engine;
 
 /// Cache service application state
 #[derive(Clone)]
@@ -57,11 +58,24 @@ pub struct InvalidateResponse {
     pub deleted_count: u64,
 }
 
-/// Query parameters for cache operations
+/// Request to cache heavy content
 #[derive(Debug, Deserialize)]
-pub struct CacheQueryParams {
-    pub cache_type: Option<CacheType>,
-    pub ttl_seconds: Option<u64>,
+pub struct CacheHeavyContentRequest {
+    pub data: String, // Base64 encoded data
+    pub content_type: String,
+}
+
+/// Request to cache frequent query
+#[derive(Debug, Deserialize)]
+pub struct CacheFrequentQueryRequest {
+    pub query: String,
+    pub result: serde_json::Value,
+}
+
+/// Request to get frequent query
+#[derive(Debug, Deserialize)]
+pub struct GetFrequentQueryRequest {
+    pub query: String,
 }
 
 #[tokio::main]
@@ -89,6 +103,11 @@ async fn main() -> SanadResult<()> {
         hadith_content_ttl_seconds: 604800, // 7 days
         max_memory_cache_size: 50000,
         enable_smart_invalidation: true,
+        min_query_frequency_for_cache: 5,
+        heavy_content_threshold_bytes: 1024 * 1024, // 1MB
+        heavy_content_ttl_seconds: 7200, // 2 hours
+        enable_query_tracking: true,
+        enable_adaptive_ttl: true,
     };
 
     let cache_manager: Arc<AdvancedCacheManager> = Arc::new(
@@ -140,6 +159,10 @@ fn create_router(state: AppState) -> Router {
         .route("/cache/semantic-query", post(cache_semantic_query))
         .route("/cache/quran-content", post(cache_quran_content))
         .route("/cache/hadith-content", post(cache_hadith_content))
+        .route("/cache/frequent-query", post(cache_frequent_query))
+        .route("/cache/frequent-query", get(get_frequent_query))
+        .route("/cache/heavy-content/:content_id", put(cache_heavy_content))
+        .route("/cache/heavy-content/:content_id", get(get_heavy_content))
         
         // Cache invalidation
         .route("/cache/invalidate/pattern", post(invalidate_cache_pattern))
@@ -179,7 +202,6 @@ async fn get_cache_value(
 async fn set_cache_value(
     State(state): State<AppState>,
     Path(key): Path<String>,
-    Query(_params): Query<CacheQueryParams>,
     Json(request): Json<SetCacheRequest>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     let cache_type = request.cache_type.unwrap_or(CacheType::General);
@@ -374,4 +396,73 @@ async fn warmup_cache(
 
 async fn health_check() -> Json<ApiResponse<String>> {
     Json(ApiResponse::success("Cache service is healthy".to_string()))
+}
+
+async fn cache_frequent_query(
+    State(state): State<AppState>,
+    Json(request): Json<CacheFrequentQueryRequest>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    match state.cache_manager.cache_frequent_query(&request.query, &request.result).await {
+        Ok(()) => Ok(Json(ApiResponse::success(()))),
+        Err(e) => {
+            error!("Failed to cache frequent query: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn get_frequent_query(
+    State(state): State<AppState>,
+    Json(request): Json<GetFrequentQueryRequest>,
+) -> Result<Json<ApiResponse<Option<serde_json::Value>>>, StatusCode> {
+    match state.cache_manager.get_frequent_query::<serde_json::Value>(&request.query).await {
+        Ok(result) => Ok(Json(ApiResponse::success(result))),
+        Err(e) => {
+            error!("Failed to get frequent query: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn cache_heavy_content(
+    State(state): State<AppState>,
+    Path(content_id): Path<String>,
+    Json(request): Json<CacheHeavyContentRequest>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    // Decode base64 data
+    let data = match base64::engine::general_purpose::STANDARD.decode(&request.data) {
+        Ok(data) => data,
+        Err(e) => {
+            error!("Failed to decode base64 data: {}", e);
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    };
+
+    match state.cache_manager.cache_heavy_content(&content_id, &data, &request.content_type).await {
+        Ok(()) => Ok(Json(ApiResponse::success(()))),
+        Err(e) => {
+            error!("Failed to cache heavy content: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn get_heavy_content(
+    State(state): State<AppState>,
+    Path(content_id): Path<String>,
+) -> Result<Json<ApiResponse<Option<serde_json::Value>>>, StatusCode> {
+    match state.cache_manager.get_heavy_content(&content_id).await {
+        Ok(Some(data)) => {
+            let response = serde_json::json!({
+                "data": base64::engine::general_purpose::STANDARD.encode(&data),
+                "size": data.len()
+            });
+            Ok(Json(ApiResponse::success(Some(response))))
+        }
+        Ok(None) => Ok(Json(ApiResponse::success(None))),
+        Err(e) => {
+            error!("Failed to get heavy content: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }

@@ -2,7 +2,29 @@
 
 ## Overview
 
-The Sanad Islamic Application implements a sophisticated multi-tier caching system designed to provide high-performance access to Islamic content while maintaining data integrity and supporting intelligent cache invalidation strategies.
+The Sanad Islamic Application implements a sophisticated multi-tier caching system designed to provide high-performance access to Islamic content while maintaining data integrity and supporting intelligent cache invalidation strategies. The system now includes advanced features for common query optimization, heavy content handling, and intelligent cache expiration management.
+
+## New Advanced Features
+
+### 🧠 Intelligent Query Caching
+- **Frequency Tracking**: Automatically tracks query frequency and caches popular queries
+- **Adaptive Caching**: Only caches queries that meet minimum frequency thresholds
+- **Smart Retrieval**: Optimizes retrieval of frequently accessed queries
+
+### 💾 Heavy Content Optimization
+- **Automatic Compression**: Compresses large content (>1MB) using gzip
+- **Threshold-based Handling**: Automatically detects and handles heavy content
+- **Efficient Storage**: Reduces storage requirements by up to 70% for compressible content
+
+### ⏰ Adaptive TTL Management
+- **Access Pattern Analysis**: Adjusts TTL based on access frequency
+- **Dynamic Expiration**: Extends TTL for frequently accessed items
+- **Resource Optimization**: Reduces TTL for rarely accessed items
+
+### 📊 Enhanced Monitoring
+- **Comprehensive Statistics**: Detailed metrics for all cache types
+- **Compression Analytics**: Tracks compression ratios and storage savings
+- **Query Analytics**: Monitors frequent queries and access patterns
 
 ## Architecture
 
@@ -52,16 +74,20 @@ The Sanad Islamic Application implements a sophisticated multi-tier caching syst
 
 ## Cache Types and TTL Configuration
 
-| Cache Type | TTL | Use Case | Memory Cache |
-|------------|-----|----------|--------------|
-| **Prayer Times** | 24 hours | Location-based prayer schedules | ✅ |
-| **Quran Content** | 30 days | Verses, surahs, translations | ✅ |
-| **Hadith Content** | 7 days | Hadith collections and chains | ❌ |
-| **Semantic Queries** | 6 hours | Search results and embeddings | ❌ |
-| **User Preferences** | 1 hour | User settings and preferences | ✅ |
-| **Search Results** | 1 hour | General search results | ❌ |
-| **API Responses** | 1 hour | External API responses | ❌ |
-| **General** | 1 hour | Default caching | ❌ |
+| Cache Type | TTL | Use Case | Memory Cache | Compression |
+|------------|-----|----------|--------------|-------------|
+| **Prayer Times** | 24 hours | Location-based prayer schedules | ✅ | ❌ |
+| **Quran Content** | 30 days | Verses, surahs, translations | ✅ | ❌ |
+| **Hadith Content** | 7 days | Hadith collections and chains | ❌ | ❌ |
+| **Semantic Queries** | 6 hours | Search results and embeddings | ❌ | ❌ |
+| **Frequent Queries** | 12 hours | Popular/repeated queries | ✅ | ❌ |
+| **Heavy Content** | 2 hours | Large files, audio, images | ❌ | ✅ |
+| **User Preferences** | 1 hour | User settings and preferences | ✅ | ❌ |
+| **Search Results** | 1 hour | General search results | ❌ | Auto* |
+| **API Responses** | 1 hour | External API responses | ❌ | ❌ |
+| **General** | 1 hour | Default caching | ❌ | ❌ |
+
+*Auto: Automatically uses compression for large result sets
 
 ## Cache Key Patterns
 
@@ -90,8 +116,15 @@ The Sanad Islamic Application implements a sophisticated multi-tier caching syst
 // User preferences
 "user_prefs:user_uuid"
 
-// Search results
+// Search results with intelligent caching
 "search:query_hash:filters_hash"
+
+// Frequent queries (automatically cached)
+"frequent_query:abc123hash"
+
+// Heavy content with compression
+"heavy_content:audio_surah_1_mishary"
+"heavy_content:large_search_results_xyz"
 ```
 
 ## Redis Cluster Configuration
