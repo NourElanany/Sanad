@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار واجهة سند</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+            direction: rtl;
+            text-align: right;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>اختبار واجهة سند - التطبيق الإسلامي الشامل</h1>
+        
+        <div class="test-section">
+            <h2 class="test-title">1. اختبار تحميل الملفات</h2>
+            <button onclick="testFileLoading()">اختبار تحميل الملفات</button>
+            <div id="fileLoadingResult" class="test-result info">
+                انقر على الزر لاختبار تحميل ملفات CSS و JavaScript
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">2. اختبار التصميم المتجاوب</h2>
+            <button onclick="testResponsiveDesign()">اختبار التصميم المتجاوب</button>
+            <div id="responsiveResult" class="test-result info">
+                انقر على الزر لاختبار التصميم المتجاوب
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">3. اختبار دعم RTL</h2>
+            <button onclick="testRTLSupport()">اختبار دعم RTL</button>
+            <div id="rtlResult" class="test-result info">
+                انقر على الزر لاختبار دعم الكتابة من اليمين لليسار
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">4. اختبار الوظائف الأساسية</h2>
+            <button onclick="testBasicFunctions()">اختبار الوظائف</button>
+            <div id="functionsResult" class="test-result info">
+                انقر على الزر لاختبار الوظائف الأساسية
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">5. فتح الواجهة الرئيسية</h2>
+            <button onclick="openMainInterface()">فتح الواجهة الرئيسية</button>
+            <div id="mainInterfaceResult" class="test-result info">
+                انقر على الزر لفتح الواجهة الرئيسية للتطبيق
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testFileLoading() {
+            const result = document.getElementById('fileLoadingResult');
+            result.innerHTML = 'جاري اختبار تحميل الملفات...';
+            result.className = 'test-result info';
+            
+            // Test CSS files
+            const cssFiles = [
+                'styles/main.css',
+                'styles/components.css',
+                'styles/responsive.css'
+            ];
+            
+            // Test JS files
+            const jsFiles = [
+                'js/config.js',
+                'js/utils.js',
+                'js/api.js',
+                'js/i18n.js',
+                'js/app.js'
+            ];
+            
+            let loadedFiles = 0;
+            let totalFiles = cssFiles.length + jsFiles.length;
+            let errors = [];
+            
+            function checkComplete() {
+                if (loadedFiles === totalFiles) {
+                    if (errors.length === 0) {
+                        result.innerHTML = `✅ تم تحميل جميع الملفات بنجاح (${totalFiles} ملف)`;
+                        result.className = 'test-result success';
+                    } else {
+                        result.innerHTML = `❌ فشل في تحميل ${errors.length} ملف: ${errors.join(', ')}`;
+                        result.className = 'test-result error';
+                    }
+                }
+            }
+            
+            // Test CSS files
+            cssFiles.forEach(file => {
+                fetch(file)
+                    .then(response => {
+                        if (response.ok) {
+                            loadedFiles++;
+                        } else {
+                            errors.push(file);
+                            loadedFiles++;
+                        }
+                        checkComplete();
+                    })
+                    .catch(() => {
+                        errors.push(file);
+                        loadedFiles++;
+                        checkComplete();
+                    });
+            });
+            
+            // Test JS files
+            jsFiles.forEach(file => {
+                fetch(file)
+                    .then(response => {
+                        if (response.ok) {
+                            loadedFiles++;
+                        } else {
+                            errors.push(file);
+                            loadedFiles++;
+                        }
+                        checkComplete();
+                    })
+                    .catch(() => {
+                        errors.push(file);
+                        loadedFiles++;
+                        checkComplete();
+                    });
+            });
+        }
+        
+        function testResponsiveDesign() {
+            const result = document.getElementById('responsiveResult');
+            const screenWidth = window.innerWidth;
+            let screenSize = '';
+            
+            if (screenWidth < 576) screenSize = 'صغيرة جداً (XS)';
+            else if (screenWidth < 768) screenSize = 'صغيرة (SM)';
+            else if (screenWidth < 992) screenSize = 'متوسطة (MD)';
+            else if (screenWidth < 1200) screenSize = 'كبيرة (LG)';
+            else screenSize = 'كبيرة جداً (XL)';
+            
+            result.innerHTML = `✅ حجم الشاشة الحالي: ${screenWidth}px - ${screenSize}`;
+            result.className = 'test-result success';
+        }
+        
+        function testRTLSupport() {
+            const result = document.getElementById('rtlResult');
+            const direction = document.documentElement.dir;
+            const textAlign = window.getComputedStyle(document.body).textAlign;
+            
+            if (direction === 'rtl' && (textAlign === 'right' || textAlign === 'start')) {
+                result.innerHTML = '✅ دعم RTL يعمل بشكل صحيح - الاتجاه: ' + direction + ' - المحاذاة: ' + textAlign;
+                result.className = 'test-result success';
+            } else {
+                result.innerHTML = '❌ مشكلة في دعم RTL - الاتجاه: ' + direction + ' - المحاذاة: ' + textAlign;
+                result.className = 'test-result error';
+            }
+        }
+        
+        function testBasicFunctions() {
+            const result = document.getElementById('functionsResult');
+            let tests = [];
+            
+            // Test localStorage
+            try {
+                localStorage.setItem('test', 'value');
+                localStorage.removeItem('test');
+                tests.push('✅ localStorage');
+            } catch (e) {
+                tests.push('❌ localStorage');
+            }
+            
+            // Test fetch API
+            if (typeof fetch !== 'undefined') {
+                tests.push('✅ Fetch API');
+            } else {
+                tests.push('❌ Fetch API');
+            }
+            
+            // Test modern JS features
+            try {
+                const testArrow = () => true;
+                const testTemplate = `test`;
+                const testDestructuring = {a: 1};
+                const {a} = testDestructuring;
+                tests.push('✅ Modern JavaScript');
+            } catch (e) {
+                tests.push('❌ Modern JavaScript');
+            }
+            
+            // Test CSS Grid and Flexbox
+            const testDiv = document.createElement('div');
+            testDiv.style.display = 'grid';
+            if (testDiv.style.display === 'grid') {
+                tests.push('✅ CSS Grid');
+            } else {
+                tests.push('❌ CSS Grid');
+            }
+            
+            testDiv.style.display = 'flex';
+            if (testDiv.style.display === 'flex') {
+                tests.push('✅ CSS Flexbox');
+            } else {
+                tests.push('❌ CSS Flexbox');
+            }
+            
+            result.innerHTML = tests.join('<br>');
+            result.className = tests.some(test => test.includes('❌')) ? 'test-result error' : 'test-result success';
+        }
+        
+        function openMainInterface() {
+            const result = document.getElementById('mainInterfaceResult');
+            result.innerHTML = 'جاري فتح الواجهة الرئيسية...';
+            result.className = 'test-result info';
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

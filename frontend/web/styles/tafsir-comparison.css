@@ -1,0 +1,1027 @@
+/* ===== TAFSIR COMPARISON STYLES ===== */
+
+/* Tafsir Comparison Modal */
+.tafsir-comparison-modal {
+    max-width: 1400px;
+    width: 95%;
+    max-height: 95vh;
+    overflow: hidden;
+}
+
+.tafsir-comparison-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tafsir-comparison-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.tafsir-comparison-modal .modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.tafsir-comparison-modal .modal-title::before {
+    content: '⚖️';
+    font-size: var(--font-size-2xl);
+}
+
+/* Ayah Selector */
+.ayah-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--bg-card);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.selector-input {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    min-width: 80px;
+}
+
+.selector-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.selector-separator {
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+/* View Mode Toggle */
+.view-mode-toggle {
+    display: flex;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xs);
+    border: 1px solid var(--border-color);
+}
+
+.view-mode-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.view-mode-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.view-mode-btn.active {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+}
+
+.mode-icon {
+    font-size: var(--font-size-sm);
+}
+
+/* Modal Body */
+.tafsir-comparison-modal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+/* Ayah Display Section */
+.ayah-display-section {
+    flex-shrink: 0;
+}
+
+.ayah-card {
+    background: linear-gradient(135deg, var(--accent-color), #2ecc71);
+    color: var(--text-inverse);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.ayah-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: ayahShimmer 4s ease-in-out infinite;
+}
+
+@keyframes ayahShimmer {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+}
+
+.ayah-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.ayah-reference {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ayah-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--text-inverse);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.action-icon {
+    font-size: var(--font-size-base);
+}
+
+.ayah-content {
+    text-align: center;
+}
+
+.ayah-arabic {
+    font-size: var(--font-size-3xl);
+    line-height: 1.8;
+    font-family: 'Amiri', serif;
+    margin-bottom: var(--spacing-lg);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ayah-translation {
+    font-size: var(--font-size-lg);
+    font-style: italic;
+    opacity: 0.9;
+}
+
+/* Tafsir Selector Section */
+.tafsir-selector-section {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+}
+
+.tafsir-selector-section .section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.tafsir-selector-section .section-title::before {
+    content: '📚';
+    font-size: var(--font-size-xl);
+}
+
+.tafsir-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tafsir-option {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.tafsir-option:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tafsir-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    width: 100%;
+}
+
+.tafsir-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.tafsir-checkbox .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    position: relative;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.tafsir-checkbox input:checked ~ .checkmark {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.tafsir-checkbox input:checked ~ .checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: var(--font-size-sm);
+    font-weight: bold;
+}
+
+.tafsir-info {
+    flex: 1;
+}
+
+.tafsir-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-base);
+}
+
+.tafsir-author {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.tafsir-methodology {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-style: italic;
+}
+
+.selector-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
+/* Comparison Container */
+.comparison-container {
+    flex: 1;
+    min-height: 400px;
+    position: relative;
+}
+
+.comparison-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--text-secondary);
+}
+
+.comparison-loading .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: var(--radius-full);
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-lg);
+}
+
+.comparison-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-lg);
+    opacity: 0.5;
+}
+
+.comparison-empty h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Side-by-Side View */
+.side-by-side-view .tafsir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* Tabbed View */
+.tabbed-view .tafsir-tabs {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tabs-list {
+    display: flex;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: var(--spacing-xs);
+    gap: var(--spacing-xs);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 120px;
+}
+
+.tab-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+}
+
+.tab-color {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.tabs-content {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    position: relative;
+}
+
+.tab-content {
+    display: none;
+    padding: var(--spacing-lg);
+    height: 100%;
+    overflow-y: auto;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Unified View */
+.unified-view .unified-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.unified-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-indicator {
+    width: 4px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.section-author {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-right: auto;
+}
+
+.section-content {
+    padding: var(--spacing-lg);
+}
+
+/* Tafsir Cards */
+.tafsir-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: fit-content;
+}
+
+.tafsir-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tafsir-card.expanded {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    z-index: var(--z-modal);
+    box-shadow: var(--shadow-lg);
+}
+
+.tafsir-card.expanded .card-content {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.header-right {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.tafsir-indicator {
+    width: 4px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.tafsir-info .tafsir-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+.tafsir-info .tafsir-author {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.tafsir-info .tafsir-methodology {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-style: italic;
+}
+
+.card-action {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: var(--font-size-sm);
+}
+
+.card-action:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+.card-content {
+    padding: var(--spacing-lg);
+}
+
+.tafsir-text {
+    font-size: var(--font-size-base);
+    line-height: 1.8;
+    color: var(--text-primary);
+    text-align: justify;
+    margin-bottom: var(--spacing-lg);
+    font-family: 'Amiri', serif;
+}
+
+.tafsir-themes {
+    margin-bottom: var(--spacing-lg);
+}
+
+.tafsir-themes h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.themes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.theme-tag {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.theme-tag:hover {
+    background: var(--bg-tertiary);
+    transform: scale(1.05);
+}
+
+.key-points h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.points-list {
+    list-style: none;
+    padding: 0;
+}
+
+.points-list li {
+    position: relative;
+    padding: var(--spacing-sm) 0;
+    padding-right: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.points-list li:last-child {
+    border-bottom: none;
+}
+
+.points-list li::before {
+    content: '•';
+    position: absolute;
+    right: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: var(--font-size-lg);
+}
+
+/* Comparison Tools */
+.comparison-tools {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-top: var(--spacing-lg);
+}
+
+.tools-left,
+.tools-right {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.tool-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.tool-btn:hover {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.tool-icon {
+    font-size: var(--font-size-base);
+}
+
+/* Highlight Effects */
+.tafsir-card.highlight-differences .tafsir-text {
+    background: linear-gradient(120deg, rgba(255, 235, 59, 0.2) 0%, rgba(255, 235, 59, 0.2) 100%);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border-right: 4px solid #ffeb3b;
+}
+
+.tafsir-card.show-similarities .tafsir-text {
+    background: linear-gradient(120deg, rgba(76, 175, 80, 0.2) 0%, rgba(76, 175, 80, 0.2) 100%);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border-right: 4px solid #4caf50;
+}
+
+/* Theme Analysis Modal */
+.theme-analysis-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+.theme-analysis {
+    padding: var(--spacing-lg);
+}
+
+.theme-analysis h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.theme-analysis h4:first-child {
+    margin-top: 0;
+}
+
+.common-themes,
+.different-themes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.theme-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.theme-group strong {
+    color: var(--text-primary);
+    min-width: 100px;
+}
+
+/* Error State */
+.comparison-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.error-icon {
+    font-size: 4rem;
+    color: var(--danger-color);
+    margin-bottom: var(--spacing-lg);
+}
+
+.comparison-error h3 {
+    color: var(--danger-color);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .side-by-side-view .tafsir-grid {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+    
+    .tafsir-comparison-modal {
+        width: 98%;
+    }
+}
+
+@media (max-width: 768px) {
+    .tafsir-comparison-modal .modal-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .header-left,
+    .header-right {
+        justify-content: center;
+    }
+    
+    .ayah-selector {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .view-mode-toggle {
+        justify-content: center;
+    }
+    
+    .view-mode-btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .side-by-side-view .tafsir-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tafsir-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .comparison-tools {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .tools-left,
+    .tools-right {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .ayah-arabic {
+        font-size: var(--font-size-2xl);
+    }
+    
+    .ayah-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .tabs-list {
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        min-width: auto;
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .tafsir-comparison-modal {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .tafsir-comparison-modal .modal-body {
+        padding: var(--spacing-md);
+        gap: var(--spacing-lg);
+    }
+    
+    .ayah-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .ayah-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        text-align: center;
+    }
+    
+    .selector-actions {
+        flex-direction: column;
+    }
+    
+    .tool-btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .tafsir-card.expanded {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .header-right {
+        justify-content: center;
+    }
+}
+
+/* Dark Theme Adjustments */
+[data-theme="dark"] .ayah-card {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+}
+
+[data-theme="dark"] .tafsir-card:hover {
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .tafsir-card.highlight-differences .tafsir-text {
+    background: linear-gradient(120deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.2) 100%);
+    border-right-color: #ffc107;
+}
+
+[data-theme="dark"] .tafsir-card.show-similarities .tafsir-text {
+    background: linear-gradient(120deg, rgba(76, 175, 80, 0.2) 0%, rgba(76, 175, 80, 0.2) 100%);
+    border-right-color: #4caf50;
+}
+
+/* Print Styles */
+@media print {
+    .tafsir-comparison-modal .modal-header,
+    .tafsir-selector-section,
+    .comparison-tools,
+    .ayah-actions,
+    .card-action {
+        display: none !important;
+    }
+    
+    .tafsir-comparison-modal {
+        width: 100%;
+        max-width: none;
+        max-height: none;
+        box-shadow: none;
+    }
+    
+    .tafsir-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .side-by-side-view .tafsir-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ayah-card {
+        background: #f8f9fa !important;
+        color: #000 !important;
+        border: 1px solid #ccc;
+    }
+    
+    .ayah-arabic {
+        color: #000 !important;
+    }
+}
+
+/* Animation for card appearance */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tafsir-card {
+    animation: slideInUp 0.4s ease forwards;
+}
+
+.tafsir-card:nth-child(1) { animation-delay: 0.1s; }
+.tafsir-card:nth-child(2) { animation-delay: 0.2s; }
+.tafsir-card:nth-child(3) { animation-delay: 0.3s; }
+.tafsir-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Scrollbar Styling */
+.tab-content::-webkit-scrollbar,
+.tafsir-card.expanded .card-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tab-content::-webkit-scrollbar-track,
+.tafsir-card.expanded .card-content::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.tab-content::-webkit-scrollbar-thumb,
+.tafsir-card.expanded .card-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.tab-content::-webkit-scrollbar-thumb:hover,
+.tafsir-card.expanded .card-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}

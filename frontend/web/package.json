@@ -1,0 +1,129 @@
+{
+  "name": "sanad-frontend-web",
+  "version": "1.0.0",
+  "description": "Frontend web interface for Sanad Islamic App",
+  "main": "js/app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:property": "jest --testPathPattern=property",
+    "test:enhanced": "jest --testPathPattern=enhanced",
+    "test:runner": "open tests/test-runner.html",
+    "test:all": "npm run test && npm run test:runner",
+    "lint": "eslint js/**/*.js tests/**/*.js",
+    "lint:fix": "eslint js/**/*.js tests/**/*.js --fix",
+    "serve": "python -m http.server 8000",
+    "serve:test": "python -m http.server 8080 --directory tests"
+  },
+  "keywords": [
+    "islamic",
+    "quran",
+    "hadith",
+    "prayer-times",
+    "frontend",
+    "javascript",
+    "responsive",
+    "rtl",
+    "i18n"
+  ],
+  "author": "Sanad Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.22.0",
+    "@babel/preset-env": "^7.22.0",
+    "@testing-library/dom": "^9.3.0",
+    "@testing-library/jest-dom": "^5.16.0",
+    "@testing-library/user-event": "^14.4.0",
+    "babel-jest": "^29.5.0",
+    "eslint": "^8.42.0",
+    "eslint-plugin-jest": "^27.2.0",
+    "fast-check": "^3.10.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
+    "jest-html-reporters": "^3.1.0",
+    "jsdom": "^22.1.0"
+  },
+  "dependencies": {
+    "core-js": "^3.31.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/test-setup.js",
+      "<rootDir>/tests/setup/custom-matchers.js"
+    ],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "js/**/*.js",
+      "!js/config.js"
+    ],
+    "coverageDirectory": "tests/coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testTimeout": 30000,
+    "verbose": true
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
+    ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es2021": true,
+      "jest": true,
+      "node": true
+    },
+    "extends": [
+      "eslint:recommended",
+      "plugin:jest/recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2021,
+      "sourceType": "module"
+    },
+    "plugins": [
+      "jest"
+    ],
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-console": "warn",
+      "prefer-const": "error",
+      "no-var": "error",
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/prefer-to-have-length": "warn",
+      "jest/valid-expect": "error"
+    },
+    "globals": {
+      "SanadApp": "readonly",
+      "SanadAPI": "readonly",
+      "SanadConfig": "readonly",
+      "SanadUtils": "readonly",
+      "SanadI18n": "readonly",
+      "testUtils": "readonly"
+    }
+  }
+}

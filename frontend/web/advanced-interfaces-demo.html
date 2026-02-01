@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الواجهات المتقدمة - سند</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/advanced-search.css">
+    <link rel="stylesheet" href="styles/user-dashboard.css">
+    <link rel="stylesheet" href="styles/tafsir-comparison.css">
+    <link rel="stylesheet" href="styles/advanced-interfaces-integration.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="lang-ar" data-theme="light">
+    <div class="demo-container">
+        <header class="demo-header">
+            <h1>عرض الواجهات التفاعلية المتقدمة</h1>
+            <p>تطبيق سند الإسلامي الشامل - المهمة 14.2</p>
+        </header>
+
+        <main class="demo-content">
+            <!-- Interface Showcase -->
+            <section class="interface-showcase">
+                <h2>الواجهات المتقدمة المنفذة</h2>
+                
+                <div class="interfaces-grid">
+                    <!-- Advanced Search Interface -->
+                    <div class="interface-card">
+                        <div class="interface-header">
+                            <div class="interface-icon">🔍</div>
+                            <h3>واجهة البحث المتقدم</h3>
+                        </div>
+                        <div class="interface-description">
+                            <p>بحث شامل مع فلاتر متقدمة، بحث دلالي، وتاريخ البحث</p>
+                            <ul>
+                                <li>البحث النصي والدلالي والجذر اللغوي</li>
+                                <li>فلاتر حسب نوع المحتوى ودرجة الصحة</li>
+                                <li>عرض النتائج مع التمييز والترتيب</li>
+                                <li>حفظ تاريخ البحث والاقتراحات</li>
+                            </ul>
+                        </div>
+                        <div class="interface-actions">
+                            <button class="btn btn-primary" onclick="openAdvancedSearchDemo()">
+                                <span class="btn-icon">🔍</span>
+                                فتح البحث المتقدم
+                            </button>
+                            <button class="btn btn-outline" onclick="openAdvancedSearchDemo('الصبر في الشدائد')">
+                                <span class="btn-icon">🔍</span>
+                                بحث تجريبي
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- User Dashboard Interface -->
+                    <div class="interface-card">
+                        <div class="interface-header">
+                            <div class="interface-icon">📊</div>
+                            <h3>لوحة التحكم الشخصية</h3>
+                        </div>
+                        <div class="interface-description">
+                            <p>لوحة تحكم قابلة للتخصيص مع ودجات تفاعلية</p>
+                            <ul>
+                                <li>ودجات مواقيت الصلاة وآية اليوم</li>
+                                <li>تتبع تقدم الختمة وعداد الأذكار</li>
+                                <li>التقويم الهجري والإحصائيات السريعة</li>
+                                <li>سحب وإفلات الودجات وتخصيص التخطيط</li>
+                            </ul>
+                        </div>
+                        <div class="interface-actions">
+                            <button class="btn btn-primary" onclick="openDashboardDemo()">
+                                <span class="btn-icon">📊</span>
+                                فتح لوحة التحكم
+                            </button>
+                            <button class="btn btn-outline" onclick="openDashboardCustomization()">
+                                <span class="btn-icon">⚙️</span>
+                                تخصيص اللوحة
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tafsir Comparison Interface -->
+                    <div class="interface-card">
+                        <div class="interface-header">
+                            <div class="interface-icon">⚖️</div>
+                            <h3>واجهة مقارنة التفاسير</h3>
+                        </div>
+                        <div class="interface-description">
+                            <p>مقارنة شاملة بين التفاسير المختلفة للآيات</p>
+                            <ul>
+                                <li>عرض متعدد الأنماط (جنباً إلى جنب، تبويبات، موحد)</li>
+                                <li>اختيار التفاسير من مصادر موثوقة</li>
+                                <li>تحليل المواضيع والنقاط الرئيسية</li>
+                                <li>تصدير وطباعة المقارنات</li>
+                            </ul>
+                        </div>
+                        <div class="interface-actions">
+                            <button class="btn btn-primary" onclick="openTafsirComparisonDemo()">
+                                <span class="btn-icon">⚖️</span>
+                                فتح مقارنة التفاسير
+                            </button>
+                            <button class="btn btn-outline" onclick="openTafsirComparisonDemo(1, 1)">
+                                <span class="btn-icon">📖</span>
+                                مقارنة الفاتحة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Integration Features -->
+            <section class="integration-features">
+                <h2>ميزات التكامل المتقدمة</h2>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔗</div>
+                        <h4>التكامل بين الواجهات</h4>
+                        <p>انتقال سلس بين الواجهات مع مشاركة البيانات</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⌨️</div>
+                        <h4>اختصارات لوحة المفاتيح</h4>
+                        <p>وصول سريع للواجهات باستخدام اختصارات مخصصة</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">💾</div>
+                        <h4>حفظ واستيراد البيانات</h4>
+                        <p>تصدير واستيراد الإعدادات والبيانات الشخصية</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <h4>تصميم متجاوب</h4>
+                        <p>واجهات محسنة لجميع أحجام الشاشات</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Demo Controls -->
+            <section class="demo-controls">
+                <h2>عناصر التحكم التجريبية</h2>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <h4>اختبار الاختصارات</h4>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item">
+                                <span class="shortcut-keys">Ctrl+Shift+S</span>
+                                <span class="shortcut-action">البحث المتقدم</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="shortcut-keys">Ctrl+Shift+D</span>
+                                <span class="shortcut-action">تخصيص اللوحة</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="shortcut-keys">Ctrl+Shift+T</span>
+                                <span class="shortcut-action">مقارنة التفاسير</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h4>اختبار التكامل</h4>
+                        <div class="integration-buttons">
+                            <button class="btn btn-secondary" onclick="testDataSharing()">
+                                اختبار مشاركة البيانات
+                            </button>
+                            <button class="btn btn-secondary" onclick="testCrossNavigation()">
+                                اختبار التنقل المتقاطع
+                            </button>
+                            <button class="btn btn-secondary" onclick="testExportImport()">
+                                اختبار التصدير والاستيراد
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h4>إعدادات العرض</h4>
+                        <div class="display-settings">
+                            <label class="setting-item">
+                                <input type="checkbox" id="showKeyboardHints" checked>
+                                إظهار تلميحات لوحة المفاتيح
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="enableAnimations" checked>
+                                تفعيل الحركات
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="showIntegrationIndicators" checked>
+                                إظهار مؤشرات التكامل
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Status Display -->
+            <section class="status-display">
+                <h2>حالة الواجهات</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">البحث المتقدم:</span>
+                        <span class="status-value" id="searchStatus">جاهز</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">لوحة التحكم:</span>
+                        <span class="status-value" id="dashboardStatus">جاهز</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">مقارنة التفاسير:</span>
+                        <span class="status-value" id="tafsirStatus">جاهز</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">التكامل:</span>
+                        <span class="status-value" id="integrationStatus">نشط</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay">
+        <!-- Modals will be inserted here dynamically -->
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container">
+        <!-- Notifications will appear here -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/advanced-search.js"></script>
+    <script src="js/user-dashboard.js"></script>
+    <script src="js/tafsir-comparison.js"></script>
+    <script src="js/advanced-interfaces-integration.js"></script>
+    
+    <script>
+        // Demo-specific JavaScript
+        function openAdvancedSearchDemo(query = '') {
+            if (window.SanadAdvancedSearch) {
+                const event = new CustomEvent('openAdvancedSearch', {
+                    detail: { query }
+                });
+                document.dispatchEvent(event);
+                updateStatus('searchStatus', 'مفتوح');
+            }
+        }
+        
+        function openDashboardDemo() {
+            // Simulate dashboard opening
+            alert('لوحة التحكم الشخصية متاحة في الصفحة الرئيسية للتطبيق');
+            updateStatus('dashboardStatus', 'نشط');
+        }
+        
+        function openDashboardCustomization() {
+            if (window.SanadUserDashboard) {
+                const event = new CustomEvent('customizeDashboard');
+                document.dispatchEvent(event);
+                updateStatus('dashboardStatus', 'تخصيص');
+            }
+        }
+        
+        function openTafsirComparisonDemo(surahNumber = 1, ayahNumber = 1) {
+            if (window.SanadTafsirComparison) {
+                const event = new CustomEvent('openTafsirComparison', {
+                    detail: { surahNumber, ayahNumber }
+                });
+                document.dispatchEvent(event);
+                updateStatus('tafsirStatus', 'مقارنة نشطة');
+            }
+        }
+        
+        function testDataSharing() {
+            const event = new CustomEvent('shareData', {
+                detail: {
+                    from: 'search',
+                    to: 'tafsir',
+                    payload: {
+                        type: 'ayah',
+                        surahNumber: 1,
+                        ayahNumber: 1
+                    }
+                }
+            });
+            document.dispatchEvent(event);
+            showNotification('تم اختبار مشاركة البيانات بنجاح', 'success');
+        }
+        
+        function testCrossNavigation() {
+            const event = new CustomEvent('navigateToInterface', {
+                detail: {
+                    interface: 'tafsirComparison',
+                    params: { surahNumber: 2, ayahNumber: 255 }
+                }
+            });
+            document.dispatchEvent(event);
+            showNotification('تم اختبار التنقل المتقاطع بنجاح', 'success');
+        }
+        
+        function testExportImport() {
+            if (window.SanadAdvancedIntegration) {
+                window.SanadAdvancedIntegration.exportUserData();
+                showNotification('تم اختبار التصدير بنجاح', 'success');
+            }
+        }
+        
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = status;
+                element.className = 'status-value active';
+                setTimeout(() => {
+                    element.className = 'status-value';
+                }, 2000);
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">${message}</div>
+                <button class="notification-close">×</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            notification.querySelector('.notification-close').addEventListener('click', () => {
+                notification.remove();
+            });
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+        
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Advanced Interfaces Demo initialized');
+            
+            // Setup demo-specific event listeners
+            document.getElementById('showKeyboardHints').addEventListener('change', (e) => {
+                document.body.classList.toggle('show-keyboard-hints', e.target.checked);
+            });
+            
+            document.getElementById('enableAnimations').addEventListener('change', (e) => {
+                document.body.classList.toggle('no-animations', !e.target.checked);
+            });
+            
+            document.getElementById('showIntegrationIndicators').addEventListener('change', (e) => {
+                document.body.classList.toggle('show-integration-indicators', e.target.checked);
+            });
+            
+            // Show initial notification
+            setTimeout(() => {
+                showNotification('مرحباً بك في عرض الواجهات المتقدمة لتطبيق سند', 'success');
+            }, 1000);
+        });
+    </script>
+
+    <style>
+        /* Demo-specific styles */
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xxl);
+            padding: var(--spacing-xl);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-inverse);
+            border-radius: var(--radius-lg);
+        }
+        
+        .demo-header h1 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .demo-content section {
+            margin-bottom: var(--spacing-xxl);
+        }
+        
+        .demo-content h2 {
+            font-size: var(--font-size-2xl);
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+            position: relative;
+        }
+        
+        .demo-content h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: var(--radius-sm);
+        }
+        
+        .interfaces-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: var(--spacing-xl);
+        }
+        
+        .interface-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+        
+        .interface-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .interface-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .interface-icon {
+            font-size: var(--font-size-3xl);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+        }
+        
+        .interface-header h3 {
+            font-size: var(--font-size-xl);
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .interface-description ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .interface-description li {
+            position: relative;
+            padding: var(--spacing-xs) 0;
+            padding-right: var(--spacing-lg);
+            color: var(--text-secondary);
+        }
+        
+        .interface-description li::before {
+            content: '✓';
+            position: absolute;
+            right: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        
+        .interface-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-xl);
+        }
+        
+        .control-group {
+            background: var(--bg-card);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .shortcut-keys {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-tertiary);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-sm);
+        }
+        
+        .integration-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+        }
+        
+        .status-value {
+            font-weight: 600;
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+        }
+        
+        .status-value.active {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        
+        .notification {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideInRight 0.3s ease;
+        }
+        
+        .notification-success {
+            border-right: 4px solid var(--accent-color);
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: var(--font-size-lg);
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .interfaces-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .interface-actions {
+                flex-direction: column;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سند - التطبيق الإسلامي الشامل</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/advanced-search.css">
+    <link rel="stylesheet" href="styles/user-dashboard.css">
+    <link rel="stylesheet" href="styles/tafsir-comparison.css">
+    <link rel="stylesheet" href="styles/advanced-interfaces-integration.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body class="lang-ar" data-theme="light">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <div class="logo-text">سند</div>
+                <div class="logo-subtitle">التطبيق الإسلامي الشامل</div>
+            </div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">جاري التحميل...</div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <!-- Logo and Title -->
+                <div class="header-brand">
+                    <div class="logo">
+                        <span class="logo-icon">🕌</span>
+                        <span class="logo-text" id="appTitle">سند</span>
+                    </div>
+                    <div class="app-subtitle" id="appSubtitle">التطبيق الإسلامي الشامل</div>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="main-nav">
+                    <ul class="nav-list">
+                        <li><a href="#dashboard" class="nav-link active" data-section="dashboard" id="navDashboard">الرئيسية</a></li>
+                        <li><a href="#quran" class="nav-link" data-section="quran" id="navQuran">القرآن الكريم</a></li>
+                        <li><a href="#hadith" class="nav-link" data-section="hadith" id="navHadith">الأحاديث</a></li>
+                        <li><a href="#stories" class="nav-link" data-section="stories" id="navStories">القصص</a></li>
+                        <li><a href="#prayer-times" class="nav-link" data-section="prayer-times" id="navPrayerTimes">المواقيت</a></li>
+                        <li><a href="#ai-assistant" class="nav-link" data-section="ai-assistant" id="navAiAssistant">المساعد الذكي</a></li>
+                    </ul>
+                </nav>
+
+                <!-- Header Actions -->
+                <div class="header-actions">
+                    <!-- Search -->
+                    <div class="search-container">
+                        <input type="text" class="search-input" id="globalSearch" placeholder="البحث في المحتوى الإسلامي...">
+                        <button class="search-btn" id="searchBtn">🔍</button>
+                    </div>
+
+                    <!-- Language Selector -->
+                    <div class="language-selector">
+                        <button class="lang-toggle" id="langToggle">العربية</button>
+                        <div class="lang-dropdown" id="langDropdown">
+                            <button class="lang-option active" data-lang="ar">العربية</button>
+                            <button class="lang-option" data-lang="en">English</button>
+                            <button class="lang-option" data-lang="ur">اردو</button>
+                            <button class="lang-option" data-lang="tr">Türkçe</button>
+                            <button class="lang-option" data-lang="fr">Français</button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button class="theme-toggle" id="themeToggle" title="تبديل المظهر">🌙</button>
+
+                    <!-- Settings -->
+                    <button class="settings-btn" id="settingsBtn" title="الإعدادات">⚙️</button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="section-header">
+                    <h1 class="section-title" id="dashboardTitle">لوحة التحكم الرئيسية</h1>
+                    <p class="section-subtitle" id="dashboardSubtitle">مرحباً بك في التطبيق الإسلامي الشامل</p>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📖</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="quranProgress">35%</div>
+                            <div class="stat-label" id="quranProgressLabel">تقدم الختمة</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🕐</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="nextPrayerTime">2:15</div>
+                            <div class="stat-label" id="nextPrayerLabel">المغرب</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="hadithCount">1,247</div>
+                            <div class="stat-label" id="hadithCountLabel">أحاديث مقروءة</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="streakDays">8</div>
+                            <div class="stat-label" id="streakDaysLabel">أيام متتالية</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widgets Grid -->
+                <div class="widgets-grid" id="widgetsGrid">
+                    <!-- Widgets will be loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Quran Section -->
+            <section id="quran" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title" id="quranTitle">القرآن الكريم</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="continueReading">متابعة القراءة</button>
+                        <button class="btn btn-secondary" id="quranSearch">البحث في القرآن</button>
+                    </div>
+                </div>
+
+                <div class="quran-container">
+                    <!-- Surah List -->
+                    <div class="surah-list" id="surahList">
+                        <!-- Surahs will be loaded dynamically -->
+                    </div>
+
+                    <!-- Quran Reader -->
+                    <div class="quran-reader" id="quranReader" style="display: none;">
+                        <!-- Quran content will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Hadith Section -->
+            <section id="hadith" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title" id="hadithTitle">الأحاديث النبوية</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="randomHadith">حديث عشوائي</button>
+                        <button class="btn btn-secondary" id="hadithSearch">البحث في الأحاديث</button>
+                    </div>
+                </div>
+
+                <div class="hadith-container">
+                    <!-- Hadith collections -->
+                    <div class="hadith-collections" id="hadithCollections">
+                        <!-- Collections will be loaded dynamically -->
+                    </div>
+
+                    <!-- Hadith display -->
+                    <div class="hadith-display" id="hadithDisplay">
+                        <!-- Hadith content will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stories Section -->
+            <section id="stories" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title" id="storiesTitle">القصص الإسلامية</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="randomStory">قصة عشوائية</button>
+                        <button class="btn btn-secondary" id="storiesSearch">البحث في القصص</button>
+                    </div>
+                </div>
+
+                <div class="stories-container">
+                    <!-- Story categories -->
+                    <div class="story-categories" id="storyCategories">
+                        <!-- Categories will be loaded dynamically -->
+                    </div>
+
+                    <!-- Story display -->
+                    <div class="story-display" id="storyDisplay">
+                        <!-- Story content will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prayer Times Section -->
+            <section id="prayer-times" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title" id="prayerTimesTitle">مواقيت الصلاة</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="updateLocation">تحديث الموقع</button>
+                        <button class="btn btn-secondary" id="prayerSettings">إعدادات المواقيت</button>
+                    </div>
+                </div>
+
+                <div class="prayer-times-container">
+                    <!-- Current prayer info -->
+                    <div class="current-prayer-info" id="currentPrayerInfo">
+                        <!-- Current prayer details -->
+                    </div>
+
+                    <!-- Prayer times grid -->
+                    <div class="prayer-times-grid" id="prayerTimesGrid">
+                        <!-- Prayer times will be loaded dynamically -->
+                    </div>
+
+                    <!-- Hijri calendar -->
+                    <div class="hijri-calendar" id="hijriCalendar">
+                        <!-- Calendar will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Assistant Section -->
+            <section id="ai-assistant" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title" id="aiAssistantTitle">المساعد الذكي</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="clearChat">محادثة جديدة</button>
+                        <button class="btn btn-secondary" id="aiSettings">إعدادات المساعد</button>
+                    </div>
+                </div>
+
+                <div class="ai-assistant-container">
+                    <!-- Chat messages -->
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="welcome-message">
+                            <div class="message-content">
+                                <p id="aiWelcomeMessage">السلام عليكم! أنا مساعدك الذكي المتخصص في الشؤون الإسلامية. كيف يمكنني مساعدتك اليوم؟</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat input -->
+                    <div class="chat-input-container">
+                        <div class="chat-input-wrapper">
+                            <textarea class="chat-input" id="chatInput" placeholder="اطرح سؤالك الديني هنا..." rows="1"></textarea>
+                            <button class="send-btn" id="sendBtn" disabled>إرسال</button>
+                        </div>
+                        <div class="input-suggestions" id="inputSuggestions">
+                            <!-- Suggestions will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 id="footerAboutTitle">حول التطبيق</h3>
+                    <p id="footerAboutText">سند هو تطبيق إسلامي شامل يجمع القرآن الكريم والأحاديث النبوية والقصص الإسلامية في مكان واحد.</p>
+                </div>
+                <div class="footer-section">
+                    <h3 id="footerFeaturesTitle">الميزات</h3>
+                    <ul>
+                        <li id="footerFeature1">القرآن الكريم بالرسم العثماني</li>
+                        <li id="footerFeature2">مجموعة شاملة من الأحاديث</li>
+                        <li id="footerFeature3">مساعد ذكي متخصص</li>
+                        <li id="footerFeature4">مواقيت الصلاة الدقيقة</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3 id="footerContactTitle">تواصل معنا</h3>
+                    <div class="contact-info">
+                        <p>📧 info@sanad-app.com</p>
+                        <p>🌐 www.sanad-app.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p id="footerCopyright">&copy; 2024 سند - التطبيق الإسلامي الشامل. جميع الحقوق محفوظة.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals and Overlays -->
+    <div id="modalOverlay" class="modal-overlay">
+        <!-- Modals will be inserted here dynamically -->
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container">
+        <!-- Notifications will appear here -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/widgets.js"></script>
+    <script src="js/sections.js"></script>
+    <script src="js/advanced-search.js"></script>
+    <script src="js/user-dashboard.js"></script>
+    <script src="js/tafsir-comparison.js"></script>
+    <script src="js/advanced-interfaces-integration.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
