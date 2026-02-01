@@ -909,45 +909,380 @@ impl QuranRepository {
         Ok(ayahs)
     }
 
-    /// Get translations for a specific Ayah
-    pub async fn get_translations(&self, surah_number: i32, ayah_number: i32, languages: Option<Vec<String>>) -> Result<Vec<Translation>> {
-        let query_obj = if let Some(langs) = languages {
-            if !langs.is_empty() {
-                sqlx::query_as::<_, Translation>(
-                    "SELECT id, surah_number, ayah_number, language, translator, text, created_at
-                     FROM translations
-                     WHERE surah_number = $1 AND ayah_number = $2 AND language = ANY($3)
-                     ORDER BY language, translator"
-                )
-                .bind(surah_number)
-                .bind(ayah_number)
-                .bind(langs)
-            } else {
-                sqlx::query_as::<_, Translation>(
-                    "SELECT id, surah_number, ayah_number, language, translator, text, created_at
-                     FROM translations
-                     WHERE surah_number = $1 AND ayah_number = $2
-                     ORDER BY language, translator"
-                )
-                .bind(surah_number)
-                .bind(ayah_number)
-            }
-        } else {
-            sqlx::query_as::<_, Translation>(
-                "SELECT id, surah_number, ayah_number, language, translator, text, created_at
-                 FROM translations
-                 WHERE surah_number = $1 AND ayah_number = $2
-                 ORDER BY language, translator"
-            )
-            .bind(surah_number)
-            .bind(ayah_number)
-        };
+    /// Get translations for a specific Ayah with enhanced filtering
+    pub async fn get_translations(&self, request: &GetTranslationRequest) -> Result<Vec<TranslationWithSource>> {
+        let mut sql = String::from(
+            "SELECT t.id, t.surah_number, t.ayah_number, t.language, t.translator, t.text, 
+                    t.text_hash, t.quality_score, t.approval_status, t.source_reference, 
+                    t.methodology, t.created_at, t.updated_at,
+                    ts.id as source_id, ts.name as source_name, ts.translator as source_translator,
+                    ts.language as source_language, ts.description as source_description,
+                    ts.methodology as source_methodology, ts.source_reference as source_source_reference,
+                    ts.quality_score as source_quality_score, ts.approval_status as source_approval_status,
+                    ts.is_active, ts.created_at as source_created_at, ts.updated_at as source_updated_at
+             FROM translations t
+             LEFT JOIN translation_sources ts ON t.translator = ts.translator AND t.language = ts.language
+             WHERE t.surah_number = $1 AND t.ayah_number = $2"
+        );
 
-        let translations = query_obj.fetch_all(&self.pool).await?;
-        Ok(translations)
+        let mut bind_count = 2;
+
+        // Add language filter
+        if let Some(languages) = &request.languages {
+            if !languages.is_empty() {
+                bind_count += 1;
+                sql.push_str(&format!(" AND t.language = ANY(${})", bind_count));
+            }
+        }
+
+        // Add quality score filter
+        if let Some(_min_quality) = request.min_quality_score {
+            bind_count += 1;
+            sql.push_str(&format!(" AND t.quality_score >= ${}", bind_count));
+        }
+
+        // Add approval status filter
+        if let Some(approval_statuses) = &request.approval_status {
+            if !approval_statuses.is_empty() {
+                bind_count += 1;
+                sql.push_str(&format!(" AND t.approval_status = ANY(${})", bind_count));
+            }
+        }
+
+        sql.push_str(" ORDER BY t.quality_score DESC, t.language, t.translator");
+        
+        // Build query with all parameters
+        let mut query = sqlx::query(&sql)
+            .bind(request.surah_number)
+            .bind(request.ayah_number);
+
+        if let Some(languages) = &request.languages {
+            if !languages.is_empty() {
+                query = query.bind(languages.clone());
+            }
+        }
+
+        if let Some(min_quality) = request.min_quality_score {
+            query = query.bind(min_quality);
+        }
+
+        if let Some(approval_statuses) = &request.approval_status {
+            if !approval_statuses.is_empty() {
+                let status_strings: Vec<String> = approval_statuses.iter()
+                    .map(|s| match s {
+                        TranslationApprovalStatus::Pending => "pending".to_string(),
+                        TranslationApprovalStatus::Approved => "approved".to_string(),
+                        TranslationApprovalStatus::Verified => "verified".to_string(),
+                        TranslationApprovalStatus::Rejected => "rejected".to_string(),
+                    })
+                    .collect();
+                query = query.bind(status_strings);
+            }
+        }
+
+        let rows = query.fetch_all(&self.pool).await?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            let translation = Translation {
+                id: row.get("id"),
+                surah_number: row.get("surah_number"),
+                ayah_number: row.get("ayah_number"),
+                language: row.get("language"),
+                translator: row.get("translator"),
+                text: row.get("text"),
+                text_hash: row.get("text_hash"),
+                quality_score: row.get("quality_score"),
+                approval_status: row.get("approval_status"),
+                source_reference: row.get("source_reference"),
+                methodology: row.get("methodology"),
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            };
+
+            // Create source if available
+            let source = if let Ok(source_id) = row.try_get::<Uuid, _>("source_id") {
+                Some(TranslationSource {
+                    id: source_id,
+                    name: row.get("source_name"),
+                    translator: row.get("source_translator"),
+                    language: row.get("source_language"),
+                    description: row.get("source_description"),
+                    methodology: row.get("source_methodology"),
+                    source_reference: row.get("source_source_reference"),
+                    quality_score: row.get("source_quality_score"),
+                    approval_status: row.get("source_approval_status"),
+                    is_active: row.get("is_active"),
+                    created_at: row.get("source_created_at"),
+                    updated_at: row.get("source_updated_at"),
+                })
+            } else {
+                // Create a default source if none exists
+                Some(TranslationSource::new(
+                    translation.translator.clone(),
+                    translation.translator.clone(),
+                    translation.language.clone(),
+                    None,
+                    translation.methodology.clone(),
+                    translation.source_reference.clone(),
+                ))
+            };
+
+            results.push(TranslationWithSource {
+                translation,
+                source: source.unwrap(),
+            });
+        }
+
+        Ok(results)
     }
 
-    /// Get all available recitation styles
+    /// Get translations for a specific Ayah (legacy method for backward compatibility)
+    pub async fn get_translations_legacy(&self, surah_number: i32, ayah_number: i32, languages: Option<Vec<String>>) -> Result<Vec<Translation>> {
+        let request = GetTranslationRequest {
+            surah_number,
+            ayah_number,
+            languages,
+            min_quality_score: None,
+            approval_status: Some(vec![TranslationApprovalStatus::Approved, TranslationApprovalStatus::Verified]),
+            include_source_info: Some(false),
+        };
+
+        let translations_with_source = self.get_translations(&request).await?;
+        Ok(translations_with_source.into_iter().map(|ts| ts.translation).collect())
+    }
+
+    /// Get all translation sources
+    pub async fn get_translation_sources(&self) -> Result<Vec<TranslationSource>> {
+        let sources = sqlx::query_as::<_, TranslationSource>(
+            "SELECT id, name, translator, language, description, methodology, source_reference,
+                    quality_score, approval_status, is_active, created_at, updated_at
+             FROM translation_sources 
+             WHERE is_active = true
+             ORDER BY quality_score DESC, name"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sources)
+    }
+
+    /// Get translation source by ID
+    pub async fn get_translation_source_by_id(&self, source_id: Uuid) -> Result<Option<TranslationSource>> {
+        let source = sqlx::query_as::<_, TranslationSource>(
+            "SELECT id, name, translator, language, description, methodology, source_reference,
+                    quality_score, approval_status, is_active, created_at, updated_at
+             FROM translation_sources 
+             WHERE id = $1 AND is_active = true"
+        )
+        .bind(source_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(source)
+    }
+
+    /// Insert a new translation source
+    pub async fn insert_translation_source(&self, source: &TranslationSource) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO translation_sources (id, name, translator, language, description, methodology, 
+                                            source_reference, quality_score, approval_status, is_active, 
+                                            created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
+        )
+        .bind(source.id)
+        .bind(&source.name)
+        .bind(&source.translator)
+        .bind(&source.language)
+        .bind(&source.description)
+        .bind(&source.methodology)
+        .bind(&source.source_reference)
+        .bind(source.quality_score)
+        .bind(&source.approval_status)
+        .bind(source.is_active)
+        .bind(source.created_at)
+        .bind(source.updated_at)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update translation source
+    pub async fn update_translation_source(&self, source_id: Uuid, source_data: TranslationSourceData) -> Result<()> {
+        sqlx::query(
+            "UPDATE translation_sources 
+             SET name = $2, translator = $3, language = $4, description = $5, methodology = $6, 
+                 source_reference = $7, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(source_id)
+        .bind(&source_data.name)
+        .bind(&source_data.translator)
+        .bind(&source_data.language)
+        .bind(&source_data.description)
+        .bind(&source_data.methodology)
+        .bind(&source_data.source_reference)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update translation source approval status
+    pub async fn update_translation_source_approval(&self, source_id: Uuid, approval_status: TranslationApprovalStatus) -> Result<()> {
+        sqlx::query(
+            "UPDATE translation_sources 
+             SET approval_status = $2, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(source_id)
+        .bind(&approval_status)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update translation source quality score
+    pub async fn update_translation_source_quality(&self, source_id: Uuid, quality_score: f64) -> Result<()> {
+        sqlx::query(
+            "UPDATE translation_sources 
+             SET quality_score = $2, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(source_id)
+        .bind(quality_score)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Deactivate translation source
+    pub async fn deactivate_translation_source(&self, source_id: Uuid) -> Result<()> {
+        sqlx::query(
+            "UPDATE translation_sources 
+             SET is_active = false, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(source_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Insert a new translation
+    pub async fn insert_translation(&self, translation: &Translation) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO translations (id, surah_number, ayah_number, language, translator, text, 
+                                     text_hash, quality_score, approval_status, source_reference, 
+                                     methodology, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
+        )
+        .bind(translation.id)
+        .bind(translation.surah_number)
+        .bind(translation.ayah_number)
+        .bind(&translation.language)
+        .bind(&translation.translator)
+        .bind(&translation.text)
+        .bind(&translation.text_hash)
+        .bind(translation.quality_score)
+        .bind(&translation.approval_status)
+        .bind(&translation.source_reference)
+        .bind(&translation.methodology)
+        .bind(translation.created_at)
+        .bind(translation.updated_at)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update translation approval status
+    pub async fn update_translation_approval(&self, translation_id: Uuid, approval_status: TranslationApprovalStatus) -> Result<()> {
+        sqlx::query(
+            "UPDATE translations 
+             SET approval_status = $2, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(translation_id)
+        .bind(&approval_status)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update translation quality score
+    pub async fn update_translation_quality(&self, translation_id: Uuid, quality_score: f64) -> Result<()> {
+        sqlx::query(
+            "UPDATE translations 
+             SET quality_score = $2, updated_at = NOW()
+             WHERE id = $1"
+        )
+        .bind(translation_id)
+        .bind(quality_score)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Verify integrity of all translations
+    pub async fn verify_translation_integrity(&self) -> Result<Vec<(Uuid, bool)>> {
+        let translations = sqlx::query_as::<_, Translation>(
+            "SELECT id, surah_number, ayah_number, language, translator, text, text_hash, 
+                    quality_score, approval_status, source_reference, methodology, created_at, updated_at
+             FROM translations ORDER BY surah_number, ayah_number, language"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut results = Vec::new();
+        for translation in translations {
+            let is_valid = translation.verify_integrity();
+            results.push((translation.id, is_valid));
+        }
+
+        Ok(results)
+    }
+
+    /// Get translation statistics by language
+    pub async fn get_translation_statistics(&self) -> Result<serde_json::Value> {
+        let stats = sqlx::query(
+            "SELECT language, 
+                    COUNT(*) as total_translations,
+                    COUNT(CASE WHEN approval_status IN ('approved', 'verified') THEN 1 END) as approved_translations,
+                    AVG(quality_score) as average_quality,
+                    COUNT(DISTINCT translator) as translator_count
+             FROM translations
+             GROUP BY language
+             ORDER BY total_translations DESC"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut stats_map = serde_json::Map::new();
+        for row in stats {
+            let language: String = row.get("language");
+            let total: i64 = row.get("total_translations");
+            let approved: i64 = row.get("approved_translations");
+            let avg_quality: Option<f64> = row.get("average_quality");
+            let translator_count: i64 = row.get("translator_count");
+
+            stats_map.insert(language, serde_json::json!({
+                "total_translations": total,
+                "approved_translations": approved,
+                "average_quality": avg_quality.unwrap_or(0.0),
+                "translator_count": translator_count,
+                "approval_rate": if total > 0 { (approved as f64 / total as f64) * 100.0 } else { 0.0 }
+            }));
+        }
+
+        Ok(serde_json::Value::Object(stats_map))
+    }
     pub async fn get_recitation_styles(&self) -> Result<Vec<RecitationStyle>> {
         let styles = sqlx::query_as::<_, RecitationStyle>(
             "SELECT id, name, arabic_name, reciter, description, language, created_at

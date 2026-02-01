@@ -902,15 +902,13 @@ mod unit_tests {
     /// Test translation model creation and serialization
     #[test]
     fn test_translation_model() {
-        let translation = Translation {
-            id: Uuid::new_v4(),
-            surah_number: 1,
-            ayah_number: 1,
-            language: "en".to_string(),
-            translator: "Sahih International".to_string(),
-            text: "In the name of Allah, the Entirely Merciful, the Especially Merciful.".to_string(),
-            created_at: Utc::now(),
-        };
+        let translation = Translation::new(
+            1,
+            1,
+            "en".to_string(),
+            "Sahih International".to_string(),
+            "In the name of Allah, the Entirely Merciful, the Especially Merciful.".to_string(),
+        );
 
         // Test serialization
         let json = serde_json::to_string(&translation).unwrap();

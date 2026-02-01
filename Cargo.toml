@@ -79,6 +79,7 @@ members = [
     "services/cache-service",
     "services/security-service",
     "services/state-management-service",
+    "services/i18n-service",
     "gateway",
     "shared"
 ]

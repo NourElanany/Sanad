@@ -1,0 +1,114 @@
+# Arabic translations - Prayers namespace
+# العربية - مصطلحات الصلاة
+
+# Prayer times
+prayer_times: "مواقيت الصلاة"
+next_prayer: "الصلاة التالية"
+time_remaining: "الوقت المتبقي"
+prayer_in: "الصلاة خلال"
+minutes: "دقيقة"
+hours: "ساعة"
+
+# Prayer names
+fajr_prayer: "صلاة الفجر"
+dhuhr_prayer: "صلاة الظهر"
+asr_prayer: "صلاة العصر"
+maghrib_prayer: "صلاة المغرب"
+isha_prayer: "صلاة العشاء"
+sunrise_time: "وقت الشروق"
+
+# Prayer notifications
+prayer_time_now: "حان وقت صلاة {{prayer}}"
+prayer_reminder: "تذكير بصلاة {{prayer}}"
+prayer_in_minutes: "صلاة {{prayer}} خلال {{minutes}} دقيقة"
+adhan_playing: "يتم تشغيل الأذان"
+
+# Prayer calculation methods
+calculation_method: "طريقة الحساب"
+muslim_world_league: "رابطة العالم الإسلامي"
+islamic_society_north_america: "الجمعية الإسلامية لأمريكا الشمالية"
+egyptian_general_authority: "الهيئة المصرية العامة للمساحة"
+umm_al_qura: "أم القرى"
+university_karachi: "جامعة كراتشي"
+institute_geophysics_tehran: "معهد الجيوفيزياء طهران"
+shia_method: "الطريقة الشيعية"
+custom_method: "طريقة مخصصة"
+
+# Qibla direction
+qibla_direction: "اتجاه القبلة"
+qibla_compass: "بوصلة القبلة"
+degrees_from_north: "درجة من الشمال"
+distance_to_kaaba: "المسافة إلى الكعبة"
+kaaba_direction: "اتجاه الكعبة المشرفة"
+
+# Prayer settings
+prayer_notifications: "إشعارات الصلاة"
+adhan_sound: "صوت الأذان"
+reminder_before: "تذكير قبل"
+auto_silent: "صامت تلقائياً"
+vibration: "اهتزاز"
+notification_sound: "صوت الإشعار"
+
+# Mosque information
+nearby_mosques: "المساجد القريبة"
+mosque_name: "اسم المسجد"
+mosque_address: "عنوان المسجد"
+distance: "المسافة"
+walking_time: "وقت المشي"
+driving_time: "وقت القيادة"
+
+# Prayer tracking
+prayers_completed: "الصلوات المكتملة"
+prayers_missed: "الصلوات الفائتة"
+prayer_streak: "سلسلة الصلوات"
+monthly_stats: "إحصائيات شهرية"
+weekly_stats: "إحصائيات أسبوعية"
+
+# Dhikr and supplications
+morning_dhikr: "أذكار الصباح"
+evening_dhikr: "أذكار المساء"
+after_prayer_dhikr: "أذكار ما بعد الصلاة"
+dhikr_counter: "عداد الذكر"
+tasbih: "التسبيح"
+tahmid: "التحميد"
+takbir: "التكبير"
+istighfar: "الاستغفار"
+
+# Prayer components
+takbir_tahrimah: "تكبيرة الإحرام"
+fatihah: "الفاتحة"
+ruku_position: "وضعية الركوع"
+sujud_position: "وضعية السجود"
+tashahhud: "التشهد"
+taslim: "التسليم"
+qunut: "القنوت"
+
+# Prayer types
+fard: "فرض"
+sunnah: "سنة"
+nafl: "نافلة"
+witr: "وتر"
+tahajjud: "تهجد"
+duha: "ضحى"
+istikhara: "استخارة"
+
+# Prayer conditions
+prayer_conditions: "شروط الصلاة"
+ritual_purity: "الطهارة"
+facing_qibla: "استقبال القبلة"
+covering_awrah: "ستر العورة"
+prayer_time: "دخول الوقت"
+sound_mind: "العقل"
+
+# Error messages
+location_not_found: "لم يتم العثور على الموقع"
+calculation_error: "خطأ في الحساب"
+no_internet_connection: "لا يوجد اتصال بالإنترنت"
+permission_denied: "تم رفض الإذن"
+gps_disabled: "GPS معطل"
+
+# Success messages
+location_updated: "تم تحديث الموقع"
+prayer_time_calculated: "تم حساب مواقيت الصلاة"
+notification_set: "تم تعيين الإشعار"
+settings_saved: "تم حفظ الإعدادات"

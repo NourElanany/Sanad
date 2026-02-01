@@ -1,0 +1,190 @@
+# Arabic translations - Common namespace
+# العربية - المصطلحات العامة
+
+# Application basics
+app_name: "سند - التطبيق الإسلامي الشامل"
+welcome: "مرحباً"
+welcome_back: "مرحباً بعودتك"
+goodbye: "وداعاً"
+hello: "السلام عليكم"
+thank_you: "جزاك الله خيراً"
+please: "من فضلك"
+yes: "نعم"
+no: "لا"
+ok: "موافق"
+cancel: "إلغاء"
+save: "حفظ"
+delete: "حذف"
+edit: "تعديل"
+add: "إضافة"
+remove: "إزالة"
+search: "بحث"
+loading: "جاري التحميل..."
+error: "خطأ"
+success: "نجح"
+warning: "تحذير"
+info: "معلومات"
+
+# Navigation
+home: "الرئيسية"
+back: "رجوع"
+next: "التالي"
+previous: "السابق"
+menu: "القائمة"
+settings: "الإعدادات"
+profile: "الملف الشخصي"
+logout: "تسجيل الخروج"
+login: "تسجيل الدخول"
+register: "إنشاء حساب"
+
+# Time and dates
+today: "اليوم"
+yesterday: "أمس"
+tomorrow: "غداً"
+now: "الآن"
+morning: "الصباح"
+afternoon: "بعد الظهر"
+evening: "المساء"
+night: "الليل"
+dawn: "الفجر"
+sunrise: "الشروق"
+sunset: "الغروب"
+
+# Islamic terms
+islam: "الإسلام"
+muslim: "مسلم"
+allah: "الله"
+prophet: "النبي"
+muhammad: "محمد"
+peace_be_upon_him: "صلى الله عليه وسلم"
+may_allah_be_pleased: "رضي الله عنه"
+quran: "القرآن الكريم"
+hadith: "الحديث"
+sunnah: "السنة"
+sahih: "صحيح"
+hasan: "حسن"
+daif: "ضعيف"
+mawdu: "موضوع"
+
+# Prayer related
+prayer: "الصلاة"
+prayers: "الصلوات"
+fajr: "الفجر"
+dhuhr: "الظهر"
+asr: "العصر"
+maghrib: "المغرب"
+isha: "العشاء"
+qibla: "القبلة"
+mosque: "المسجد"
+imam: "الإمام"
+adhan: "الأذان"
+iqama: "الإقامة"
+wudu: "الوضوء"
+tayammum: "التيمم"
+rakah: "ركعة"
+sujud: "السجود"
+ruku: "الركوع"
+
+# Quran related
+surah: "سورة"
+ayah: "آية"
+verse: "آية"
+chapter: "سورة"
+juz: "جزء"
+hizb: "حزب"
+page: "صفحة"
+recitation: "التلاوة"
+tafsir: "التفسير"
+translation: "الترجمة"
+transliteration: "النقل الصوتي"
+
+# Calendar and events
+calendar: "التقويم"
+hijri: "هجري"
+gregorian: "ميلادي"
+month: "شهر"
+year: "سنة"
+day: "يوم"
+week: "أسبوع"
+ramadan: "رمضان"
+eid: "عيد"
+eid_fitr: "عيد الفطر"
+eid_adha: "عيد الأضحى"
+hajj: "الحج"
+umrah: "العمرة"
+
+# User interface
+language: "اللغة"
+theme: "المظهر"
+font_size: "حجم الخط"
+notifications: "الإشعارات"
+privacy: "الخصوصية"
+help: "المساعدة"
+about: "حول التطبيق"
+version: "الإصدار"
+update: "تحديث"
+download: "تحميل"
+upload: "رفع"
+share: "مشاركة"
+copy: "نسخ"
+paste: "لصق"
+
+# Status messages
+connected: "متصل"
+disconnected: "غير متصل"
+online: "متصل"
+offline: "غير متصل"
+syncing: "جاري المزامنة..."
+synced: "تم المزامنة"
+saved: "تم الحفظ"
+not_saved: "لم يتم الحفظ"
+
+# Errors and validation
+required_field: "هذا الحقل مطلوب"
+invalid_email: "البريد الإلكتروني غير صحيح"
+invalid_password: "كلمة المرور غير صحيحة"
+password_too_short: "كلمة المرور قصيرة جداً"
+passwords_dont_match: "كلمات المرور غير متطابقة"
+network_error: "خطأ في الشبكة"
+server_error: "خطأ في الخادم"
+not_found: "غير موجود"
+access_denied: "الوصول مرفوض"
+session_expired: "انتهت صلاحية الجلسة"
+
+# Pluralization examples
+message:
+  value: "رسالة"
+  plural:
+    zero: "لا توجد رسائل"
+    one: "رسالة واحدة"
+    two: "رسالتان"
+    few: "{{count}} رسائل"
+    many: "{{count}} رسالة"
+
+notification:
+  value: "إشعار"
+  plural:
+    zero: "لا توجد إشعارات"
+    one: "إشعار واحد"
+    two: "إشعاران"
+    few: "{{count}} إشعارات"
+    many: "{{count}} إشعار"
+
+# Interpolation examples
+welcome_user: "مرحباً {{name}}"
+prayer_time_remaining: "يتبقى {{minutes}} دقيقة على صلاة {{prayer}}"
+reading_progress: "تقدم القراءة: {{percentage}}%"
+khatma_progress: "الختمة {{number}}: {{progress}} من {{total}}"
+
+# Context-specific translations
+bookmark:
+  value: "علامة مرجعية"
+  context: "Saved reference to content"
+
+favorite:
+  value: "مفضلة"
+  context: "User's favorite content"
+
+history:
+  value: "التاريخ"
+  context: "User's reading/activity history"

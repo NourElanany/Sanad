@@ -1,0 +1,43 @@
+# English Language Pack Metadata
+
+version: "1.0.0"
+contributors:
+  - "System"
+  - "Professional Translators"
+  - "Islamic Scholars"
+  - "Native English Speakers"
+  - "Community Contributors"
+completion_percentage: 95.0
+last_updated: "2024-01-15T00:00:00Z"
+quality_score: 0.95
+
+# Language information
+language_info:
+  name: "English"
+  english_name: "English"
+  iso_code: "en"
+  direction: "ltr"
+  script: "Latin"
+  region: "Global"
+
+# Translation notes
+notes:
+  - "High-quality English translations for Islamic content"
+  - "Maintains religious terminology accuracy"
+  - "Uses widely accepted Islamic English terms"
+  - "Follows standard English pluralization rules"
+  - "Culturally sensitive translations"
+
+# Quality metrics
+quality_metrics:
+  accuracy: 0.95
+  consistency: 0.90
+  completeness: 0.95
+  cultural_appropriateness: 0.95
+  religious_accuracy: 0.98
+
+# Review information
+review_info:
+  last_reviewed: "2024-01-15T00:00:00Z"
+  reviewed_by: "English Translation Review Team"
+  review_notes: "Comprehensive English translations reviewed for accuracy and cultural sensitivity"

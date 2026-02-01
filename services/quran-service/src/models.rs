@@ -241,15 +241,48 @@ pub struct Translation {
     pub language: String,
     pub translator: String,
     pub text: String,
+    pub text_hash: String,
+    pub quality_score: f64,
+    pub approval_status: TranslationApprovalStatus,
+    pub source_reference: Option<String>,
+    pub methodology: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-/// Request to get translations
-#[derive(Debug, Deserialize)]
-pub struct GetTranslationRequest {
-    pub surah_number: i32,
-    pub ayah_number: i32,
-    pub languages: Option<Vec<String>>,
+/// Translation approval status
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+pub enum TranslationApprovalStatus {
+    #[serde(rename = "pending")]
+    #[sqlx(rename = "pending")]
+    Pending,
+    #[serde(rename = "approved")]
+    #[sqlx(rename = "approved")]
+    Approved,
+    #[serde(rename = "verified")]
+    #[sqlx(rename = "verified")]
+    Verified,
+    #[serde(rename = "rejected")]
+    #[sqlx(rename = "rejected")]
+    Rejected,
+}
+
+/// Translation source information
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct TranslationSource {
+    pub id: Uuid,
+    pub name: String,
+    pub translator: String,
+    pub language: String,
+    pub description: Option<String>,
+    pub methodology: Option<String>,
+    pub source_reference: Option<String>,
+    pub quality_score: f64,
+    pub approval_status: TranslationApprovalStatus,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Response for translation queries
@@ -257,7 +290,113 @@ pub struct GetTranslationRequest {
 pub struct TranslationResponse {
     pub ayah: Ayah,
     pub surah: Surah,
-    pub translations: Vec<Translation>,
+    pub translations: Vec<TranslationWithSource>,
+}
+
+/// Translation with source information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranslationWithSource {
+    pub translation: Translation,
+    pub source: TranslationSource,
+}
+
+/// Request to get translations with quality filtering
+#[derive(Debug, Deserialize)]
+pub struct GetTranslationRequest {
+    pub surah_number: i32,
+    pub ayah_number: i32,
+    pub languages: Option<Vec<String>>,
+    pub min_quality_score: Option<f64>,
+    pub approval_status: Option<Vec<TranslationApprovalStatus>>,
+    pub include_source_info: Option<bool>,
+}
+
+/// Request to manage translation sources
+#[derive(Debug, Deserialize)]
+pub struct ManageTranslationSourceRequest {
+    pub action: TranslationSourceAction,
+    pub source_data: Option<TranslationSourceData>,
+    pub source_id: Option<Uuid>,
+}
+
+/// Actions for managing translation sources
+#[derive(Debug, Deserialize)]
+pub enum TranslationSourceAction {
+    #[serde(rename = "create")]
+    Create,
+    #[serde(rename = "update")]
+    Update,
+    #[serde(rename = "approve")]
+    Approve,
+    #[serde(rename = "verify")]
+    Verify,
+    #[serde(rename = "reject")]
+    Reject,
+    #[serde(rename = "deactivate")]
+    Deactivate,
+}
+
+/// Data for creating or updating translation sources
+#[derive(Debug, Deserialize)]
+pub struct TranslationSourceData {
+    pub name: String,
+    pub translator: String,
+    pub language: String,
+    pub description: Option<String>,
+    pub methodology: Option<String>,
+    pub source_reference: Option<String>,
+}
+
+/// Translation quality verification result
+#[derive(Debug, Serialize)]
+pub struct TranslationQualityResult {
+    pub translation_id: Uuid,
+    pub previous_score: f64,
+    pub new_score: f64,
+    pub quality_factors: Vec<QualityFactor>,
+    pub recommendations: Vec<String>,
+    pub verified_at: DateTime<Utc>,
+}
+
+/// Factor used in translation quality assessment
+#[derive(Debug, Serialize)]
+pub struct QualityFactor {
+    pub factor_type: String,
+    pub weight: f64,
+    pub score: f64,
+    pub description: String,
+}
+
+/// Ayah with Arabic text and translations
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AyahWithTranslations {
+    pub ayah: Ayah,
+    pub surah: Surah,
+    pub translations: Vec<TranslationWithSource>,
+    pub display_preferences: TranslationDisplayPreferences,
+}
+
+/// Display preferences for translations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranslationDisplayPreferences {
+    pub show_arabic: bool,
+    pub show_transliteration: bool,
+    pub preferred_languages: Vec<String>,
+    pub quality_threshold: f64,
+    pub layout: TranslationLayout,
+}
+
+/// Layout options for displaying translations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TranslationLayout {
+    #[serde(rename = "side_by_side")]
+    SideBySide,
+    #[serde(rename = "stacked")]
+    Stacked,
+    #[serde(rename = "tabbed")]
+    Tabbed,
+    #[serde(rename = "comparison")]
+    Comparison,
 }
 
 /// Response for Tafsir queries
@@ -692,6 +831,111 @@ impl Tafsir {
     }
 }
 
+impl Translation {
+    /// Verify the integrity of the Translation text using SHA-256 hash
+    pub fn verify_integrity(&self) -> bool {
+        let calculated_hash = Self::calculate_text_hash(&self.text);
+        calculated_hash == self.text_hash
+    }
+
+    /// Calculate SHA-256 hash for the given text
+    pub fn calculate_text_hash(text: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(text.as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
+    /// Create a new Translation with calculated hash
+    pub fn new(
+        surah_number: i32,
+        ayah_number: i32,
+        language: String,
+        translator: String,
+        text: String,
+    ) -> Self {
+        let text_hash = Self::calculate_text_hash(&text);
+        Self {
+            id: Uuid::new_v4(),
+            surah_number,
+            ayah_number,
+            language,
+            translator,
+            text,
+            text_hash,
+            quality_score: 0.0, // Will be calculated separately
+            approval_status: TranslationApprovalStatus::Pending,
+            source_reference: None,
+            methodology: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// Check if translation is approved for public use
+    pub fn is_approved(&self) -> bool {
+        matches!(
+            self.approval_status,
+            TranslationApprovalStatus::Approved | TranslationApprovalStatus::Verified
+        )
+    }
+
+    /// Check if translation meets quality threshold
+    pub fn meets_quality_threshold(&self, threshold: f64) -> bool {
+        self.quality_score >= threshold
+    }
+
+    /// Get quality level as string
+    pub fn quality_level(&self) -> String {
+        match self.quality_score {
+            0.9..=1.0 => "Excellent".to_string(),
+            0.8..=0.89 => "Very Good".to_string(),
+            0.7..=0.79 => "Good".to_string(),
+            0.6..=0.69 => "Fair".to_string(),
+            _ => "Needs Improvement".to_string(),
+        }
+    }
+}
+
+impl TranslationSource {
+    /// Create a new translation source
+    pub fn new(
+        name: String,
+        translator: String,
+        language: String,
+        description: Option<String>,
+        methodology: Option<String>,
+        source_reference: Option<String>,
+    ) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            name,
+            translator,
+            language,
+            description,
+            methodology,
+            source_reference,
+            quality_score: 0.0, // Will be calculated based on translations
+            approval_status: TranslationApprovalStatus::Pending,
+            is_active: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// Check if source is approved
+    pub fn is_approved(&self) -> bool {
+        matches!(
+            self.approval_status,
+            TranslationApprovalStatus::Approved | TranslationApprovalStatus::Verified
+        )
+    }
+
+    /// Check if source is high quality
+    pub fn is_high_quality(&self) -> bool {
+        self.quality_score >= 0.8
+    }
+}
+
 impl Surah {
     /// Create a new Surah
     pub fn new(
@@ -828,14 +1072,20 @@ impl ContentIntegrity for Tafsir {
 #[allow(dead_code)]
 pub trait Serializable: Serialize + for<'de> Deserialize<'de> {}
 
-impl Serializable for Surah {}
-impl Serializable for Ayah {}
-impl Serializable for Tafsir {}
-impl Serializable for TafsirSource {}
-impl Serializable for SurahWithAyahs {}
-impl Serializable for AyahWithTafsir {}
-impl Serializable for TafsirWithSource {}
-impl Serializable for QuranSearchResult {}
+impl ContentIntegrity for Translation {
+    fn verify_integrity(&self) -> bool {
+        self.verify_integrity()
+    }
+
+    fn calculate_hash(&self) -> String {
+        Self::calculate_text_hash(&self.text)
+    }
+}
+
+impl Serializable for Translation {}
+impl Serializable for TranslationSource {}
+impl Serializable for TranslationWithSource {}
+impl Serializable for AyahWithTranslations {}
 
 #[cfg(test)]
 mod tests {
@@ -996,6 +1246,66 @@ mod tests {
         let text = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
         let hash1 = Ayah::calculate_text_hash(text);
         let hash2 = Ayah::calculate_text_hash(text);
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_translation_integrity_verification() {
+        let translation = Translation::new(
+            1,
+            1,
+            "en".to_string(),
+            "Sahih International".to_string(),
+            "In the name of Allah, the Entirely Merciful, the Especially Merciful.".to_string(),
+        );
+
+        assert!(translation.verify_integrity());
+        assert_eq!(translation.approval_status, TranslationApprovalStatus::Pending);
+        assert!(!translation.is_approved());
+    }
+
+    #[test]
+    fn test_translation_quality_assessment() {
+        let mut translation = Translation::new(
+            1,
+            1,
+            "en".to_string(),
+            "Sahih International".to_string(),
+            "In the name of Allah, the Entirely Merciful, the Especially Merciful.".to_string(),
+        );
+
+        // Set quality score
+        translation.quality_score = 0.95;
+        translation.approval_status = TranslationApprovalStatus::Verified;
+
+        assert!(translation.is_approved());
+        assert!(translation.meets_quality_threshold(0.9));
+        assert_eq!(translation.quality_level(), "Excellent");
+    }
+
+    #[test]
+    fn test_translation_source_creation() {
+        let source = TranslationSource::new(
+            "Sahih International".to_string(),
+            "Sahih International Team".to_string(),
+            "en".to_string(),
+            Some("Modern English translation".to_string()),
+            Some("Contemporary scholarly approach".to_string()),
+            Some("https://sahihinternational.com".to_string()),
+        );
+
+        assert_eq!(source.name, "Sahih International");
+        assert_eq!(source.language, "en");
+        assert!(source.is_active);
+        assert!(!source.is_approved()); // Starts as pending
+        assert!(!source.is_high_quality()); // Starts with 0.0 score
+    }
+
+    #[test]
+    fn test_translation_hash_consistency() {
+        let text = "In the name of Allah, the Entirely Merciful, the Especially Merciful.";
+        let hash1 = Translation::calculate_text_hash(text);
+        let hash2 = Translation::calculate_text_hash(text);
         assert_eq!(hash1, hash2);
     }
 

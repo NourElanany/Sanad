@@ -1,0 +1,183 @@
+# English translations - Common namespace
+
+# Application basics
+app_name: "Sanad - Comprehensive Islamic App"
+welcome: "Welcome"
+welcome_back: "Welcome back"
+goodbye: "Goodbye"
+hello: "Peace be upon you"
+thank_you: "Thank you"
+please: "Please"
+yes: "Yes"
+no: "No"
+ok: "OK"
+cancel: "Cancel"
+save: "Save"
+delete: "Delete"
+edit: "Edit"
+add: "Add"
+remove: "Remove"
+search: "Search"
+loading: "Loading..."
+error: "Error"
+success: "Success"
+warning: "Warning"
+info: "Information"
+
+# Navigation
+home: "Home"
+back: "Back"
+next: "Next"
+previous: "Previous"
+menu: "Menu"
+settings: "Settings"
+profile: "Profile"
+logout: "Logout"
+login: "Login"
+register: "Register"
+
+# Time and dates
+today: "Today"
+yesterday: "Yesterday"
+tomorrow: "Tomorrow"
+now: "Now"
+morning: "Morning"
+afternoon: "Afternoon"
+evening: "Evening"
+night: "Night"
+dawn: "Dawn"
+sunrise: "Sunrise"
+sunset: "Sunset"
+
+# Islamic terms
+islam: "Islam"
+muslim: "Muslim"
+allah: "Allah"
+prophet: "Prophet"
+muhammad: "Muhammad"
+peace_be_upon_him: "Peace be upon him"
+may_allah_be_pleased: "May Allah be pleased with him"
+quran: "Holy Quran"
+hadith: "Hadith"
+sunnah: "Sunnah"
+sahih: "Authentic"
+hasan: "Good"
+daif: "Weak"
+mawdu: "Fabricated"
+
+# Prayer related
+prayer: "Prayer"
+prayers: "Prayers"
+fajr: "Fajr"
+dhuhr: "Dhuhr"
+asr: "Asr"
+maghrib: "Maghrib"
+isha: "Isha"
+qibla: "Qibla"
+mosque: "Mosque"
+imam: "Imam"
+adhan: "Call to Prayer"
+iqama: "Iqama"
+wudu: "Ablution"
+tayammum: "Dry Ablution"
+rakah: "Rakah"
+sujud: "Prostration"
+ruku: "Bowing"
+
+# Quran related
+surah: "Surah"
+ayah: "Ayah"
+verse: "Verse"
+chapter: "Chapter"
+juz: "Juz"
+hizb: "Hizb"
+page: "Page"
+recitation: "Recitation"
+tafsir: "Tafsir"
+translation: "Translation"
+transliteration: "Transliteration"
+
+# Calendar and events
+calendar: "Calendar"
+hijri: "Hijri"
+gregorian: "Gregorian"
+month: "Month"
+year: "Year"
+day: "Day"
+week: "Week"
+ramadan: "Ramadan"
+eid: "Eid"
+eid_fitr: "Eid al-Fitr"
+eid_adha: "Eid al-Adha"
+hajj: "Hajj"
+umrah: "Umrah"
+
+# User interface
+language: "Language"
+theme: "Theme"
+font_size: "Font Size"
+notifications: "Notifications"
+privacy: "Privacy"
+help: "Help"
+about: "About"
+version: "Version"
+update: "Update"
+download: "Download"
+upload: "Upload"
+share: "Share"
+copy: "Copy"
+paste: "Paste"
+
+# Status messages
+connected: "Connected"
+disconnected: "Disconnected"
+online: "Online"
+offline: "Offline"
+syncing: "Syncing..."
+synced: "Synced"
+saved: "Saved"
+not_saved: "Not saved"
+
+# Errors and validation
+required_field: "This field is required"
+invalid_email: "Invalid email address"
+invalid_password: "Invalid password"
+password_too_short: "Password is too short"
+passwords_dont_match: "Passwords don't match"
+network_error: "Network error"
+server_error: "Server error"
+not_found: "Not found"
+access_denied: "Access denied"
+session_expired: "Session expired"
+
+# Pluralization examples
+message:
+  value: "message"
+  plural:
+    one: "{{count}} message"
+    other: "{{count}} messages"
+
+notification:
+  value: "notification"
+  plural:
+    one: "{{count}} notification"
+    other: "{{count}} notifications"
+
+# Interpolation examples
+welcome_user: "Welcome {{name}}"
+prayer_time_remaining: "{{minutes}} minutes until {{prayer}} prayer"
+reading_progress: "Reading progress: {{percentage}}%"
+khatma_progress: "Khatma {{number}}: {{progress}} of {{total}}"
+
+# Context-specific translations
+bookmark:
+  value: "bookmark"
+  context: "Saved reference to content"
+
+favorite:
+  value: "favorite"
+  context: "User's favorite content"
+
+history:
+  value: "history"
+  context: "User's reading/activity history"

@@ -21,6 +21,11 @@ pub fn create_router(service: QuranService) -> Router {
         .route("/surahs/:surah_number/ayahs/:ayah_number/tafsir", get(get_tafsir))
         .route("/surahs/:surah_number/ayahs/:ayah_number/tafsir/compare", post(compare_tafsir))
         .route("/surahs/:surah_number/ayahs/:ayah_number/translations", get(get_translations))
+        .route("/surahs/:surah_number/ayahs/:ayah_number/translations/enhanced", get(get_enhanced_translations))
+        .route("/translations/sources", get(get_translation_sources))
+        .route("/translations/sources/manage", post(manage_translation_source))
+        .route("/translations/statistics", get(get_translation_statistics))
+        .route("/translations/integrity/verify", post(verify_translation_integrity))
         .route("/surahs/:surah_number/ayahs/:ayah_number/navigation", get(get_ayah_navigation))
         .route("/surahs/revelation/:revelation_type", get(get_surahs_by_revelation_type))
         .route("/search", get(search_quran))
@@ -268,16 +273,132 @@ async fn get_translations(
                 .collect::<Vec<String>>()
         });
 
+    let min_quality_score = params.get("min_quality")
+        .and_then(|q| q.parse::<f64>().ok());
+
+    let approval_status = params.get("approval_status")
+        .map(|status_str| {
+            status_str.split(',')
+                .filter_map(|s| match s.trim() {
+                    "pending" => Some(TranslationApprovalStatus::Pending),
+                    "approved" => Some(TranslationApprovalStatus::Approved),
+                    "verified" => Some(TranslationApprovalStatus::Verified),
+                    "rejected" => Some(TranslationApprovalStatus::Rejected),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| vec![TranslationApprovalStatus::Approved, TranslationApprovalStatus::Verified]);
+
+    let include_source_info = params.get("include_source_info")
+        .and_then(|v| v.parse::<bool>().ok())
+        .unwrap_or(true);
+
     let request = GetTranslationRequest {
         surah_number,
         ayah_number,
         languages,
+        min_quality_score,
+        approval_status: Some(approval_status),
+        include_source_info: Some(include_source_info),
     };
 
     match service.get_translations(request).await? {
         Some(response) => Ok(Json(ApiResponse::success(response))),
         None => Err(AppError::NotFound("Ayah not found".to_string())),
     }
+}
+
+/// Get enhanced translations with display preferences
+async fn get_enhanced_translations(
+    State(service): State<QuranService>,
+    Path((surah_number, ayah_number)): Path<(i32, i32)>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<ApiResponse<AyahWithTranslations>>, AppError> {
+    let languages = params.get("languages")
+        .map(|langs_str| {
+            langs_str.split(',')
+                .map(|l| l.trim().to_string())
+                .collect::<Vec<String>>()
+        })
+        .unwrap_or_else(|| vec!["en".to_string()]);
+
+    let quality_threshold = params.get("quality_threshold")
+        .and_then(|q| q.parse::<f64>().ok())
+        .unwrap_or(0.7);
+
+    let show_arabic = params.get("show_arabic")
+        .and_then(|v| v.parse::<bool>().ok())
+        .unwrap_or(true);
+
+    let show_transliteration = params.get("show_transliteration")
+        .and_then(|v| v.parse::<bool>().ok())
+        .unwrap_or(false);
+
+    let layout = params.get("layout")
+        .and_then(|l| match l.as_str() {
+            "side_by_side" => Some(TranslationLayout::SideBySide),
+            "stacked" => Some(TranslationLayout::Stacked),
+            "tabbed" => Some(TranslationLayout::Tabbed),
+            "comparison" => Some(TranslationLayout::Comparison),
+            _ => None,
+        })
+        .unwrap_or(TranslationLayout::Stacked);
+
+    let request = GetTranslationRequest {
+        surah_number,
+        ayah_number,
+        languages: Some(languages.clone()),
+        min_quality_score: Some(quality_threshold),
+        approval_status: Some(vec![TranslationApprovalStatus::Approved, TranslationApprovalStatus::Verified]),
+        include_source_info: Some(true),
+    };
+
+    let display_preferences = TranslationDisplayPreferences {
+        show_arabic,
+        show_transliteration,
+        preferred_languages: languages,
+        quality_threshold,
+        layout,
+    };
+
+    match service.get_ayah_with_translations(request, display_preferences).await? {
+        Some(response) => Ok(Json(ApiResponse::success(response))),
+        None => Err(AppError::NotFound("Ayah not found".to_string())),
+    }
+}
+
+/// Get all translation sources
+async fn get_translation_sources(
+    State(service): State<QuranService>,
+) -> Result<Json<ApiResponse<Vec<TranslationSource>>>, AppError> {
+    let sources = service.get_translation_sources().await?;
+    Ok(Json(ApiResponse::success(sources)))
+}
+
+/// Manage translation sources
+async fn manage_translation_source(
+    State(service): State<QuranService>,
+    Json(request): Json<ManageTranslationSourceRequest>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let result = service.manage_translation_source(request).await?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Get translation statistics
+async fn get_translation_statistics(
+    State(service): State<QuranService>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let stats = service.get_translation_statistics().await?;
+    Ok(Json(ApiResponse::success(stats)))
+}
+
+/// Verify translation integrity
+async fn verify_translation_integrity(
+    State(service): State<QuranService>,
+) -> Result<Json<ApiResponse<crate::service::TranslationIntegrityReport>>, AppError> {
+    let report = service.verify_translation_integrity().await?;
+    Ok(Json(ApiResponse::success(report)))
 }
 
 /// Get Surahs by revelation type

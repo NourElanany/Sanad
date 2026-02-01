@@ -1,0 +1,113 @@
+# English translations - Prayers namespace
+
+# Prayer times
+prayer_times: "Prayer Times"
+next_prayer: "Next Prayer"
+time_remaining: "Time Remaining"
+prayer_in: "Prayer in"
+minutes: "minutes"
+hours: "hours"
+
+# Prayer names
+fajr_prayer: "Fajr Prayer"
+dhuhr_prayer: "Dhuhr Prayer"
+asr_prayer: "Asr Prayer"
+maghrib_prayer: "Maghrib Prayer"
+isha_prayer: "Isha Prayer"
+sunrise_time: "Sunrise Time"
+
+# Prayer notifications
+prayer_time_now: "It's time for {{prayer}} prayer"
+prayer_reminder: "{{prayer}} prayer reminder"
+prayer_in_minutes: "{{prayer}} prayer in {{minutes}} minutes"
+adhan_playing: "Playing Adhan"
+
+# Prayer calculation methods
+calculation_method: "Calculation Method"
+muslim_world_league: "Muslim World League"
+islamic_society_north_america: "Islamic Society of North America"
+egyptian_general_authority: "Egyptian General Authority of Survey"
+umm_al_qura: "Umm Al-Qura University"
+university_karachi: "University of Karachi"
+institute_geophysics_tehran: "Institute of Geophysics, University of Tehran"
+shia_method: "Shia Method"
+custom_method: "Custom Method"
+
+# Qibla direction
+qibla_direction: "Qibla Direction"
+qibla_compass: "Qibla Compass"
+degrees_from_north: "degrees from North"
+distance_to_kaaba: "Distance to Kaaba"
+kaaba_direction: "Direction to Holy Kaaba"
+
+# Prayer settings
+prayer_notifications: "Prayer Notifications"
+adhan_sound: "Adhan Sound"
+reminder_before: "Reminder Before"
+auto_silent: "Auto Silent"
+vibration: "Vibration"
+notification_sound: "Notification Sound"
+
+# Mosque information
+nearby_mosques: "Nearby Mosques"
+mosque_name: "Mosque Name"
+mosque_address: "Mosque Address"
+distance: "Distance"
+walking_time: "Walking Time"
+driving_time: "Driving Time"
+
+# Prayer tracking
+prayers_completed: "Prayers Completed"
+prayers_missed: "Prayers Missed"
+prayer_streak: "Prayer Streak"
+monthly_stats: "Monthly Statistics"
+weekly_stats: "Weekly Statistics"
+
+# Dhikr and supplications
+morning_dhikr: "Morning Dhikr"
+evening_dhikr: "Evening Dhikr"
+after_prayer_dhikr: "After Prayer Dhikr"
+dhikr_counter: "Dhikr Counter"
+tasbih: "Tasbih"
+tahmid: "Tahmid"
+takbir: "Takbir"
+istighfar: "Istighfar"
+
+# Prayer components
+takbir_tahrimah: "Opening Takbir"
+fatihah: "Al-Fatihah"
+ruku_position: "Bowing Position"
+sujud_position: "Prostration Position"
+tashahhud: "Tashahhud"
+taslim: "Taslim"
+qunut: "Qunut"
+
+# Prayer types
+fard: "Obligatory"
+sunnah: "Sunnah"
+nafl: "Voluntary"
+witr: "Witr"
+tahajjud: "Tahajjud"
+duha: "Duha"
+istikhara: "Istikhara"
+
+# Prayer conditions
+prayer_conditions: "Prayer Conditions"
+ritual_purity: "Ritual Purity"
+facing_qibla: "Facing Qibla"
+covering_awrah: "Covering Awrah"
+prayer_time: "Prayer Time"
+sound_mind: "Sound Mind"
+
+# Error messages
+location_not_found: "Location not found"
+calculation_error: "Calculation error"
+no_internet_connection: "No internet connection"
+permission_denied: "Permission denied"
+gps_disabled: "GPS disabled"
+
+# Success messages
+location_updated: "Location updated"
+prayer_time_calculated: "Prayer times calculated"
+notification_set: "Notification set"
+settings_saved: "Settings saved"

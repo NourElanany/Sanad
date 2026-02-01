@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سند - نظام الترجمة والتدويل</title>
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Amiri', 'Noto Sans Arabic', Arial, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        /* Language selector */
+        .language-selector {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .language-selector h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .language-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .lang-btn {
+            padding: 10px 20px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .lang-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .lang-btn.active {
+            background: #2c3e50;
+            border-color: #2c3e50;
+            color: white;
+        }
+
+        /* Content sections */
+        .content-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .content-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .demo-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .prayer-times {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .prayer-time {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .prayer-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .prayer-time-value {
+            color: #3498db;
+            font-size: 1.2rem;
+        }
+
+        /* RTL/LTR specific styles */
+        .lang-ar {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Amiri', 'Noto Sans Arabic', Arial, sans-serif;
+        }
+
+        .lang-en {
+            direction: ltr;
+            text-align: left;
+            font-family: 'Noto Sans', 'Open Sans', Arial, sans-serif;
+        }
+
+        .lang-ur {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', Arial, sans-serif;
+        }
+
+        .lang-tr {
+            direction: ltr;
+            text-align: left;
+            font-family: 'Noto Sans', Arial, sans-serif;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+
+        .status-indicator.loading {
+            background: #f39c12;
+        }
+
+        .status-indicator.error {
+            background: #e74c3c;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .language-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .lang-btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body class="lang-ar">
+    <div class="status-indicator" id="statusIndicator">متصل</div>
+    
+    <div class="container">
+        <header class="header">
+            <h1 id="appTitle">سند - التطبيق الإسلامي الشامل</h1>
+            <p id="appSubtitle">نظام الترجمة والتدويل المتقدم</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Language Selector -->
+            <section class="language-selector">
+                <h2 id="languageSelectorTitle">اختر اللغة / Choose Language</h2>
+                <div class="language-buttons">
+                    <button class="lang-btn active" data-lang="ar">العربية</button>
+                    <button class="lang-btn" data-lang="en">English</button>
+                    <button class="lang-btn" data-lang="ur">اردو</button>
+                    <button class="lang-btn" data-lang="tr">Türkçe</button>
+                    <button class="lang-btn" data-lang="fr">Français</button>
+                </div>
+            </section>
+
+            <!-- Welcome Section -->
+            <section class="content-section">
+                <h3 id="welcomeTitle">مرحباً بك</h3>
+                <p class="demo-text" id="welcomeText">
+                    مرحباً بك في تطبيق سند الإسلامي الشامل. هذا التطبيق يدعم عدة لغات مع الحفاظ على اتجاه النص المناسب لكل لغة.
+                </p>
+                <p class="demo-text" id="featuresText">
+                    يتضمن التطبيق القرآن الكريم، الأحاديث النبوية، مواقيت الصلاة، والتقويم الهجري.
+                </p>
+            </section>
+
+            <!-- Prayer Times Section -->
+            <section class="content-section">
+                <h3 id="prayerTimesTitle">مواقيت الصلاة</h3>
+                <div class="prayer-times">
+                    <div class="prayer-time">
+                        <div class="prayer-name" id="fajrName">الفجر</div>
+                        <div class="prayer-time-value">05:30</div>
+                    </div>
+                    <div class="prayer-time">
+                        <div class="prayer-name" id="dhuhrName">الظهر</div>
+                        <div class="prayer-time-value">12:15</div>
+                    </div>
+                    <div class="prayer-time">
+                        <div class="prayer-name" id="asrName">العصر</div>
+                        <div class="prayer-time-value">15:45</div>
+                    </div>
+                    <div class="prayer-time">
+                        <div class="prayer-name" id="maghribName">المغرب</div>
+                        <div class="prayer-time-value">18:20</div>
+                    </div>
+                    <div class="prayer-time">
+                        <div class="prayer-name" id="ishaName">العشاء</div>
+                        <div class="prayer-time-value">19:45</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Islamic Content Section -->
+            <section class="content-section">
+                <h3 id="islamicContentTitle">المحتوى الإسلامي</h3>
+                <p class="demo-text" id="quranText">
+                    القرآن الكريم متوفر بالنص العربي الأصلي مع ترجمات المعاني بلغات متعددة.
+                </p>
+                <p class="demo-text" id="hadithText">
+                    مجموعة شاملة من الأحاديث النبوية الصحيحة مع شروحها ودرجات صحتها.
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Translation data (in a real app, this would come from the API)
+        const translations = {
+            ar: {
+                appTitle: "سند - التطبيق الإسلامي الشامل",
+                appSubtitle: "نظام الترجمة والتدويل المتقدم",
+                languageSelectorTitle: "اختر اللغة",
+                welcomeTitle: "مرحباً بك",
+                welcomeText: "مرحباً بك في تطبيق سند الإسلامي الشامل. هذا التطبيق يدعم عدة لغات مع الحفاظ على اتجاه النص المناسب لكل لغة.",
+                featuresText: "يتضمن التطبيق القرآن الكريم، الأحاديث النبوية، مواقيت الصلاة، والتقويم الهجري.",
+                prayerTimesTitle: "مواقيت الصلاة",
+                islamicContentTitle: "المحتوى الإسلامي",
+                quranText: "القرآن الكريم متوفر بالنص العربي الأصلي مع ترجمات المعاني بلغات متعددة.",
+                hadithText: "مجموعة شاملة من الأحاديث النبوية الصحيحة مع شروحها ودرجات صحتها.",
+                fajrName: "الفجر",
+                dhuhrName: "الظهر",
+                asrName: "العصر",
+                maghribName: "المغرب",
+                ishaName: "العشاء",
+                statusConnected: "متصل"
+            },
+            en: {
+                appTitle: "Sanad - Comprehensive Islamic App",
+                appSubtitle: "Advanced Translation and Internationalization System",
+                languageSelectorTitle: "Choose Language",
+                welcomeTitle: "Welcome",
+                welcomeText: "Welcome to the Sanad Comprehensive Islamic App. This application supports multiple languages while maintaining appropriate text direction for each language.",
+                featuresText: "The app includes the Holy Quran, Prophetic Hadiths, Prayer Times, and Hijri Calendar.",
+                prayerTimesTitle: "Prayer Times",
+                islamicContentTitle: "Islamic Content",
+                quranText: "The Holy Quran is available in original Arabic text with meaning translations in multiple languages.",
+                hadithText: "Comprehensive collection of authentic Prophetic Hadiths with explanations and authenticity grades.",
+                fajrName: "Fajr",
+                dhuhrName: "Dhuhr",
+                asrName: "Asr",
+                maghribName: "Maghrib",
+                ishaName: "Isha",
+                statusConnected: "Connected"
+            },
+            ur: {
+                appTitle: "سند - جامع اسلامی ایپ",
+                appSubtitle: "ترجمہ اور بین الاقوامی کاری کا جدید نظام",
+                languageSelectorTitle: "زبان منتخب کریں",
+                welcomeTitle: "خوش آمدید",
+                welcomeText: "سند جامع اسلامی ایپ میں خوش آمدید۔ یہ ایپلیکیشن متعدد زبانوں کو سپورٹ کرتی ہے اور ہر زبان کے لیے مناسب متن کی سمت برقرار رکھتی ہے۔",
+                featuresText: "اس ایپ میں قرآن مجید، احادیث نبویہ، نماز کے اوقات، اور ہجری کیلنڈر شامل ہیں۔",
+                prayerTimesTitle: "نماز کے اوقات",
+                islamicContentTitle: "اسلامی مواد",
+                quranText: "قرآن مجید اصل عربی متن کے ساتھ متعدد زبانوں میں معانی کے ترجمے کے ساتھ دستیاب ہے۔",
+                hadithText: "صحیح احادیث نبویہ کا جامع مجموعہ تشریحات اور صحت کے درجوں کے ساتھ۔",
+                fajrName: "فجر",
+                dhuhrName: "ظہر",
+                asrName: "عصر",
+                maghribName: "مغرب",
+                ishaName: "عشاء",
+                statusConnected: "منسلک"
+            },
+            tr: {
+                appTitle: "Sanad - Kapsamlı İslami Uygulama",
+                appSubtitle: "Gelişmiş Çeviri ve Uluslararasılaştırma Sistemi",
+                languageSelectorTitle: "Dil Seçin",
+                welcomeTitle: "Hoş Geldiniz",
+                welcomeText: "Sanad Kapsamlı İslami Uygulamasına hoş geldiniz. Bu uygulama, her dil için uygun metin yönünü koruyarak birden fazla dili destekler.",
+                featuresText: "Uygulama Kur'an-ı Kerim, Peygamber Hadisleri, Namaz Vakitleri ve Hicri Takvim içerir.",
+                prayerTimesTitle: "Namaz Vakitleri",
+                islamicContentTitle: "İslami İçerik",
+                quranText: "Kur'an-ı Kerim, orijinal Arapça metin ile birlikte çoklu dillerde anlam çevirileri ile mevcuttur.",
+                hadithText: "Açıklamaları ve sahihlik dereceleri ile birlikte sahih Peygamber Hadislerinin kapsamlı koleksiyonu.",
+                fajrName: "İmsak",
+                dhuhrName: "Öğle",
+                asrName: "İkindi",
+                maghribName: "Akşam",
+                ishaName: "Yatsı",
+                statusConnected: "Bağlı"
+            },
+            fr: {
+                appTitle: "Sanad - Application Islamique Complète",
+                appSubtitle: "Système Avancé de Traduction et d'Internationalisation",
+                languageSelectorTitle: "Choisir la Langue",
+                welcomeTitle: "Bienvenue",
+                welcomeText: "Bienvenue dans l'Application Islamique Complète Sanad. Cette application prend en charge plusieurs langues tout en maintenant la direction de texte appropriée pour chaque langue.",
+                featuresText: "L'application comprend le Saint Coran, les Hadiths Prophétiques, les Heures de Prière et le Calendrier Hijri.",
+                prayerTimesTitle: "Heures de Prière",
+                islamicContentTitle: "Contenu Islamique",
+                quranText: "Le Saint Coran est disponible en texte arabe original avec des traductions de sens en plusieurs langues.",
+                hadithText: "Collection complète de Hadiths Prophétiques authentiques avec explications et degrés d'authenticité.",
+                fajrName: "Fajr",
+                dhuhrName: "Dhuhr",
+                asrName: "Asr",
+                maghribName: "Maghrib",
+                ishaName: "Isha",
+                statusConnected: "Connecté"
+            }
+        };
+
+        // Language configuration
+        const languageConfig = {
+            ar: { dir: 'rtl', class: 'lang-ar' },
+            en: { dir: 'ltr', class: 'lang-en' },
+            ur: { dir: 'rtl', class: 'lang-ur' },
+            tr: { dir: 'ltr', class: 'lang-tr' },
+            fr: { dir: 'ltr', class: 'lang-fr' }
+        };
+
+        let currentLanguage = 'ar';
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupLanguageButtons();
+            updateContent();
+        });
+
+        function setupLanguageButtons() {
+            const buttons = document.querySelectorAll('.lang-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const lang = this.getAttribute('data-lang');
+                    switchLanguage(lang);
+                });
+            });
+        }
+
+        function switchLanguage(lang) {
+            if (!translations[lang]) return;
+
+            // Update current language
+            currentLanguage = lang;
+
+            // Update active button
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+
+            // Update page direction and class
+            const config = languageConfig[lang];
+            document.documentElement.setAttribute('lang', lang);
+            document.documentElement.setAttribute('dir', config.dir);
+            document.body.className = config.class;
+
+            // Update content
+            updateContent();
+
+            // Show loading indicator
+            showStatus('loading', 'جاري التحميل...');
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                showStatus('success', translations[lang].statusConnected);
+            }, 500);
+        }
+
+        function updateContent() {
+            const t = translations[currentLanguage];
+            
+            // Update all translatable elements
+            const elements = {
+                'appTitle': t.appTitle,
+                'appSubtitle': t.appSubtitle,
+                'languageSelectorTitle': t.languageSelectorTitle,
+                'welcomeTitle': t.welcomeTitle,
+                'welcomeText': t.welcomeText,
+                'featuresText': t.featuresText,
+                'prayerTimesTitle': t.prayerTimesTitle,
+                'islamicContentTitle': t.islamicContentTitle,
+                'quranText': t.quranText,
+                'hadithText': t.hadithText,
+                'fajrName': t.fajrName,
+                'dhuhrName': t.dhuhrName,
+                'asrName': t.asrName,
+                'maghribName': t.maghribName,
+                'ishaName': t.ishaName
+            };
+
+            Object.keys(elements).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = elements[id];
+                }
+            });
+        }
+
+        function showStatus(type, message) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = `status-indicator ${type}`;
+            indicator.textContent = message;
+        }
+
+        // Simulate real-time updates
+        setInterval(() => {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString(currentLanguage === 'ar' ? 'ar-SA' : 'en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Update one of the prayer times as demo
+            const prayerTimes = document.querySelectorAll('.prayer-time-value');
+            if (prayerTimes.length > 0) {
+                prayerTimes[0].textContent = timeString;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

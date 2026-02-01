@@ -6,6 +6,9 @@ mod handlers;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod translation_tests;
+
 use handlers::create_router;
 use repository::QuranRepository;
 use service::QuranService;

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran Translations Demo - نظام ترجمات معاني القرآن</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-item label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .control-item select,
+        .control-item input {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-item select:focus,
+        .control-item input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .ayah-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .ayah-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .surah-info {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .ayah-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .arabic-text {
+            font-family: 'Amiri', 'Traditional Arabic', serif;
+            font-size: 2.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #2c3e50;
+            margin: 25px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            border-right: 5px solid #667eea;
+        }
+
+        .translations-container {
+            margin-top: 30px;
+        }
+
+        .translations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .translations-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .layout-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .layout-btn {
+            padding: 8px 16px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .layout-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .translation-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .translation-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .translation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .translator-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .translator-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .language-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .quality-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quality-score {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .quality-score.medium {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .quality-score.low {
+            background: #dc3545;
+        }
+
+        .approval-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .approval-status.verified {
+            background: #28a745;
+            color: white;
+        }
+
+        .approval-status.approved {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .approval-status.pending {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .translation-text {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .translation-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+        }
+
+        .source-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .methodology {
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Layout Styles */
+        .layout-stacked .translation-item {
+            margin-bottom: 20px;
+        }
+
+        .layout-side-by-side {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .layout-tabbed .translation-item {
+            display: none;
+        }
+
+        .layout-tabbed .translation-item.active {
+            display: block;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-item {
+                width: 100%;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .arabic-text {
+                font-size: 1.8rem;
+            }
+
+            .layout-side-by-side {
+                grid-template-columns: 1fr;
+            }
+
+            .translations-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+        }
+
+        /* RTL Support */
+        [dir="rtl"] .translation-item {
+            border-left: none;
+            border-right: 4px solid #667eea;
+        }
+
+        [dir="rtl"] .translation-item:hover {
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>نظام ترجمات معاني القرآن الكريم</h1>
+            <p>Comprehensive Quran Translation Management System</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="surahSelect">السورة / Surah</label>
+                    <select id="surahSelect">
+                        <option value="1">1. الفاتحة - Al-Fatiha</option>
+                        <option value="2">2. البقرة - Al-Baqarah</option>
+                        <option value="3">3. آل عمران - Ali 'Imran</option>
+                        <option value="18">18. الكهف - Al-Kahf</option>
+                        <option value="36">36. يس - Ya-Sin</option>
+                        <option value="67">67. الملك - Al-Mulk</option>
+                        <option value="112">112. الإخلاص - Al-Ikhlas</option>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="ayahSelect">الآية / Ayah</label>
+                    <select id="ayahSelect">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="languageSelect">اللغات / Languages</label>
+                    <select id="languageSelect" multiple>
+                        <option value="en" selected>English</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                        <option value="ur">اردو</option>
+                        <option value="tr">Türkçe</option>
+                        <option value="id">Bahasa Indonesia</option>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="qualityThreshold">الحد الأدنى للجودة / Min Quality</label>
+                    <input type="range" id="qualityThreshold" min="0" max="10" step="0.1" value="7.0">
+                    <span id="qualityValue">7.0</span>
+                </div>
+
+                <button class="btn" onclick="loadTranslations()">عرض الترجمات / Load Translations</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="statsContainer" class="stats-container" style="display: none;">
+                <!-- Statistics will be loaded here -->
+            </div>
+
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                جاري التحميل... Loading translations...
+            </div>
+
+            <div id="errorContainer" style="display: none;"></div>
+
+            <div id="ayahContainer" style="display: none;">
+                <!-- Ayah and translations will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8081';
+        let currentLayout = 'stacked';
+        let currentTranslations = [];
+        let currentActiveTab = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateQualityDisplay();
+            loadTranslationStatistics();
+            
+            // Load default translation
+            setTimeout(() => {
+                loadTranslations();
+            }, 500);
+        });
+
+        // Update quality threshold display
+        document.getElementById('qualityThreshold').addEventListener('input', updateQualityDisplay);
+
+        function updateQualityDisplay() {
+            const value = document.getElementById('qualityThreshold').value;
+            document.getElementById('qualityValue').textContent = value;
+        }
+
+        // Load translation statistics
+        async function loadTranslationStatistics() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/translations/statistics`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStatistics(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        function displayStatistics(stats) {
+            const container = document.getElementById('statsContainer');
+            let html = '';
+            
+            const languages = Object.keys(stats);
+            const totalTranslations = languages.reduce((sum, lang) => sum + stats[lang].total_translations, 0);
+            const avgQuality = languages.reduce((sum, lang) => sum + (stats[lang].average_quality * stats[lang].total_translations), 0) / totalTranslations;
+            const totalTranslators = languages.reduce((sum, lang) => sum + stats[lang].translator_count, 0);
+            
+            html += `
+                <div class="stat-card">
+                    <div class="stat-value">${languages.length}</div>
+                    <div class="stat-label">Languages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalTranslations}</div>
+                    <div class="stat-label">Total Translations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgQuality.toFixed(1)}</div>
+                    <div class="stat-label">Avg Quality Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalTranslators}</div>
+                    <div class="stat-label">Translators</div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            container.style.display = 'grid';
+        }
+
+        // Load translations for selected ayah
+        async function loadTranslations() {
+            const surahNumber = document.getElementById('surahSelect').value;
+            const ayahNumber = document.getElementById('ayahSelect').value;
+            const languages = Array.from(document.getElementById('languageSelect').selectedOptions).map(option => option.value);
+            const qualityThreshold = document.getElementById('qualityThreshold').value;
+
+            showLoading(true);
+            hideError();
+
+            try {
+                // Build query parameters
+                const params = new URLSearchParams({
+                    languages: languages.join(','),
+                    min_quality: qualityThreshold,
+                    approval_status: 'approved,verified',
+                    include_source_info: 'true'
+                });
+
+                const response = await fetch(`${API_BASE_URL}/surahs/${surahNumber}/ayahs/${ayahNumber}/translations?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentTranslations = data.data.translations;
+                    displayAyahWithTranslations(data.data);
+                } else {
+                    showError('Failed to load translations: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error loading translations:', error);
+                showError('Network error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayAyahWithTranslations(data) {
+            const container = document.getElementById('ayahContainer');
+            
+            let html = `
+                <div class="ayah-container">
+                    <div class="ayah-header">
+                        <div class="surah-info">${data.surah.arabic_name} - ${data.surah.english_name}</div>
+                        <div class="ayah-number">آية ${data.ayah.ayah_number}</div>
+                    </div>
+                    
+                    <div class="arabic-text">${data.ayah.text}</div>
+                    
+                    <div class="translations-container">
+                        <div class="translations-header">
+                            <div class="translations-title">الترجمات المعتمدة / Approved Translations</div>
+                            <div class="layout-selector">
+                                <button class="layout-btn ${currentLayout === 'stacked' ? 'active' : ''}" onclick="changeLayout('stacked')">مكدسة</button>
+                                <button class="layout-btn ${currentLayout === 'side-by-side' ? 'active' : ''}" onclick="changeLayout('side-by-side')">جنباً إلى جنب</button>
+                                <button class="layout-btn ${currentLayout === 'tabbed' ? 'active' : ''}" onclick="changeLayout('tabbed')">تبويبات</button>
+                            </div>
+                        </div>
+                        
+                        <div id="translationsContent">
+                            ${generateTranslationsHTML(data.translations)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            container.style.display = 'block';
+            
+            // Apply current layout
+            applyLayout();
+        }
+
+        function generateTranslationsHTML(translations) {
+            if (!translations || translations.length === 0) {
+                return '<div class="translation-item"><div class="translation-text">لا توجد ترجمات متاحة بالمعايير المحددة / No translations available with the specified criteria.</div></div>';
+            }
+
+            let html = '';
+            
+            // Add tab buttons for tabbed layout
+            if (currentLayout === 'tabbed') {
+                html += '<div class="tab-buttons">';
+                translations.forEach((item, index) => {
+                    html += `<button class="tab-btn ${index === currentActiveTab ? 'active' : ''}" onclick="switchTab(${index})">${item.source.name}</button>`;
+                });
+                html += '</div>';
+            }
+
+            translations.forEach((item, index) => {
+                const translation = item.translation;
+                const source = item.source;
+                
+                const qualityClass = translation.quality_score >= 8 ? 'high' : translation.quality_score >= 6 ? 'medium' : 'low';
+                const approvalClass = translation.approval_status.toLowerCase();
+                
+                html += `
+                    <div class="translation-item ${currentLayout === 'tabbed' && index !== currentActiveTab ? '' : 'active'}" data-index="${index}">
+                        <div class="translation-header">
+                            <div class="translator-info">
+                                <div class="translator-name">${source.name}</div>
+                                <div class="language-badge">${translation.language.toUpperCase()}</div>
+                            </div>
+                            <div class="quality-info">
+                                <div class="quality-score ${qualityClass}">${translation.quality_score.toFixed(1)}/10</div>
+                                <div class="approval-status ${approvalClass}">${translation.approval_status}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="translation-text">${translation.text}</div>
+                        
+                        <div class="translation-meta">
+                            <div class="source-info">
+                                <div><strong>المترجم / Translator:</strong> ${translation.translator}</div>
+                                ${source.methodology ? `<div class="methodology"><strong>المنهجية / Methodology:</strong> ${source.methodology}</div>` : ''}
+                            </div>
+                            <div class="integrity-status">
+                                <span style="color: ${translation.text_hash ? '#28a745' : '#dc3545'};">
+                                    ${translation.text_hash ? '✓ محقق / Verified' : '⚠ غير محقق / Unverified'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+
+        function changeLayout(layout) {
+            currentLayout = layout;
+            
+            // Update button states
+            document.querySelectorAll('.layout-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Regenerate content with new layout
+            const translationsContent = document.getElementById('translationsContent');
+            translationsContent.innerHTML = generateTranslationsHTML(currentTranslations);
+            
+            applyLayout();
+        }
+
+        function applyLayout() {
+            const container = document.getElementById('translationsContent');
+            
+            // Remove all layout classes
+            container.classList.remove('layout-stacked', 'layout-side-by-side', 'layout-tabbed');
+            
+            // Add current layout class
+            container.classList.add(`layout-${currentLayout}`);
+        }
+
+        function switchTab(index) {
+            currentActiveTab = index;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            
+            // Update translation items
+            document.querySelectorAll('.translation-item').forEach((item, i) => {
+                item.style.display = i === index ? 'block' : 'none';
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error">${message}</div>`;
+            container.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').style.display = 'none';
+        }
+
+        // Update ayah options based on selected surah
+        document.getElementById('surahSelect').addEventListener('change', function() {
+            const surahNumber = parseInt(this.value);
+            const ayahSelect = document.getElementById('ayahSelect');
+            
+            // Simple ayah count mapping (in real app, this would come from API)
+            const ayahCounts = {
+                1: 7, 2: 286, 3: 200, 18: 110, 36: 83, 67: 30, 112: 4
+            };
+            
+            const maxAyahs = ayahCounts[surahNumber] || 10;
+            
+            ayahSelect.innerHTML = '';
+            for (let i = 1; i <= Math.min(maxAyahs, 10); i++) {
+                ayahSelect.innerHTML += `<option value="${i}">${i}</option>`;
+            }
+        });
+
+        // Auto-load translations when selections change
+        document.getElementById('surahSelect').addEventListener('change', () => setTimeout(loadTranslations, 300));
+        document.getElementById('ayahSelect').addEventListener('change', () => setTimeout(loadTranslations, 300));
+        document.getElementById('languageSelect').addEventListener('change', () => setTimeout(loadTranslations, 300));
+    </script>
+</body>
+</html>

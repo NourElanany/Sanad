@@ -786,7 +786,7 @@ impl QuranService {
         })
     }
 
-    /// Get translations for an Ayah
+    /// Get translations for an Ayah with enhanced filtering
     pub async fn get_translations(&self, request: GetTranslationRequest) -> Result<Option<TranslationResponse>> {
         let ayah = self.repository.get_ayah(request.surah_number, request.ayah_number).await?;
         
@@ -794,11 +794,7 @@ impl QuranService {
             let surah = self.repository.get_surah(request.surah_number).await?
                 .ok_or_else(|| anyhow!("Surah not found"))?;
 
-            let translations = self.repository.get_translations(
-                request.surah_number,
-                request.ayah_number,
-                request.languages,
-            ).await?;
+            let translations = self.repository.get_translations(&request).await?;
 
             Ok(Some(TranslationResponse {
                 ayah,
@@ -808,6 +804,236 @@ impl QuranService {
         } else {
             Ok(None)
         }
+    }
+
+    /// Get Ayah with translations in a formatted display
+    pub async fn get_ayah_with_translations(&self, request: GetTranslationRequest, display_preferences: TranslationDisplayPreferences) -> Result<Option<AyahWithTranslations>> {
+        let ayah = self.repository.get_ayah(request.surah_number, request.ayah_number).await?;
+        
+        if let Some(ayah) = ayah {
+            let surah = self.repository.get_surah(request.surah_number).await?
+                .ok_or_else(|| anyhow!("Surah not found"))?;
+
+            // Filter translations based on display preferences
+            let mut filtered_request = request;
+            filtered_request.languages = Some(display_preferences.preferred_languages.clone());
+            filtered_request.min_quality_score = Some(display_preferences.quality_threshold);
+            filtered_request.approval_status = Some(vec![TranslationApprovalStatus::Approved, TranslationApprovalStatus::Verified]);
+
+            let translations = self.repository.get_translations(&filtered_request).await?;
+
+            Ok(Some(AyahWithTranslations {
+                ayah,
+                surah,
+                translations,
+                display_preferences,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Manage translation sources
+    pub async fn manage_translation_source(&self, request: ManageTranslationSourceRequest) -> Result<serde_json::Value> {
+        match request.action {
+            TranslationSourceAction::Create => {
+                let source_data = request.source_data
+                    .ok_or_else(|| anyhow!("Source data required for create action"))?;
+                
+                let source = TranslationSource::new(
+                    source_data.name,
+                    source_data.translator,
+                    source_data.language,
+                    source_data.description,
+                    source_data.methodology,
+                    source_data.source_reference,
+                );
+
+                self.repository.insert_translation_source(&source).await?;
+                Ok(serde_json::json!({
+                    "action": "created",
+                    "source_id": source.id,
+                    "quality_score": source.quality_score
+                }))
+            }
+            TranslationSourceAction::Update => {
+                let source_id = request.source_id
+                    .ok_or_else(|| anyhow!("Source ID required for update action"))?;
+                let source_data = request.source_data
+                    .ok_or_else(|| anyhow!("Source data required for update action"))?;
+
+                self.repository.update_translation_source(source_id, source_data).await?;
+                Ok(serde_json::json!({
+                    "action": "updated",
+                    "source_id": source_id
+                }))
+            }
+            TranslationSourceAction::Approve => {
+                let source_id = request.source_id
+                    .ok_or_else(|| anyhow!("Source ID required for approval"))?;
+
+                self.repository.update_translation_source_approval(source_id, TranslationApprovalStatus::Approved).await?;
+                Ok(serde_json::json!({
+                    "action": "approved",
+                    "source_id": source_id
+                }))
+            }
+            TranslationSourceAction::Verify => {
+                let source_id = request.source_id
+                    .ok_or_else(|| anyhow!("Source ID required for verification"))?;
+
+                let verification_result = self.verify_translation_source_quality(source_id).await?;
+                self.repository.update_translation_source_approval(source_id, TranslationApprovalStatus::Verified).await?;
+                
+                Ok(serde_json::to_value(verification_result)?)
+            }
+            TranslationSourceAction::Reject => {
+                let source_id = request.source_id
+                    .ok_or_else(|| anyhow!("Source ID required for rejection"))?;
+
+                self.repository.update_translation_source_approval(source_id, TranslationApprovalStatus::Rejected).await?;
+                Ok(serde_json::json!({
+                    "action": "rejected",
+                    "source_id": source_id
+                }))
+            }
+            TranslationSourceAction::Deactivate => {
+                let source_id = request.source_id
+                    .ok_or_else(|| anyhow!("Source ID required for deactivation"))?;
+
+                self.repository.deactivate_translation_source(source_id).await?;
+                Ok(serde_json::json!({
+                    "action": "deactivated",
+                    "source_id": source_id
+                }))
+            }
+        }
+    }
+
+    /// Verify translation source quality
+    async fn verify_translation_source_quality(&self, source_id: Uuid) -> Result<TranslationQualityResult> {
+        let source = self.repository.get_translation_source_by_id(source_id).await?
+            .ok_or_else(|| anyhow!("Translation source not found"))?;
+
+        let previous_score = source.quality_score;
+        
+        // Perform quality verification (simplified implementation)
+        let quality_factors = vec![
+            QualityFactor {
+                factor_type: "Source Credibility".to_string(),
+                weight: 0.3,
+                score: if source.source_reference.is_some() { 9.0 } else { 6.0 },
+                description: "Credibility of the translation source".to_string(),
+            },
+            QualityFactor {
+                factor_type: "Translator Expertise".to_string(),
+                weight: 0.3,
+                score: match source.language.as_str() {
+                    "en" => 8.5,
+                    "fr" | "es" | "de" => 8.0,
+                    "ur" | "tr" | "id" => 7.5,
+                    _ => 7.0,
+                },
+                description: "Expertise level of the translator".to_string(),
+            },
+            QualityFactor {
+                factor_type: "Methodology".to_string(),
+                weight: 0.2,
+                score: if source.methodology.is_some() { 8.0 } else { 6.0 },
+                description: "Translation methodology documentation".to_string(),
+            },
+            QualityFactor {
+                factor_type: "Community Acceptance".to_string(),
+                weight: 0.2,
+                score: match source.approval_status {
+                    TranslationApprovalStatus::Verified => 9.0,
+                    TranslationApprovalStatus::Approved => 7.5,
+                    TranslationApprovalStatus::Pending => 5.0,
+                    TranslationApprovalStatus::Rejected => 2.0,
+                },
+                description: "Level of community acceptance".to_string(),
+            },
+        ];
+
+        let new_score = quality_factors.iter()
+            .map(|f| f.score * f.weight)
+            .sum::<f64>()
+            .min(10.0);
+
+        // Update the score in the database
+        self.repository.update_translation_source_quality(source_id, new_score).await?;
+
+        let recommendations = self.generate_translation_quality_recommendations(new_score, &source).await?;
+
+        Ok(TranslationQualityResult {
+            translation_id: source_id, // Using source_id as translation_id for this context
+            previous_score,
+            new_score,
+            quality_factors,
+            recommendations,
+            verified_at: Utc::now(),
+        })
+    }
+
+    /// Generate quality recommendations for translations
+    async fn generate_translation_quality_recommendations(&self, score: f64, source: &TranslationSource) -> Result<Vec<String>> {
+        let mut recommendations = Vec::new();
+
+        if score < 6.0 {
+            recommendations.push("Consider additional scholarly review and verification".to_string());
+            recommendations.push("Cross-reference with established classical translations".to_string());
+        } else if score < 8.0 {
+            recommendations.push("Good quality - suitable for general reference".to_string());
+            if source.methodology.is_none() {
+                recommendations.push("Consider documenting translation methodology".to_string());
+            }
+        } else {
+            recommendations.push("Excellent quality - highly recommended for scholarly work".to_string());
+        }
+
+        if source.source_reference.is_none() {
+            recommendations.push("Consider adding source references for better credibility".to_string());
+        }
+
+        if !source.is_approved() {
+            recommendations.push("Consider submitting for community approval".to_string());
+        }
+
+        Ok(recommendations)
+    }
+
+    /// Get all translation sources
+    pub async fn get_translation_sources(&self) -> Result<Vec<TranslationSource>> {
+        self.repository.get_translation_sources().await
+    }
+
+    /// Get translation statistics
+    pub async fn get_translation_statistics(&self) -> Result<serde_json::Value> {
+        self.repository.get_translation_statistics().await
+    }
+
+    /// Verify translation content integrity
+    pub async fn verify_translation_integrity(&self) -> Result<TranslationIntegrityReport> {
+        let translation_results = self.repository.verify_translation_integrity().await?;
+
+        let mut corrupted_translations = Vec::new();
+        let mut valid_translations = 0;
+
+        for (id, is_valid) in translation_results {
+            if is_valid {
+                valid_translations += 1;
+            } else {
+                corrupted_translations.push(id);
+            }
+        }
+
+        Ok(TranslationIntegrityReport {
+            translations: IntegrityStatus {
+                total: valid_translations + corrupted_translations.len(),
+                valid: valid_translations,
+                corrupted: corrupted_translations,
+            },
+        })
     }
 
     /// Get all available recitation styles
@@ -867,6 +1093,12 @@ impl QuranService {
 pub struct ContentIntegrityReport {
     pub ayahs: IntegrityStatus,
     pub tafsir: IntegrityStatus,
+}
+
+/// Translation integrity report
+#[derive(Debug, serde::Serialize)]
+pub struct TranslationIntegrityReport {
+    pub translations: IntegrityStatus,
 }
 
 /// Integrity status for a content type
