@@ -5,6 +5,9 @@ mod repository;
 mod service;
 mod handlers;
 
+#[cfg(test)]
+mod property_tests;
+
 use axum::{routing::get, Router, Extension};
 use sqlx::PgPool;
 use std::env;

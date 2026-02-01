@@ -1,11 +1,10 @@
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{NaiveDate, DateTime, Utc};
+use chrono::NaiveDate;
 use shared::{SanadResult, SanadError, Location, CalculationMethod};
 use crate::models::{
-    PrayerCalculationSettings, DailyPrayerTimes, HijriGregorianConversion,
-    IslamicEventDetails, UserPrayerPreferences, PrayerTimeHistory,
-    HijriMonth,
+    DailyPrayerTimes, HijriGregorianConversion, IslamicEventDetails, HijriMonth,
+    UserPrayerPreferences,
 };
 
 /// Repository for prayer times and calendar data
@@ -20,180 +19,65 @@ impl PrayerTimesRepository {
     
     /// Get or create location
     pub async fn get_or_create_location(&self, location: &Location) -> SanadResult<Uuid> {
+        // First try to find existing location
         let existing = sqlx::query!(
-            "SELECT id FROM locations WHERE latitude = $1 AND longitude = $2",
-            location.latitude,
-            location.longitude
+            "SELECT id FROM locations WHERE 
+             ABS(latitude - $1) < 0.001 AND ABS(longitude - $2) < 0.001",
+            location.latitude as f64,
+            location.longitude as f64
         )
         .fetch_optional(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         if let Some(row) = existing {
             return Ok(row.id);
         }
         
-        let location_id = sqlx::query!(
-            r#"
-            INSERT INTO locations (name, city, country, latitude, longitude, timezone)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id
-            "#,
+        // Create new location
+        let location_id = Uuid::new_v4();
+        sqlx::query!(
+            "INSERT INTO locations (id, name, city, country, latitude, longitude, timezone)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            location_id,
             location.city.as_deref().unwrap_or("Unknown"),
-            location.city,
-            location.country,
-            location.latitude,
-            location.longitude,
+            location.city.as_deref(),
+            location.country.as_deref(),
+            location.latitude as f64,
+            location.longitude as f64,
             location.timezone
         )
-        .fetch_one(&self.pool)
-        .await?
-        .id;
+        .execute(&self.pool)
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         Ok(location_id)
     }
     
-    /// Get user prayer calculation settings
-    pub async fn get_user_prayer_settings(&self, user_id: Uuid) -> SanadResult<Option<PrayerCalculationSettings>> {
-        let row = sqlx::query!(
-            r#"
-            SELECT id, user_id, location_id, calculation_method, fajr_angle, maghrib_angle, 
-                   isha_angle, fajr_adjustment, dhuhr_adjustment, asr_adjustment, 
-                   maghrib_adjustment, isha_adjustment, asr_method, high_latitude_adjustment,
-                   created_at, updated_at
-            FROM prayer_calculation_settings 
-            WHERE user_id = $1
-            "#,
-            user_id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-        
-        if let Some(row) = row {
-            let calculation_method = match row.calculation_method.as_str() {
-                "muslim_world_league" => CalculationMethod::MuslimWorldLeague,
-                "islamic_society_north_america" => CalculationMethod::IslamicSocietyOfNorthAmerica,
-                "egyptian_general_authority" => CalculationMethod::EgyptianGeneralAuthorityOfSurvey,
-                "umm_al_qura_makkah" => CalculationMethod::UmmAlQuraUniversityMakkah,
-                "university_islamic_sciences_karachi" => CalculationMethod::UniversityOfIslamicSciencesKarachi,
-                "institute_geophysics_tehran" => CalculationMethod::InstituteOfGeophysicsUniversityOfTehran,
-                "shia" => CalculationMethod::Shia,
-                "custom" => CalculationMethod::Custom {
-                    fajr_angle: row.fajr_angle.unwrap_or(18.0),
-                    maghrib_angle: row.maghrib_angle.unwrap_or(0.0),
-                    isha_angle: row.isha_angle.unwrap_or(17.0),
-                },
-                _ => CalculationMethod::MuslimWorldLeague,
-            };
-            
-            Ok(Some(PrayerCalculationSettings {
-                id: row.id,
-                user_id: row.user_id,
-                location_id: row.location_id,
-                calculation_method,
-                fajr_angle: row.fajr_angle,
-                maghrib_angle: row.maghrib_angle,
-                isha_angle: row.isha_angle,
-                fajr_adjustment: row.fajr_adjustment,
-                dhuhr_adjustment: row.dhuhr_adjustment,
-                asr_adjustment: row.asr_adjustment,
-                maghrib_adjustment: row.maghrib_adjustment,
-                isha_adjustment: row.isha_adjustment,
-                asr_method: row.asr_method,
-                high_latitude_adjustment: row.high_latitude_adjustment,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            }))
-        } else {
-            Ok(None)
-        }
-    }
-}
-    /// Save daily prayer times to cache
-    pub async fn save_daily_prayer_times(&self, prayer_times: &DailyPrayerTimes) -> SanadResult<()> {
-        sqlx::query!(
-            r#"
-            INSERT INTO daily_prayer_times (
-                location_id, calculation_method, date, fajr_time, sunrise_time, 
-                dhuhr_time, asr_time, maghrib_time, isha_time, qibla_direction,
-                fajr_angle, maghrib_angle, isha_angle, asr_method
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            ON CONFLICT (location_id, calculation_method, date) 
-            DO UPDATE SET
-                fajr_time = EXCLUDED.fajr_time,
-                sunrise_time = EXCLUDED.sunrise_time,
-                dhuhr_time = EXCLUDED.dhuhr_time,
-                asr_time = EXCLUDED.asr_time,
-                maghrib_time = EXCLUDED.maghrib_time,
-                isha_time = EXCLUDED.isha_time,
-                qibla_direction = EXCLUDED.qibla_direction
-            "#,
-            prayer_times.location_id,
-            String::from(prayer_times.calculation_method.clone()),
-            prayer_times.date,
-            prayer_times.fajr_time,
-            prayer_times.sunrise_time,
-            prayer_times.dhuhr_time,
-            prayer_times.asr_time,
-            prayer_times.maghrib_time,
-            prayer_times.isha_time,
-            prayer_times.qibla_direction,
-            prayer_times.fajr_angle,
-            prayer_times.maghrib_angle,
-            prayer_times.isha_angle,
-            prayer_times.asr_method
-        )
-        .execute(&self.pool)
-        .await?;
-        
-        Ok(())
-    }
-    
-    /// Get cached daily prayer times
+    /// Get daily prayer times from cache
     pub async fn get_daily_prayer_times(
         &self,
         location_id: Uuid,
-        calculation_method: &CalculationMethod,
+        method: &CalculationMethod,
         date: NaiveDate,
     ) -> SanadResult<Option<DailyPrayerTimes>> {
-        let method_str = String::from(calculation_method.clone());
+        let method_str = Self::calculation_method_to_string(method);
         
         let row = sqlx::query!(
-            r#"
-            SELECT id, location_id, calculation_method, date, fajr_time, sunrise_time,
-                   dhuhr_time, asr_time, maghrib_time, isha_time, qibla_direction,
-                   fajr_angle, maghrib_angle, isha_angle, asr_method, created_at
-            FROM daily_prayer_times
-            WHERE location_id = $1 AND calculation_method = $2 AND date = $3
-            "#,
+            "SELECT * FROM daily_prayer_times 
+             WHERE location_id = $1 AND calculation_method = $2 AND date = $3",
             location_id,
-            method_str,
-            date
+            method_str
         )
         .fetch_optional(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         if let Some(row) = row {
-            let calculation_method = match row.calculation_method.as_str() {
-                "muslim_world_league" => CalculationMethod::MuslimWorldLeague,
-                "islamic_society_north_america" => CalculationMethod::IslamicSocietyOfNorthAmerica,
-                "egyptian_general_authority" => CalculationMethod::EgyptianGeneralAuthorityOfSurvey,
-                "umm_al_qura_makkah" => CalculationMethod::UmmAlQuraUniversityMakkah,
-                "university_islamic_sciences_karachi" => CalculationMethod::UniversityOfIslamicSciencesKarachi,
-                "institute_geophysics_tehran" => CalculationMethod::InstituteOfGeophysicsUniversityOfTehran,
-                "shia" => CalculationMethod::Shia,
-                "custom" => CalculationMethod::Custom {
-                    fajr_angle: row.fajr_angle.unwrap_or(18.0),
-                    maghrib_angle: row.maghrib_angle.unwrap_or(0.0),
-                    isha_angle: row.isha_angle.unwrap_or(17.0),
-                },
-                _ => CalculationMethod::MuslimWorldLeague,
-            };
-            
             Ok(Some(DailyPrayerTimes {
                 id: row.id,
                 location_id: row.location_id,
-                calculation_method,
+                calculation_method: Self::string_to_calculation_method(&row.calculation_method)?,
                 date: row.date,
                 fajr_time: row.fajr_time,
                 sunrise_time: row.sunrise_time,
@@ -201,31 +85,69 @@ impl PrayerTimesRepository {
                 asr_time: row.asr_time,
                 maghrib_time: row.maghrib_time,
                 isha_time: row.isha_time,
-                qibla_direction: row.qibla_direction,
+                qibla_direction: row.qibla_direction.unwrap_or(0.0),
                 fajr_angle: row.fajr_angle,
                 maghrib_angle: row.maghrib_angle,
                 isha_angle: row.isha_angle,
-                asr_method: row.asr_method,
-                created_at: row.created_at,
+                asr_method: row.asr_method.unwrap_or(1),
+                created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
             }))
         } else {
             Ok(None)
         }
     }
     
-    /// Get Hijri-Gregorian conversion
-    pub async fn get_hijri_conversion(&self, gregorian_date: NaiveDate) -> SanadResult<Option<HijriGregorianConversion>> {
+    /// Save daily prayer times to cache
+    pub async fn save_daily_prayer_times(&self, times: &DailyPrayerTimes) -> SanadResult<()> {
+        let method_str = Self::calculation_method_to_string(&times.calculation_method);
+        
+        sqlx::query!(
+            "INSERT INTO daily_prayer_times 
+             (id, location_id, calculation_method, date, fajr_time, sunrise_time, 
+              dhuhr_time, asr_time, maghrib_time, isha_time, qibla_direction,
+              fajr_angle, maghrib_angle, isha_angle, asr_method, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+             ON CONFLICT (location_id, calculation_method, date) DO UPDATE SET
+             fajr_time = EXCLUDED.fajr_time,
+             sunrise_time = EXCLUDED.sunrise_time,
+             dhuhr_time = EXCLUDED.dhuhr_time,
+             asr_time = EXCLUDED.asr_time,
+             maghrib_time = EXCLUDED.maghrib_time,
+             isha_time = EXCLUDED.isha_time,
+             qibla_direction = EXCLUDED.qibla_direction",
+            times.id,
+            times.location_id,
+            method_str,
+            times.date,
+            times.fajr_time,
+            times.sunrise_time,
+            times.dhuhr_time,
+            times.asr_time,
+            times.maghrib_time,
+            times.isha_time,
+            times.qibla_direction,
+            times.fajr_angle,
+            times.maghrib_angle,
+            times.isha_angle,
+            times.asr_method,
+            times.created_at
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
+        
+        Ok(())
+    }
+    
+    /// Get Hijri conversion from cache
+    pub async fn get_hijri_conversion(&self, date: NaiveDate) -> SanadResult<Option<HijriGregorianConversion>> {
         let row = sqlx::query!(
-            r#"
-            SELECT id, gregorian_date, hijri_year, hijri_month, hijri_day, 
-                   julian_day_number, created_at
-            FROM hijri_gregorian_conversion
-            WHERE gregorian_date = $1
-            "#,
-            gregorian_date
+            "SELECT * FROM hijri_gregorian_conversion WHERE gregorian_date = $1",
+            date
         )
         .fetch_optional(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         if let Some(row) = row {
             Ok(Some(HijriGregorianConversion {
@@ -235,115 +157,108 @@ impl PrayerTimesRepository {
                 hijri_month: row.hijri_month,
                 hijri_day: row.hijri_day,
                 julian_day_number: row.julian_day_number,
-                created_at: row.created_at,
+                created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
             }))
         } else {
             Ok(None)
         }
     }
     
-    /// Save Hijri-Gregorian conversion
+    /// Save Hijri conversion to cache
     pub async fn save_hijri_conversion(&self, conversion: &HijriGregorianConversion) -> SanadResult<()> {
         sqlx::query!(
-            r#"
-            INSERT INTO hijri_gregorian_conversion (
-                gregorian_date, hijri_year, hijri_month, hijri_day, julian_day_number
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (gregorian_date) DO NOTHING
-            "#,
+            "INSERT INTO hijri_gregorian_conversion 
+             (id, gregorian_date, hijri_year, hijri_month, hijri_day, julian_day_number, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (gregorian_date) DO NOTHING",
+            conversion.id,
             conversion.gregorian_date,
             conversion.hijri_year,
             conversion.hijri_month,
             conversion.hijri_day,
-            conversion.julian_day_number
+            conversion.julian_day_number,
+            conversion.created_at
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         Ok(())
     }
-}
-    /// Get Islamic events for a specific Hijri date
+    
+    /// Get Islamic events for a specific date
     pub async fn get_islamic_events_for_date(
         &self,
         hijri_month: i32,
         hijri_day: i32,
     ) -> SanadResult<Vec<IslamicEventDetails>> {
         let rows = sqlx::query!(
-            r#"
-            SELECT id, name_arabic, name_english, description_arabic, description_english,
-                   hijri_month, hijri_day, hijri_end_month, hijri_end_day, event_type,
-                   importance_level, notification_enabled, special_calculation,
-                   created_at, updated_at
-            FROM islamic_events
-            WHERE hijri_month = $1 AND hijri_day = $2 AND notification_enabled = true
-            ORDER BY importance_level DESC
-            "#,
+            "SELECT * FROM islamic_events 
+             WHERE hijri_month = $1 AND hijri_day = $2 AND notification_enabled = true
+             ORDER BY importance_level DESC",
             hijri_month,
             hijri_day
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
-        let events = rows.into_iter().map(|row| IslamicEventDetails {
-            id: row.id,
-            name_arabic: row.name_arabic,
-            name_english: row.name_english,
-            description_arabic: row.description_arabic,
-            description_english: row.description_english,
-            hijri_month: row.hijri_month,
-            hijri_day: row.hijri_day,
-            hijri_end_month: row.hijri_end_month,
-            hijri_end_day: row.hijri_end_day,
-            event_type: row.event_type,
-            importance_level: row.importance_level,
-            notification_enabled: row.notification_enabled,
-            special_calculation: row.special_calculation,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        }).collect();
+        let mut events = Vec::new();
+        for row in rows {
+            events.push(IslamicEventDetails {
+                id: row.id,
+                name_arabic: row.name_arabic,
+                name_english: row.name_english,
+                description_arabic: row.description_arabic,
+                description_english: row.description_english,
+                hijri_month: row.hijri_month,
+                hijri_day: row.hijri_day,
+                hijri_end_month: row.hijri_end_month,
+                hijri_end_day: row.hijri_end_day,
+                event_type: row.event_type,
+                importance_level: row.importance_level,
+                notification_enabled: row.notification_enabled,
+                special_calculation: row.special_calculation,
+                created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
+                updated_at: row.updated_at.unwrap_or_else(|| chrono::Utc::now()),
+            });
+        }
         
         Ok(events)
     }
     
     /// Get Islamic events for a month
-    pub async fn get_islamic_events_for_month(
-        &self,
-        hijri_month: i32,
-    ) -> SanadResult<Vec<IslamicEventDetails>> {
+    pub async fn get_islamic_events_for_month(&self, hijri_month: i32) -> SanadResult<Vec<IslamicEventDetails>> {
         let rows = sqlx::query!(
-            r#"
-            SELECT id, name_arabic, name_english, description_arabic, description_english,
-                   hijri_month, hijri_day, hijri_end_month, hijri_end_day, event_type,
-                   importance_level, notification_enabled, special_calculation,
-                   created_at, updated_at
-            FROM islamic_events
-            WHERE hijri_month = $1 AND notification_enabled = true
-            ORDER BY hijri_day ASC, importance_level DESC
-            "#,
+            "SELECT * FROM islamic_events 
+             WHERE hijri_month = $1 AND notification_enabled = true
+             ORDER BY hijri_day ASC, importance_level DESC",
             hijri_month
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
-        let events = rows.into_iter().map(|row| IslamicEventDetails {
-            id: row.id,
-            name_arabic: row.name_arabic,
-            name_english: row.name_english,
-            description_arabic: row.description_arabic,
-            description_english: row.description_english,
-            hijri_month: row.hijri_month,
-            hijri_day: row.hijri_day,
-            hijri_end_month: row.hijri_end_month,
-            hijri_end_day: row.hijri_end_day,
-            event_type: row.event_type,
-            importance_level: row.importance_level,
-            notification_enabled: row.notification_enabled,
-            special_calculation: row.special_calculation,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        }).collect();
+        let mut events = Vec::new();
+        for row in rows {
+            events.push(IslamicEventDetails {
+                id: row.id,
+                name_arabic: row.name_arabic,
+                name_english: row.name_english,
+                description_arabic: row.description_arabic,
+                description_english: row.description_english,
+                hijri_month: row.hijri_month,
+                hijri_day: row.hijri_day,
+                hijri_end_month: row.hijri_end_month,
+                hijri_end_day: row.hijri_end_day,
+                event_type: row.event_type,
+                importance_level: row.importance_level,
+                notification_enabled: row.notification_enabled,
+                special_calculation: row.special_calculation,
+                created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
+                updated_at: row.updated_at.unwrap_or_else(|| chrono::Utc::now()),
+            });
+        }
         
         Ok(events)
     }
@@ -351,48 +266,37 @@ impl PrayerTimesRepository {
     /// Get Hijri months
     pub async fn get_hijri_months(&self) -> SanadResult<Vec<HijriMonth>> {
         let rows = sqlx::query!(
-            r#"
-            SELECT month_number, name_arabic, name_english, name_transliteration
-            FROM hijri_months
-            ORDER BY month_number
-            "#
+            "SELECT * FROM hijri_months ORDER BY month_number"
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
-        let months = rows.into_iter().map(|row| HijriMonth {
-            month_number: row.month_number,
-            name_arabic: row.name_arabic,
-            name_english: row.name_english,
-            name_transliteration: row.name_transliteration,
-        }).collect();
+        let mut months = Vec::new();
+        for row in rows {
+            months.push(HijriMonth {
+                month_number: row.month_number,
+                name_arabic: row.name_arabic,
+                name_english: row.name_english,
+                name_transliteration: row.name_transliteration,
+            });
+        }
         
         Ok(months)
     }
     
     /// Get user prayer preferences
-    pub async fn get_user_prayer_preferences(&self, user_id: Uuid) -> SanadResult<Option<UserPrayerPreferences>> {
+    pub async fn get_user_prayer_preferences(&self, user_id: Uuid) -> SanadResult<UserPrayerPreferences> {
         let row = sqlx::query!(
-            r#"
-            SELECT id, user_id, fajr_notification_enabled, fajr_notification_minutes,
-                   dhuhr_notification_enabled, dhuhr_notification_minutes,
-                   asr_notification_enabled, asr_notification_minutes,
-                   maghrib_notification_enabled, maghrib_notification_minutes,
-                   isha_notification_enabled, isha_notification_minutes,
-                   sunrise_notification_enabled, sunrise_notification_minutes,
-                   graduated_notifications_enabled, graduated_intervals,
-                   show_qibla_direction, qibla_compass_style,
-                   created_at, updated_at
-            FROM user_prayer_preferences
-            WHERE user_id = $1
-            "#,
+            "SELECT * FROM user_prayer_preferences WHERE user_id = $1",
             user_id
         )
         .fetch_optional(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
         
         if let Some(row) = row {
-            Ok(Some(UserPrayerPreferences {
+            Ok(UserPrayerPreferences {
                 id: row.id,
                 user_id: row.user_id,
                 fajr_notification_enabled: row.fajr_notification_enabled,
@@ -408,41 +312,144 @@ impl PrayerTimesRepository {
                 sunrise_notification_enabled: row.sunrise_notification_enabled,
                 sunrise_notification_minutes: row.sunrise_notification_minutes,
                 graduated_notifications_enabled: row.graduated_notifications_enabled,
-                graduated_intervals: row.graduated_intervals,
+                graduated_intervals: row.graduated_intervals.unwrap_or_default(),
                 show_qibla_direction: row.show_qibla_direction,
                 qibla_compass_style: row.qibla_compass_style,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            }))
+                created_at: row.created_at.unwrap_or_else(|| chrono::Utc::now()),
+                updated_at: row.updated_at.unwrap_or_else(|| chrono::Utc::now()),
+            })
         } else {
-            Ok(None)
+            Err(SanadError::NotFound("User prayer preferences not found".to_string()))
+        }
+    }
+
+    /// Create user prayer preferences
+    pub async fn create_user_prayer_preferences(&self, preferences: UserPrayerPreferences) -> SanadResult<UserPrayerPreferences> {
+        sqlx::query!(
+            r#"
+            INSERT INTO user_prayer_preferences (
+                id, user_id,
+                fajr_notification_enabled, fajr_notification_minutes,
+                dhuhr_notification_enabled, dhuhr_notification_minutes,
+                asr_notification_enabled, asr_notification_minutes,
+                maghrib_notification_enabled, maghrib_notification_minutes,
+                isha_notification_enabled, isha_notification_minutes,
+                sunrise_notification_enabled, sunrise_notification_minutes,
+                graduated_notifications_enabled, graduated_intervals,
+                show_qibla_direction, qibla_compass_style,
+                created_at, updated_at
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+            )
+            "#,
+            preferences.id,
+            preferences.user_id,
+            preferences.fajr_notification_enabled,
+            preferences.fajr_notification_minutes,
+            preferences.dhuhr_notification_enabled,
+            preferences.dhuhr_notification_minutes,
+            preferences.asr_notification_enabled,
+            preferences.asr_notification_minutes,
+            preferences.maghrib_notification_enabled,
+            preferences.maghrib_notification_minutes,
+            preferences.isha_notification_enabled,
+            preferences.isha_notification_minutes,
+            preferences.sunrise_notification_enabled,
+            preferences.sunrise_notification_minutes,
+            preferences.graduated_notifications_enabled,
+            &preferences.graduated_intervals,
+            preferences.show_qibla_direction,
+            preferences.qibla_compass_style,
+            preferences.created_at,
+            preferences.updated_at
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
+
+        Ok(preferences)
+    }
+
+    /// Update user prayer preferences
+    pub async fn update_user_prayer_preferences(&self, user_id: Uuid, preferences: UserPrayerPreferences) -> SanadResult<UserPrayerPreferences> {
+        sqlx::query!(
+            r#"
+            UPDATE user_prayer_preferences SET
+                fajr_notification_enabled = $2,
+                fajr_notification_minutes = $3,
+                dhuhr_notification_enabled = $4,
+                dhuhr_notification_minutes = $5,
+                asr_notification_enabled = $6,
+                asr_notification_minutes = $7,
+                maghrib_notification_enabled = $8,
+                maghrib_notification_minutes = $9,
+                isha_notification_enabled = $10,
+                isha_notification_minutes = $11,
+                sunrise_notification_enabled = $12,
+                sunrise_notification_minutes = $13,
+                graduated_notifications_enabled = $14,
+                graduated_intervals = $15,
+                show_qibla_direction = $16,
+                qibla_compass_style = $17,
+                updated_at = $18
+            WHERE user_id = $1
+            "#,
+            user_id,
+            preferences.fajr_notification_enabled,
+            preferences.fajr_notification_minutes,
+            preferences.dhuhr_notification_enabled,
+            preferences.dhuhr_notification_minutes,
+            preferences.asr_notification_enabled,
+            preferences.asr_notification_minutes,
+            preferences.maghrib_notification_enabled,
+            preferences.maghrib_notification_minutes,
+            preferences.isha_notification_enabled,
+            preferences.isha_notification_minutes,
+            preferences.sunrise_notification_enabled,
+            preferences.sunrise_notification_minutes,
+            preferences.graduated_notifications_enabled,
+            &preferences.graduated_intervals,
+            preferences.show_qibla_direction,
+            preferences.qibla_compass_style,
+            preferences.updated_at
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| SanadError::Database(e.to_string()))?;
+
+        Ok(preferences)
+    }
+    
+    // Helper methods for enum conversion
+    
+    fn calculation_method_to_string(method: &CalculationMethod) -> String {
+        match method {
+            CalculationMethod::MuslimWorldLeague => "muslim_world_league".to_string(),
+            CalculationMethod::IslamicSocietyOfNorthAmerica => "islamic_society_north_america".to_string(),
+            CalculationMethod::EgyptianGeneralAuthorityOfSurvey => "egyptian_general_authority".to_string(),
+            CalculationMethod::UmmAlQuraUniversityMakkah => "umm_al_qura_makkah".to_string(),
+            CalculationMethod::UniversityOfIslamicSciencesKarachi => "university_islamic_sciences_karachi".to_string(),
+            CalculationMethod::InstituteOfGeophysicsUniversityOfTehran => "institute_geophysics_tehran".to_string(),
+            CalculationMethod::Shia => "shia".to_string(),
+            CalculationMethod::Custom { .. } => "custom".to_string(),
         }
     }
     
-    /// Save prayer time history
-    pub async fn save_prayer_history(&self, history: &PrayerTimeHistory) -> SanadResult<()> {
-        sqlx::query!(
-            r#"
-            INSERT INTO prayer_time_history (
-                user_id, prayer_name, scheduled_time, actual_prayer_time,
-                location_id, prayer_completed, completion_method,
-                prayed_in_congregation, mosque_name
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#,
-            history.user_id,
-            history.prayer_name,
-            history.scheduled_time,
-            history.actual_prayer_time,
-            history.location_id,
-            history.prayer_completed,
-            history.completion_method,
-            history.prayed_in_congregation,
-            history.mosque_name
-        )
-        .execute(&self.pool)
-        .await?;
-        
-        Ok(())
+    fn string_to_calculation_method(method_str: &str) -> SanadResult<CalculationMethod> {
+        match method_str {
+            "muslim_world_league" => Ok(CalculationMethod::MuslimWorldLeague),
+            "islamic_society_north_america" => Ok(CalculationMethod::IslamicSocietyOfNorthAmerica),
+            "egyptian_general_authority" => Ok(CalculationMethod::EgyptianGeneralAuthorityOfSurvey),
+            "umm_al_qura_makkah" => Ok(CalculationMethod::UmmAlQuraUniversityMakkah),
+            "university_islamic_sciences_karachi" => Ok(CalculationMethod::UniversityOfIslamicSciencesKarachi),
+            "institute_geophysics_tehran" => Ok(CalculationMethod::InstituteOfGeophysicsUniversityOfTehran),
+            "shia" => Ok(CalculationMethod::Shia),
+            "custom" => Ok(CalculationMethod::Custom {
+                fajr_angle: 18.0,
+                maghrib_angle: 0.0,
+                isha_angle: 17.0,
+            }),
+            _ => Err(SanadError::Validation(format!("Unknown calculation method: {}", method_str))),
+        }
     }
 }

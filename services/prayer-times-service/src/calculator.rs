@@ -87,13 +87,13 @@ impl PrayerTimesCalculator {
         
         Ok(QiblaDirection::new(bearing, distance))
     }
-}
-    fn new() -> Self {
+
+    pub fn new() -> Self {
         Self
     }
     
     /// Get Julian day number for a given date
-    fn get_julian_day(&self, date: NaiveDate) -> f64 {
+    pub fn get_julian_day(&self, date: NaiveDate) -> f64 {
         let year = date.year() as f64;
         let month = date.month() as f64;
         let day = date.day() as f64;
@@ -107,7 +107,7 @@ impl PrayerTimesCalculator {
     }
     
     /// Get calculation parameters for different methods
-    fn get_calculation_parameters(&self, method: &CalculationMethod) -> CalculationParams {
+    pub fn get_calculation_parameters(&self, method: &CalculationMethod) -> CalculationParams {
         match method {
             CalculationMethod::MuslimWorldLeague => CalculationParams {
                 fajr_angle: 18.0,
@@ -235,7 +235,6 @@ impl PrayerTimesCalculator {
             isha: isha_time,
         })
     }
-}
     /// Calculate time for a given sun angle
     fn calculate_time_for_angle(
         &self,
@@ -245,11 +244,19 @@ impl PrayerTimesCalculator {
         angle_rad: f64,
         is_evening: bool,
     ) -> f64 {
-        let cos_hour_angle = (angle_rad.sin() - lat_rad.sin() * delta.sin()) 
+        // Standard formula: cos(H) = (sin(h) - sin(φ)sin(δ)) / (cos(φ)cos(δ))
+        // where h is the altitude angle (negative for depression angles)
+        let altitude = if is_evening {
+            -angle_rad // Depression angle below horizon
+        } else {
+            -angle_rad // Depression angle below horizon for Fajr
+        };
+        
+        let cos_hour_angle = (altitude.sin() - lat_rad.sin() * delta.sin()) 
                            / (lat_rad.cos() * delta.cos());
         
         if cos_hour_angle.abs() > 1.0 {
-            // Handle extreme latitudes
+            // Handle extreme latitudes - sun doesn't reach required angle
             return if is_evening { 18.0 } else { 6.0 };
         }
         
@@ -306,8 +313,18 @@ impl PrayerTimesCalculator {
         let tz: chrono_tz::Tz = timezone.parse()?;
         
         let convert_time = |decimal_hour: f64| -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+            // Handle edge cases where calculation failed
+            if decimal_hour < 0.0 || decimal_hour >= 24.0 {
+                return Err("Invalid decimal hour".into());
+            }
+            
             let hours = decimal_hour.floor() as u32;
             let minutes = ((decimal_hour - hours as f64) * 60.0).round() as u32;
+            
+            // Ensure valid time components
+            if hours >= 24 || minutes >= 60 {
+                return Err("Invalid time components".into());
+            }
             
             let local_time = date.and_hms_opt(hours, minutes, 0)
                 .ok_or("Invalid time")?;
@@ -355,11 +372,11 @@ impl PrayerTimesCalculator {
 
 /// Calculation parameters for different methods
 #[derive(Debug, Clone)]
-struct CalculationParams {
-    fajr_angle: f64,
-    maghrib_angle: f64,
-    isha_angle: f64,
-    asr_method: i32,
+pub struct CalculationParams {
+    pub fajr_angle: f64,
+    pub maghrib_angle: f64,
+    pub isha_angle: f64,
+    pub asr_method: i32,
 }
 
 /// Sun times in decimal hours

@@ -1,0 +1,11 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc e6bbcdda22ca39b188b3324eaaae26e9836892bf2882340ac3116810f17cbe92 # shrinks to location = Location { latitude: 0.0, longitude: 0.0, timezone: "UTC", city: Some("Test City"), country: Some("Test Country") }, date = 1900-01-01, method = MuslimWorldLeague
+cc b46340773f4ad6c144cecd596fc084a0537e3134ba4005cda6d99bd1ed23f3aa # shrinks to location = Location { latitude: 0.0, longitude: 102.60071676016153, timezone: "UTC", city: Some("Test City"), country: Some("Test Country") }, date = 1900-01-01, method = MuslimWorldLeague
+cc 9a2b4dcf6ea671cd4b8e40efccde01ca5929a58e7bfc04b07ff9d56b78760a05 # shrinks to location = Location { latitude: -77.43993909640308, longitude: 0.0, timezone: "UTC", city: Some("Test City"), country: Some("Test Country") }, date = 1950-01-03, method = MuslimWorldLeague
+cc cdffcd102b95f74b9d4989befd2a68a48b14305045effdaae33c3e663f6467d4 # shrinks to location = Location { latitude: -69.2414539496694, longitude: 0.0, timezone: "UTC", city: Some("Test City"), country: Some("Test Country") }, date = 1950-01-01, method = MuslimWorldLeague
+cc bbb4590a63a088e085ccfd23f1b4aaa1b31195e747ccccf2ba71087d95569f50 # shrinks to location = Location { latitude: 52.02015454966725, longitude: 0.0, timezone: "UTC", city: Some("Test City"), country: Some("Test Country") }, date = 1958-06-01, method = Shia

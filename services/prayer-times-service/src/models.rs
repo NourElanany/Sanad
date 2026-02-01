@@ -146,7 +146,7 @@ pub struct CustomAngles {
 }
 
 /// Prayer time adjustments in minutes
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PrayerAdjustments {
     pub fajr: i32,
     pub dhuhr: i32,
@@ -189,6 +189,7 @@ pub struct GregorianConversionRequest {
 pub struct IslamicEventsRequest {
     pub hijri_month: Option<i32>,
     pub hijri_year: Option<i32>,
+    pub hijri_day: Option<i32>,
     pub importance_level: Option<i32>,
     pub event_type: Option<String>,
 }
@@ -242,7 +243,7 @@ pub struct CalendarDay {
 }
 
 /// Prayer notification settings
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrayerNotificationSettings {
     pub prayer_name: String,
     pub enabled: bool,
@@ -283,21 +284,6 @@ impl Default for PrayerAdjustments {
             asr: 0,
             maghrib: 0,
             isha: 0,
-        }
-    }
-}
-
-impl From<CalculationMethod> for String {
-    fn from(method: CalculationMethod) -> Self {
-        match method {
-            CalculationMethod::MuslimWorldLeague => "muslim_world_league".to_string(),
-            CalculationMethod::IslamicSocietyOfNorthAmerica => "islamic_society_north_america".to_string(),
-            CalculationMethod::EgyptianGeneralAuthorityOfSurvey => "egyptian_general_authority".to_string(),
-            CalculationMethod::UmmAlQuraUniversityMakkah => "umm_al_qura_makkah".to_string(),
-            CalculationMethod::UniversityOfIslamicSciencesKarachi => "university_islamic_sciences_karachi".to_string(),
-            CalculationMethod::InstituteOfGeophysicsUniversityOfTehran => "institute_geophysics_tehran".to_string(),
-            CalculationMethod::Shia => "shia".to_string(),
-            CalculationMethod::Custom { .. } => "custom".to_string(),
         }
     }
 }

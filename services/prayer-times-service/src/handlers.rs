@@ -5,11 +5,13 @@ use axum::{
 };
 use serde::Deserialize;
 use chrono::NaiveDate;
-use shared::{ApiResponse, AppError};
+use uuid::Uuid;
+use shared::{ApiResponse, AppError, Location};
 use crate::{
     models::{
         PrayerTimesRequest, QiblaRequest, HijriConversionRequest,
-        GregorianConversionRequest, IslamicEventsRequest,
+        GregorianConversionRequest, IslamicEventsRequest, NotificationScheduleRequest,
+        PrayerNotificationSettings, UserPrayerPreferences,
     },
     service::PrayerTimesService,
 };
@@ -52,8 +54,29 @@ pub struct GregorianQuery {
 pub struct EventsQuery {
     pub hijri_month: Option<i32>,
     pub hijri_year: Option<i32>,
+    pub hijri_day: Option<i32>,
     pub importance_level: Option<i32>,
     pub event_type: Option<String>,
+}
+
+/// Query parameters for notification scheduling
+#[derive(Debug, Deserialize)]
+pub struct NotificationQuery {
+    pub user_id: Uuid,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub timezone: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+    pub days_ahead: Option<i32>,
+}
+
+/// Query parameters for user preferences
+#[derive(Debug, Deserialize)]
+pub struct UserPreferencesQuery {
+    pub user_id: Uuid,
 }
 
 /// Calculate prayer times for a location and date
@@ -88,7 +111,8 @@ pub async fn calculate_prayer_times(
         adjustments: None,
     };
     
-    let result = service.calculate_prayer_times(request).await?;
+    let result = service.calculate_prayer_times(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -102,7 +126,8 @@ pub async fn calculate_qibla_direction(
         longitude: params.longitude,
     };
     
-    let result = service.calculate_qibla_direction(request).await?;
+    let result = service.calculate_qibla_direction(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -115,7 +140,8 @@ pub async fn gregorian_to_hijri(
         date: params.date,
     };
     
-    let result = service.gregorian_to_hijri(request).await?;
+    let result = service.gregorian_to_hijri(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -130,7 +156,8 @@ pub async fn hijri_to_gregorian(
         hijri_day: params.hijri_day,
     };
     
-    let result = service.hijri_to_gregorian(request).await?;
+    let result = service.hijri_to_gregorian(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -142,11 +169,13 @@ pub async fn get_islamic_events(
     let request = IslamicEventsRequest {
         hijri_month: params.hijri_month,
         hijri_year: params.hijri_year,
+        hijri_day: params.hijri_day,
         importance_level: params.importance_level,
         event_type: params.event_type,
     };
     
-    let result = service.get_islamic_events(request).await?;
+    let result = service.get_islamic_events(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -155,7 +184,30 @@ pub async fn get_monthly_calendar(
     Path((hijri_year, hijri_month)): Path<(i32, i32)>,
     Extension(service): Extension<PrayerTimesService>,
 ) -> Result<Json<ApiResponse<crate::models::MonthlyCalendarResponse>>, AppError> {
-    let result = service.get_monthly_calendar(hijri_year, hijri_month).await?;
+    let result = service.get_monthly_calendar(hijri_year, hijri_month).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Get event details
+pub async fn get_event_details(
+    Query(params): Query<std::collections::HashMap<String, String>>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<Option<String>>>, AppError> {
+    let event_name = params.get("event_name")
+        .ok_or_else(|| AppError::BadRequest("Missing event_name parameter".to_string()))?;
+    
+    let result = service.get_event_details(event_name).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Get current Hijri date
+pub async fn get_current_hijri_date(
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<shared::HijriDate>>, AppError> {
+    let result = service.get_current_hijri_date().await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(Json(ApiResponse::success(result)))
 }
 
@@ -166,4 +218,107 @@ pub async fn health_check() -> Json<ApiResponse<std::collections::HashMap<String
     status.insert("service".to_string(), "prayer-times-service".to_string());
     status.insert("version".to_string(), "1.0.0".to_string());
     Json(ApiResponse::success(status))
+}
+
+/// Schedule prayer notifications for a user
+pub async fn schedule_prayer_notifications(
+    Query(params): Query<NotificationQuery>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<Vec<crate::models::ScheduledNotification>>>, AppError> {
+    let location = Location {
+        latitude: params.latitude,
+        longitude: params.longitude,
+        timezone: params.timezone.unwrap_or_else(|| "UTC".to_string()),
+        city: params.city,
+        country: params.country,
+    };
+
+    let start_date = params.start_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let end_date = params.end_date.unwrap_or_else(|| {
+        start_date + chrono::Duration::days(params.days_ahead.unwrap_or(7) as i64)
+    });
+
+    // Get user preferences or create default ones
+    let user_prefs = match service.get_user_prayer_preferences(params.user_id).await {
+        Ok(prefs) => prefs,
+        Err(_) => service.create_default_prayer_preferences(params.user_id).await
+            .map_err(|e| AppError::Internal(e.to_string()))?,
+    };
+
+    let preferences = service.convert_user_prefs_to_notification_prefs(user_prefs);
+    
+    let request = NotificationScheduleRequest {
+        user_id: params.user_id,
+        location,
+        preferences: preferences.prayer_settings.iter().map(|p| {
+            PrayerNotificationSettings {
+                prayer_name: p.prayer_name.clone(),
+                enabled: p.enabled,
+                minutes_before: p.minutes_before,
+                graduated_enabled: p.graduated_enabled,
+                graduated_intervals: p.graduated_intervals.clone(),
+            }
+        }).collect(),
+        start_date,
+        end_date,
+    };
+
+    let result = service.schedule_notifications_for_period(request).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Get upcoming prayer notifications for a user
+pub async fn get_upcoming_notifications(
+    Query(params): Query<NotificationQuery>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<Vec<crate::models::ScheduledNotification>>>, AppError> {
+    let location = Location {
+        latitude: params.latitude,
+        longitude: params.longitude,
+        timezone: params.timezone.unwrap_or_else(|| "UTC".to_string()),
+        city: params.city,
+        country: params.country,
+    };
+
+    let days_ahead = params.days_ahead.unwrap_or(7);
+
+    let result = service.get_upcoming_notifications(params.user_id, &location, days_ahead).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Get user prayer notification preferences
+pub async fn get_user_prayer_preferences(
+    Path(user_id): Path<Uuid>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
+    let result = service.get_user_prayer_preferences(user_id).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Update user prayer notification preferences
+pub async fn update_user_prayer_preferences(
+    Path(user_id): Path<Uuid>,
+    Json(preferences): Json<UserPrayerPreferences>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
+    let mut updated_preferences = preferences;
+    updated_preferences.user_id = user_id;
+    updated_preferences.updated_at = chrono::Utc::now();
+
+    let result = service.update_user_prayer_preferences(user_id, updated_preferences).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
+}
+
+/// Create default prayer preferences for a user
+pub async fn create_default_prayer_preferences(
+    Path(user_id): Path<Uuid>,
+    Extension(service): Extension<PrayerTimesService>,
+) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
+    let result = service.create_default_prayer_preferences(user_id).await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(Json(ApiResponse::success(result)))
 }
