@@ -78,6 +78,7 @@ members = [
     "services/widgets-service",
     "services/cache-service",
     "services/security-service",
+    "services/state-management-service",
     "gateway",
     "shared"
 ]
