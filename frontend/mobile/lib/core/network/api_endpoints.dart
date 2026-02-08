@@ -87,6 +87,8 @@ class ApiEndpoints {
   static const String prayerTimesMonthly = '$prayerTimesBase/times/monthly';
   static const String monthlyPrayerTimes = '$prayerTimesBase/times/monthly';
   static const String prayerTimesYearly = '$prayerTimesBase/times/yearly';
+  static const String prayerTimesRange = '$prayerTimesBase/times/range';
+  static const String prayerCalendar = '$prayerTimesBase/calendar';
   static const String qiblaDirection = '$prayerTimesBase/qibla';
   static const String hijriCalendar = '$prayerTimesBase/hijri';
   static const String hijriDate = '$prayerTimesBase/hijri/today';
@@ -202,4 +204,37 @@ class ApiEndpoints {
   static const String widgets = '$widgetsBase/widgets';
   static String widget(String widgetId) => '$widgetsBase/widgets/$widgetId';
   static const String widgetConfigurations = '$widgetsBase/configurations';
+  
+  // ============================================================================
+  // Statistics Service Endpoints
+  // ============================================================================
+  
+  static const String statisticsBase = '/api/statistics';
+  static const String statisticsDashboard = '$statisticsBase/dashboard';
+  static const String khatmaStatistics = '$statisticsBase/khatma';
+  static const String readingStatistics = '$statisticsBase/reading';
+  static const String recitationStatistics = '$statisticsBase/recitation';
+  static const String weeklyComparison = '$statisticsBase/weekly';
+  static const String monthlyComparison = '$statisticsBase/monthly';
+  static const String personalGoals = '$statisticsBase/goals';
+  static const String dailyReadingData = '$statisticsBase/daily-reading';
+  static const String recitationScoreHistory = '$statisticsBase/recitation-history';
+  
+  // ============================================================================
+  // Achievements Service Endpoints
+  // ============================================================================
+  
+  static const String achievementsBase = '/api/achievements';
+  static const String achievementsDashboard = '$achievementsBase/dashboard';
+  static const String achievements = '$achievementsBase/achievements';
+  static String achievement(String achievementId) => '$achievementsBase/achievements/$achievementId';
+  static const String userLevel = '$achievementsBase/level';
+  static const String challenges = '$achievementsBase/challenges';
+  static String challenge(String challengeId) => '$achievementsBase/challenges/$challengeId';
+  static const String achievementStats = '$achievementsBase/stats';
+  static const String achievementReminders = '$achievementsBase/reminders';
+  static const String shareAchievement = '$achievementsBase/share';
+  static const String achievementUnlockHistory = '$achievementsBase/unlock-history';
+  static const String checkAchievements = '$achievementsBase/check';
+  static const String achievementLeaderboard = '$achievementsBase/leaderboard';
 }

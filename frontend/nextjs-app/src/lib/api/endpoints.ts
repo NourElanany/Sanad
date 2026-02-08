@@ -74,11 +74,14 @@ export const API_ENDPOINTS = {
   PRAYER_TIMES_DAILY: '/api/prayer-times/times/daily',
   MONTHLY_PRAYER_TIMES: '/api/prayer-times/times/monthly',
   PRAYER_TIMES_YEARLY: '/api/prayer-times/times/yearly',
+  PRAYER_TIMES_RANGE: '/api/prayer-times/times/range',
+  PRAYER_CALENDAR: '/api/prayer-times/calendar',
   QIBLA: '/api/prayer-times/qibla',
   HIJRI: '/api/prayer-times/hijri',
   HIJRI_DATE: '/api/prayer-times/hijri/today',
   HIJRI_CONVERT: '/api/prayer-times/hijri/convert',
   EVENTS: '/api/prayer-times/events',
+  ISLAMIC_EVENTS: '/api/prayer-times/events',
 
   // ============================================================================
   // AI Service Endpoints (RAG System)
