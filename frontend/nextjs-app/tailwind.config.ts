@@ -13,6 +13,7 @@ const config: Config = {
         // Islamic Theme Colors
         primary: {
           DEFAULT: '#1B365D', // كحلي داكن
+          main: '#1B365D',
           light: '#2E4A6B',
           dark: '#0F1F35',
           50: '#E8EBF0',
@@ -28,6 +29,7 @@ const config: Config = {
         },
         secondary: {
           DEFAULT: '#2D5A27', // أخضر زمردي
+          main: '#2D5A27',
           light: '#4A7C59',
           dark: '#1A3318',
           50: '#E9F2E8',
@@ -76,6 +78,7 @@ const config: Config = {
       fontFamily: {
         // للنصوص العادية والواجهة
         sans: ['Tajawal', 'Alexandria', 'system-ui', 'sans-serif'],
+        tajawal: ['Tajawal', 'Alexandria', 'system-ui', 'sans-serif'],
         // للنصوص القرآنية
         quran: ['KFGQPC Uthman Taha Naskh', 'Amiri', 'serif'],
       },
@@ -116,6 +119,8 @@ const config: Config = {
         'slide-up': 'slideUp 0.3s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
+        'shimmer': 'shimmer 1.5s ease-in-out infinite',
+        'pulse': 'pulse 1s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -133,6 +138,14 @@ const config: Config = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.05)' },
         },
       },
     },

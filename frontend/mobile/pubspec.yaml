@@ -47,7 +47,7 @@ dependencies:
   sensors_plus: ^4.0.2
   
   # Arabic & RTL Support
-  intl: ^0.19.0
+  intl: ^0.20.0
   flutter_localizations:
     sdk: flutter
   
@@ -56,13 +56,13 @@ dependencies:
   freezed_annotation: ^2.4.1
   logger: ^2.0.2+1
   connectivity_plus: ^5.0.2
-  package_info_plus: ^5.0.1
+  package_info_plus: ^8.0.0
   device_info_plus: ^10.0.1
   
-  # Firebase (for notifications)
-  firebase_core: ^2.24.2
-  firebase_messaging: ^14.7.9
-  firebase_analytics: ^10.8.0
+  # Firebase (for notifications) - Temporarily disabled for web compatibility
+  # firebase_core: ^2.24.2
+  # firebase_messaging: ^14.7.9
+  # firebase_analytics: ^10.8.0
   
   # WebSocket
   web_socket_channel: ^2.4.0
@@ -96,43 +96,43 @@ flutter:
   uses-material-design: true
   
   # Assets
-  assets:
-    - assets/images/
-    - assets/icons/
-    - assets/fonts/
-    - assets/animations/
-    - assets/audio/
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+  #   - assets/fonts/
+  #   - assets/animations/
+  #   - assets/audio/
   
-  # Fonts
-  fonts:
-    - family: Tajawal
-      fonts:
-        - asset: assets/fonts/Tajawal-Light.ttf
-          weight: 300
-        - asset: assets/fonts/Tajawal-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Tajawal-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Tajawal-Bold.ttf
-          weight: 700
-    
-    - family: Alexandria
-      fonts:
-        - asset: assets/fonts/Alexandria-Light.ttf
-          weight: 300
-        - asset: assets/fonts/Alexandria-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Alexandria-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Alexandria-Bold.ttf
-          weight: 700
-    
-    - family: KFGQPC
-      fonts:
-        - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh.ttf
-          weight: 400
-        - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh-Bold.ttf
-          weight: 700
+  # Fonts - Uncomment when font files are added
+  # fonts:
+  #   - family: Tajawal
+  #     fonts:
+  #       - asset: assets/fonts/Tajawal-Light.ttf
+  #         weight: 300
+  #       - asset: assets/fonts/Tajawal-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/Tajawal-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Tajawal-Bold.ttf
+  #         weight: 700
+  #   
+  #   - family: Alexandria
+  #     fonts:
+  #       - asset: assets/fonts/Alexandria-Light.ttf
+  #         weight: 300
+  #       - asset: assets/fonts/Alexandria-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/Alexandria-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Alexandria-Bold.ttf
+  #         weight: 700
+  #   
+  #   - family: KFGQPC
+  #     fonts:
+  #       - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh-Bold.ttf
+  #         weight: 700
 
 # Flutter Native Splash Configuration
 flutter_native_splash:
