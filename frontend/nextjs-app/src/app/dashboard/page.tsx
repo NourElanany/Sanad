@@ -52,10 +52,7 @@ export default function DashboardPage() {
       title: 'المساعد الذكي',
       icon: '🤖',
       color: '#1B365D',
-      onTap: () => {
-        // TODO: Navigate to AI assistant
-        console.log('Navigate to AI assistant');
-      },
+      href: '/ai-assistant',
     },
     {
       title: 'القبلة',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/islamic_card.dart';
@@ -39,10 +40,7 @@ class EnhancedQuickActionsWidget extends StatelessWidget {
         icon: Icons.psychology,
         color: AppColors.primary,
         onTap: () {
-          // TODO: Navigate to AI assistant
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('المساعد الذكي قريباً')),
-          );
+          context.push('/ai-assistant');
         },
       ),
       QuickAction(

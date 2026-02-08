@@ -40,6 +40,7 @@ dependencies:
   audio_waveforms: ^1.0.5
   just_audio: ^0.9.36
   permission_handler: ^11.1.0
+  speech_to_text: ^6.6.0
   
   # Location & Sensors
   geolocator: ^11.0.0
@@ -58,6 +59,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   package_info_plus: ^8.0.0
   device_info_plus: ^10.0.1
+  uuid: ^4.3.3
   
   # Local Notifications
   flutter_local_notifications: ^16.3.2

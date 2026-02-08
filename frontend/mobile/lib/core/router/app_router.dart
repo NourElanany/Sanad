@@ -9,6 +9,9 @@ import '../../features/onboarding/presentation/screens/permissions_screen.dart';
 import '../../features/onboarding/presentation/screens/madhab_selection_screen.dart';
 import '../../features/onboarding/presentation/screens/theme_selection_screen.dart';
 
+// AI Assistant screens
+import '../../features/ai_assistant/presentation/screens/ai_assistant_screen.dart';
+
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -74,7 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ai-assistant',
         name: 'ai-assistant',
-        builder: (context, state) => const Placeholder(),
+        builder: (context, state) => const AIAssistantScreen(),
       ),
       
       // Prayer times routes

@@ -1,11 +1,14 @@
 'use client';
 
+import Link from 'next/link';
+
 interface QuickAction {
   id: string;
   title: string;
   icon: string;
   color: string;
-  onTap: () => void;
+  onTap?: () => void;
+  href?: string;
   badge?: string;
 }
 
@@ -20,7 +23,7 @@ export function EnhancedQuickActionsWidget({ customActions }: EnhancedQuickActio
       title: 'المساعد الذكي',
       icon: '🤖',
       color: '#1B365D',
-      onTap: () => alert('المساعد الذكي قريباً'),
+      href: '/ai-assistant',
     },
     {
       id: 'qibla',
@@ -87,34 +90,41 @@ export function EnhancedQuickActionsWidget({ customActions }: EnhancedQuickActio
 
       {/* Grid of actions */}
       <div className="grid grid-cols-4 gap-4">
-        {actions.map((action) => (
-          <button
-            key={action.id}
-            onClick={action.onTap}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all group"
-          >
-            {/* Icon container with badge */}
-            <div className="relative">
-              <div
-                className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
-                style={{
-                  background: `linear-gradient(135deg, ${action.color}, ${action.color}B3)`,
-                }}
-              >
-                <span className="text-2xl">{action.icon}</span>
-              </div>
-              {action.badge && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                  {action.badge}
+        {actions.map((action) => {
+          const ActionWrapper = action.href ? Link : 'button';
+          const wrapperProps = action.href 
+            ? { href: action.href }
+            : { onClick: action.onTap };
+
+          return (
+            <ActionWrapper
+              key={action.id}
+              {...wrapperProps}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all group"
+            >
+              {/* Icon container with badge */}
+              <div className="relative">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+                  style={{
+                    background: `linear-gradient(135deg, ${action.color}, ${action.color}B3)`,
+                  }}
+                >
+                  <span className="text-2xl">{action.icon}</span>
                 </div>
-              )}
-            </div>
-            {/* Title */}
-            <span className="text-xs font-semibold text-gray-900 text-center leading-tight">
-              {action.title}
-            </span>
-          </button>
-        ))}
+                {action.badge && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+                    {action.badge}
+                  </div>
+                )}
+              </div>
+              {/* Title */}
+              <span className="text-xs font-semibold text-gray-900 text-center leading-tight">
+                {action.title}
+              </span>
+            </ActionWrapper>
+          );
+        })}
       </div>
     </div>
   );
