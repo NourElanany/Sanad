@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Placeholder screens - will be implemented in later tasks
+// Splash and onboarding screens
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/onboarding/presentation/screens/permissions_screen.dart';
+import '../../features/onboarding/presentation/screens/madhab_selection_screen.dart';
+import '../../features/onboarding/presentation/screens/theme_selection_screen.dart';
 
 /// Provider for the app router
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -18,11 +22,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       
-      // Onboarding routes (to be implemented)
+      // Onboarding routes
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        builder: (context, state) => const Placeholder(),
+        builder: (context, state) => const OnboardingScreen(),
+        routes: [
+          GoRoute(
+            path: 'permissions',
+            name: 'permissions',
+            builder: (context, state) => const PermissionsScreen(),
+          ),
+          GoRoute(
+            path: 'madhab',
+            name: 'madhab',
+            builder: (context, state) => const MadhabSelectionScreen(),
+          ),
+          GoRoute(
+            path: 'theme',
+            name: 'theme',
+            builder: (context, state) => const ThemeSelectionScreen(),
+          ),
+        ],
       ),
       
       // Main app routes

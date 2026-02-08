@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -45,8 +46,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Navigate to next screen after animation
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        // TODO: Navigate to onboarding or home based on user state
-        // context.go('/onboarding');
+        // TODO: Check if user has completed onboarding
+        // For now, always navigate to onboarding
+        context.go('/onboarding');
       }
     });
   }

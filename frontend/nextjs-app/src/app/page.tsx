@@ -1,6 +1,21 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link'
+import { PreferencesService } from '@/lib/services/preferences-service';
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if user has completed onboarding
+    const completed = PreferencesService.getOnboardingCompleted();
+    if (!completed) {
+      router.push('/onboarding');
+    }
+  }, [router]);
+
   return (
     <main className="min-h-screen bg-background-primary">
       {/* Hero Section */}
