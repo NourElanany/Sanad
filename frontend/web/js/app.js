@@ -4,7 +4,7 @@
  */
 
 window.SanadApp = {
-    
+
     /**
      * Application state
      */
@@ -18,59 +18,59 @@ window.SanadApp = {
         isOnline: navigator.onLine,
         notifications: []
     },
-    
+
     /**
      * DOM elements cache
      */
     elements: {},
-    
+
     /**
      * Event listeners cleanup functions
      */
     cleanupFunctions: [],
-    
+
     /**
      * Initialize the application
      */
     async init() {
         try {
             console.log('Initializing Sanad Islamic App...');
-            
+
             // Show loading screen
             this.showLoadingScreen();
-            
+
             // Cache DOM elements
             this.cacheElements();
-            
+
             // Load user preferences
             await this.loadUserPreferences();
-            
+
             // Initialize services
             await this.initializeServices();
-            
+
             // Setup event listeners
             this.setupEventListeners();
-            
+
             // Initialize UI components
             this.initializeUI();
-            
+
             // Load initial data
             await this.loadInitialData();
-            
+
             // Hide loading screen and show app
             this.hideLoadingScreen();
-            
+
             // Mark as initialized
             this.state.initialized = true;
-            
+
             console.log('Sanad Islamic App initialized successfully');
-            
+
         } catch (error) {
             console.error('Failed to initialize app:', error);
             this.showError('فشل في تحميل التطبيق. يرجى إعادة تحميل الصفحة.');
         }
     },
-    
+
     /**
      * Cache frequently used DOM elements
      */
@@ -79,10 +79,10 @@ window.SanadApp = {
             // Loading screen
             loadingScreen: window.SanadUtils.dom.get('loadingScreen'),
             loadingText: window.SanadUtils.dom.get('loadingText'),
-            
+
             // App container
             app: window.SanadUtils.dom.get('app'),
-            
+
             // Header elements
             appTitle: window.SanadUtils.dom.get('appTitle'),
             globalSearch: window.SanadUtils.dom.get('globalSearch'),
@@ -92,31 +92,31 @@ window.SanadApp = {
             themeToggle: window.SanadUtils.dom.get('themeToggle'),
             settingsBtn: window.SanadUtils.dom.get('settingsBtn'),
             mobileMenuToggle: window.SanadUtils.dom.get('mobileMenuToggle'),
-            
+
             // Navigation
             navLinks: window.SanadUtils.dom.queryAll('.nav-link'),
             mainNav: window.SanadUtils.dom.query('.main-nav'),
-            
+
             // Content sections
             sections: window.SanadUtils.dom.queryAll('.content-section'),
-            
+
             // Widgets
             widgetsGrid: window.SanadUtils.dom.get('widgetsGrid'),
-            
+
             // Notification container
             notificationContainer: window.SanadUtils.dom.get('notificationContainer'),
-            
+
             // Modal overlay
             modalOverlay: window.SanadUtils.dom.get('modalOverlay')
         };
     },
-    
+
     /**
      * Load user preferences from storage
      */
     async loadUserPreferences() {
         const preferences = window.SanadUtils.storage.get(window.SanadConfig.storage.userPreferences);
-        
+
         if (preferences) {
             this.state.currentLanguage = preferences.language || 'ar';
             this.state.currentTheme = preferences.theme || 'light';
@@ -127,11 +127,11 @@ window.SanadApp = {
             this.state.currentTheme = window.SanadConfig.defaults.theme;
             this.state.location = window.SanadConfig.defaults.location;
         }
-        
+
         // Apply theme
         this.setTheme(this.state.currentTheme);
     },
-    
+
     /**
      * Initialize services
      */
@@ -140,23 +140,23 @@ window.SanadApp = {
         if (window.SanadI18n && !window.SanadI18n.currentLanguage) {
             await window.SanadI18n.init();
         }
-        
+
         // Set language if different from i18n
         if (this.state.currentLanguage !== window.SanadI18n.currentLanguage) {
             await window.SanadI18n.setLanguage(this.state.currentLanguage);
         }
-        
+
         // Initialize geolocation if enabled
         if (window.SanadConfig.features.geolocation) {
             this.initializeGeolocation();
         }
-        
+
         // Initialize notifications if enabled
         if (window.SanadConfig.features.notifications) {
             this.initializeNotifications();
         }
     },
-    
+
     /**
      * Setup event listeners
      */
@@ -170,19 +170,19 @@ window.SanadApp = {
             });
             this.cleanupFunctions.push(cleanup);
         });
-        
+
         // Mobile menu toggle
         const mobileMenuCleanup = window.SanadUtils.dom.on(this.elements.mobileMenuToggle, 'click', () => {
             this.toggleMobileMenu();
         });
         this.cleanupFunctions.push(mobileMenuCleanup);
-        
+
         // Language selector
         const langToggleCleanup = window.SanadUtils.dom.on(this.elements.langToggle, 'click', () => {
             this.toggleLanguageDropdown();
         });
         this.cleanupFunctions.push(langToggleCleanup);
-        
+
         // Language options
         const langOptions = window.SanadUtils.dom.queryAll('.lang-option');
         langOptions.forEach(option => {
@@ -192,40 +192,40 @@ window.SanadApp = {
             });
             this.cleanupFunctions.push(cleanup);
         });
-        
+
         // Theme toggle
         const themeToggleCleanup = window.SanadUtils.dom.on(this.elements.themeToggle, 'click', () => {
             this.toggleTheme();
         });
         this.cleanupFunctions.push(themeToggleCleanup);
-        
+
         // Global search
-        const searchCleanup = window.SanadUtils.dom.on(this.elements.globalSearch, 'input', 
+        const searchCleanup = window.SanadUtils.dom.on(this.elements.globalSearch, 'input',
             window.SanadUtils.timing.debounce((e) => {
                 this.handleGlobalSearch(e.target.value);
             }, 500)
         );
         this.cleanupFunctions.push(searchCleanup);
-        
+
         // Search button
         const searchBtnCleanup = window.SanadUtils.dom.on(this.elements.searchBtn, 'click', () => {
             this.performGlobalSearch();
         });
         this.cleanupFunctions.push(searchBtnCleanup);
-        
+
         // Online/offline status
         const onlineCleanup = window.SanadUtils.dom.on(window, 'online', () => {
             this.state.isOnline = true;
             this.showNotification('تم استعادة الاتصال بالإنترنت', 'success');
         });
         this.cleanupFunctions.push(onlineCleanup);
-        
+
         const offlineCleanup = window.SanadUtils.dom.on(window, 'offline', () => {
             this.state.isOnline = false;
             this.showNotification('انقطع الاتصال بالإنترنت. سيتم العمل في الوضع المحدود.', 'warning');
         });
         this.cleanupFunctions.push(offlineCleanup);
-        
+
         // Close dropdowns when clicking outside
         const documentClickCleanup = window.SanadUtils.dom.on(document, 'click', (e) => {
             if (!e.target.closest('.language-selector')) {
@@ -233,31 +233,31 @@ window.SanadApp = {
             }
         });
         this.cleanupFunctions.push(documentClickCleanup);
-        
+
         // Keyboard shortcuts
         const keyboardCleanup = window.SanadUtils.dom.on(document, 'keydown', (e) => {
             this.handleKeyboardShortcuts(e);
         });
         this.cleanupFunctions.push(keyboardCleanup);
     },
-    
+
     /**
      * Initialize UI components
      */
     initializeUI() {
         // Update language toggle text
         this.updateLanguageToggle();
-        
+
         // Update theme toggle icon
         this.updateThemeToggle();
-        
+
         // Initialize tooltips
         this.initializeTooltips();
-        
+
         // Initialize responsive behavior
         this.initializeResponsive();
     },
-    
+
     /**
      * Load initial data
      */
@@ -265,21 +265,21 @@ window.SanadApp = {
         try {
             // Load dashboard widgets
             await this.loadDashboardWidgets();
-            
+
             // Load prayer times if location is available
             if (this.state.location) {
                 await this.loadPrayerTimes();
             }
-            
+
             // Load user bookmarks
             await this.loadUserBookmarks();
-            
+
         } catch (error) {
             console.error('Failed to load initial data:', error);
             // Continue with app initialization even if some data fails to load
         }
     },
-    
+
     /**
      * Show loading screen
      */
@@ -289,7 +289,7 @@ window.SanadApp = {
             this.elements.loadingScreen.classList.remove('hidden');
         }
     },
-    
+
     /**
      * Hide loading screen and show app
      */
@@ -297,14 +297,14 @@ window.SanadApp = {
         if (this.elements.loadingScreen && this.elements.app) {
             this.elements.loadingScreen.classList.add('hidden');
             this.elements.app.style.display = 'flex';
-            
+
             // Remove loading screen after animation
             setTimeout(() => {
                 this.elements.loadingScreen.style.display = 'none';
             }, 500);
         }
     },
-    
+
     /**
      * Navigate to a section
      */
@@ -316,7 +316,7 @@ window.SanadApp = {
                 link.classList.add('active');
             }
         });
-        
+
         // Update active section
         this.elements.sections.forEach(section => {
             section.classList.remove('active');
@@ -324,23 +324,23 @@ window.SanadApp = {
                 section.classList.add('active');
             }
         });
-        
+
         // Update state
         this.state.currentSection = sectionId;
-        
+
         // Update URL
         window.SanadUtils.url.setParam('section', sectionId);
-        
+
         // Close mobile menu if open
         this.closeMobileMenu();
-        
+
         // Load section-specific data
         this.loadSectionData(sectionId);
-        
+
         // Dispatch navigation event
         this.dispatchNavigationEvent(sectionId);
     },
-    
+
     /**
      * Load section-specific data
      */
@@ -367,7 +367,7 @@ window.SanadApp = {
             console.error(`Failed to load data for section ${sectionId}:`, error);
         }
     },
-    
+
     /**
      * Switch language
      */
@@ -377,12 +377,12 @@ window.SanadApp = {
             this.updateLanguageToggle();
             this.closeLanguageDropdown();
             this.saveUserPreferences();
-            
+
             // Show success notification
             this.showNotification('تم تغيير اللغة بنجاح', 'success');
         }
     },
-    
+
     /**
      * Toggle theme
      */
@@ -390,7 +390,7 @@ window.SanadApp = {
         const newTheme = this.state.currentTheme === 'light' ? 'dark' : 'light';
         this.setTheme(newTheme);
     },
-    
+
     /**
      * Set theme
      */
@@ -400,7 +400,7 @@ window.SanadApp = {
         this.updateThemeToggle();
         this.saveUserPreferences();
     },
-    
+
     /**
      * Update language toggle text
      */
@@ -409,7 +409,7 @@ window.SanadApp = {
             const language = window.SanadConfig.languages[this.state.currentLanguage];
             this.elements.langToggle.textContent = language.name;
         }
-        
+
         // Update active language option
         const langOptions = window.SanadUtils.dom.queryAll('.lang-option');
         langOptions.forEach(option => {
@@ -419,7 +419,7 @@ window.SanadApp = {
             }
         });
     },
-    
+
     /**
      * Update theme toggle icon
      */
@@ -429,7 +429,7 @@ window.SanadApp = {
             this.elements.themeToggle.title = this.state.currentTheme === 'light' ? 'الوضع المظلم' : 'الوضع المضيء';
         }
     },
-    
+
     /**
      * Toggle language dropdown
      */
@@ -439,7 +439,7 @@ window.SanadApp = {
             languageSelector.classList.toggle('active');
         }
     },
-    
+
     /**
      * Close language dropdown
      */
@@ -449,7 +449,7 @@ window.SanadApp = {
             languageSelector.classList.remove('active');
         }
     },
-    
+
     /**
      * Toggle mobile menu
      */
@@ -458,7 +458,7 @@ window.SanadApp = {
             this.elements.mainNav.classList.toggle('mobile-open');
         }
     },
-    
+
     /**
      * Close mobile menu
      */
@@ -467,7 +467,7 @@ window.SanadApp = {
             this.elements.mainNav.classList.remove('mobile-open');
         }
     },
-    
+
     /**
      * Handle global search
      */
@@ -479,7 +479,7 @@ window.SanadApp = {
             this.hideSearchSuggestions();
         }
     },
-    
+
     /**
      * Perform global search
      */
@@ -488,7 +488,7 @@ window.SanadApp = {
         if (query.length < window.SanadConfig.ui.searchMinLength) {
             return;
         }
-        
+
         // Open advanced search with the query
         if (window.SanadAdvancedSearch) {
             const event = new CustomEvent('openAdvancedSearch', {
@@ -509,19 +509,19 @@ window.SanadApp = {
             }
         }
     },
-    
+
     /**
      * Show notification
      */
     showNotification(message, type = 'info', duration = 5000) {
         const notification = this.createNotificationElement(message, type);
         this.elements.notificationContainer.appendChild(notification);
-        
+
         // Auto remove after duration
         setTimeout(() => {
             this.removeNotification(notification);
         }, duration);
-        
+
         // Add to state
         this.state.notifications.push({
             id: Date.now(),
@@ -530,7 +530,7 @@ window.SanadApp = {
             timestamp: new Date()
         });
     },
-    
+
     /**
      * Create notification element
      */
@@ -538,25 +538,25 @@ window.SanadApp = {
         const notification = window.SanadUtils.dom.create('div', {
             className: `notification notification-${type}`
         });
-        
+
         const content = window.SanadUtils.dom.create('div', {
             className: 'notification-content'
         }, message);
-        
+
         const closeBtn = window.SanadUtils.dom.create('button', {
             className: 'notification-close'
         }, '×');
-        
+
         window.SanadUtils.dom.on(closeBtn, 'click', () => {
             this.removeNotification(notification);
         });
-        
+
         notification.appendChild(content);
         notification.appendChild(closeBtn);
-        
+
         return notification;
     },
-    
+
     /**
      * Remove notification
      */
@@ -568,7 +568,7 @@ window.SanadApp = {
             }, 300);
         }
     },
-    
+
     /**
      * Save user preferences
      */
@@ -579,10 +579,10 @@ window.SanadApp = {
             location: this.state.location,
             lastUpdated: new Date().toISOString()
         };
-        
+
         window.SanadUtils.storage.set(window.SanadConfig.storage.userPreferences, preferences);
     },
-    
+
     /**
      * Handle keyboard shortcuts
      */
@@ -592,14 +592,14 @@ window.SanadApp = {
             e.preventDefault();
             this.elements.globalSearch.focus();
         }
-        
+
         // Escape to close modals/dropdowns
         if (e.key === 'Escape') {
             this.closeLanguageDropdown();
             this.closeMobileMenu();
         }
     },
-    
+
     /**
      * Initialize geolocation
      */
@@ -620,7 +620,7 @@ window.SanadApp = {
             );
         }
     },
-    
+
     /**
      * Initialize notifications
      */
@@ -629,14 +629,14 @@ window.SanadApp = {
             Notification.requestPermission();
         }
     },
-    
+
     /**
      * Initialize tooltips
      */
     initializeTooltips() {
         // Tooltips are handled via CSS
     },
-    
+
     /**
      * Initialize responsive behavior
      */
@@ -645,11 +645,11 @@ window.SanadApp = {
             const screenSize = window.SanadUtils.device.getScreenSize();
             document.body.setAttribute('data-screen-size', screenSize);
         }, 250);
-        
+
         window.addEventListener('resize', handleResize);
         handleResize(); // Initial call
     },
-    
+
     /**
      * Dispatch navigation event
      */
@@ -659,14 +659,14 @@ window.SanadApp = {
         });
         document.dispatchEvent(event);
     },
-    
+
     /**
      * Show error message
      */
     showError(message) {
         this.showNotification(message, 'error', 10000);
     },
-    
+
     /**
      * Load dashboard widgets
      */
@@ -677,62 +677,62 @@ window.SanadApp = {
         }
         console.log('Dashboard widgets loaded');
     },
-    
+
     async loadPrayerTimes() {
         // Will be implemented with prayer times service
         console.log('Loading prayer times...');
     },
-    
+
     async loadUserBookmarks() {
         // Will be implemented with user service
         console.log('Loading user bookmarks...');
     },
-    
+
     async loadQuranData() {
         console.log('Loading Quran data...');
-        
+
         // Initialize tafsir comparison if available
         if (window.SanadTafsirComparison && !window.SanadTafsirComparison.state.initialized) {
             window.SanadTafsirComparison.init();
         }
     },
-    
+
     async loadHadithData() {
         console.log('Loading Hadith data...');
     },
-    
+
     async loadStoriesData() {
         console.log('Loading Stories data...');
     },
-    
+
     async loadPrayerTimesData() {
         console.log('Loading Prayer Times data...');
     },
-    
+
     async loadAIAssistantData() {
         console.log('Loading AI Assistant data...');
     },
-    
+
     showSearchSuggestions(query) {
         console.log('Showing search suggestions for:', query);
     },
-    
+
     hideSearchSuggestions() {
         console.log('Hiding search suggestions');
     },
-    
+
     showLoadingInSearch() {
         console.log('Showing search loading');
     },
-    
+
     hideLoadingInSearch() {
         console.log('Hiding search loading');
     },
-    
+
     displaySearchResults(results) {
         console.log('Displaying search results:', results);
     },
-    
+
     /**
      * Cleanup function
      */

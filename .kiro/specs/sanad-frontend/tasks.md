@@ -32,7 +32,7 @@
   - إعداد أيقونات التطبيق والـ splash screens
   - _المتطلبات: 1.1، 1.2، 1.3، 1.4، 1.5_
 
-- [ ] 1.1 إعداد مشروع Next.js للويب
+- [x] 1.1 إعداد مشروع Next.js للويب
   - إنشاء مشروع Next.js 14+ مع TypeScript
   - تكوين Tailwind CSS والثيم الإسلامي
   - إعداد PWA configuration مع service workers

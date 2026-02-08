@@ -1,0 +1,134 @@
+{
+  "name": "سند - التطبيق الإسلامي الشامل",
+  "short_name": "سند",
+  "description": "تطبيق إسلامي شامل يوفر القرآن الكريم، الأحاديث النبوية، مواقيت الصلاة، والمساعد الذكي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEFEFE",
+  "theme_color": "#1B365D",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-2.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["lifestyle", "education", "books"],
+  "shortcuts": [
+    {
+      "name": "القرآن الكريم",
+      "short_name": "القرآن",
+      "description": "قراءة القرآن الكريم",
+      "url": "/quran",
+      "icons": [
+        {
+          "src": "/icon-quran.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "مواقيت الصلاة",
+      "short_name": "الصلاة",
+      "description": "عرض مواقيت الصلاة",
+      "url": "/prayer-times",
+      "icons": [
+        {
+          "src": "/icon-prayer.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "المساعد الذكي",
+      "short_name": "المساعد",
+      "description": "اسأل المساعد الذكي",
+      "url": "/ai-assistant",
+      "icons": [
+        {
+          "src": "/icon-ai.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "القبلة",
+      "short_name": "القبلة",
+      "description": "تحديد اتجاه القبلة",
+      "url": "/qibla",
+      "icons": [
+        {
+          "src": "/icon-qibla.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

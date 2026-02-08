@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sanad-nextjs-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    restart: unless-stopped
+    networks:
+      - sanad-network
+
+  nextjs-dev:
+    image: node:20-alpine
+    container_name: sanad-nextjs-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    command: npm run dev
+    networks:
+      - sanad-network
+
+networks:
+  sanad-network:
+    driver: bridge
