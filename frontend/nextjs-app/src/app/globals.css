@@ -2,128 +2,145 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Arabic Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
-/* Root Variables */
 :root {
-  --primary-color: #1B365D;
-  --secondary-color: #2D5A27;
-  --accent-gold: #B8860B;
-  --background-primary: #FEFEFE;
-  --background-secondary: #F8F9FA;
-  --text-primary: #1A1A1A;
-  --text-secondary: #666666;
-  --text-quranic: #0F1F35;
+  --primary: #1B365D;
+  --secondary: #2D5A27;
+  --accent: #B8860B;
+  --success: #28A745;
+  --warning: #FFC107;
+  --error: #DC3545;
+  --info: #17A2B8;
 }
 
-/* Dark Mode Variables */
-.dark {
-  --background-primary: #0F1F35;
-  --background-secondary: #1B365D;
-  --text-primary: #FEFEFE;
-  --text-secondary: #D1D7E1;
-}
-
-/* Base Styles */
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  font-family: 'Tajawal', 'Alexandria', system-ui, sans-serif;
-  background-color: var(--background-primary);
-  color: var(--text-primary);
-}
-
-/* RTL Support */
-html[dir='rtl'] {
+  font-family: 'Tajawal', 'Alexandria', sans-serif;
   direction: rtl;
 }
 
-html[dir='ltr'] {
-  direction: ltr;
+/* Islamic Quranic Font */
+.quran-text {
+  font-family: 'Amiri', 'KFGQPC Uthman Taha Naskh', serif;
 }
 
-/* Smooth Scrolling */
-html {
-  scroll-behavior: smooth;
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Custom Scrollbar */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--background-secondary);
+  background: #f1f1f1;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-color);
-  border-radius: 4px;
+  background: var(--primary);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2E4A6B;
+  background: var(--secondary);
 }
 
-/* Quran Text Styling */
-.quran-text {
-  font-family: 'KFGQPC Uthman Taha Naskh', 'Amiri', serif;
-  color: var(--text-quranic);
-  line-height: 2;
-  text-align: center;
-  direction: rtl;
+/* Utility classes */
+.text-primary {
+  color: var(--primary);
 }
 
-/* Islamic Card Component */
-.islamic-card {
-  background: var(--background-primary);
-  border-radius: 1rem;
-  border: 1px solid rgba(27, 54, 93, 0.1);
+.text-secondary {
+  color: var(--secondary);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-secondary {
+  background-color: var(--secondary);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.border-primary {
+  border-color: var(--primary);
+}
+
+/* Islamic Card Shadow */
+.islamic-card-shadow {
   box-shadow: 0 4px 16px rgba(27, 54, 93, 0.08);
-  transition: all 0.3s ease;
 }
 
-.islamic-card:hover {
+.islamic-card-shadow:hover {
   box-shadow: 0 8px 24px rgba(27, 54, 93, 0.12);
-  transform: translateY(-2px);
 }
 
-/* Islamic Button */
-.islamic-button {
-  background: linear-gradient(135deg, var(--primary-color), #2E4A6B);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 0.75rem;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(27, 54, 93, 0.2);
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary), rgba(27, 54, 93, 0.7));
 }
 
-.islamic-button:hover {
-  box-shadow: 0 6px 12px rgba(27, 54, 93, 0.3);
-  transform: translateY(-2px);
+.gradient-secondary {
+  background: linear-gradient(135deg, var(--secondary), rgba(45, 90, 39, 0.7));
 }
 
-.islamic-button:active {
-  transform: translateY(0);
+.gradient-accent {
+  background: linear-gradient(135deg, var(--accent), rgba(184, 134, 11, 0.7));
 }
 
-/* Loading Spinner */
-.islamic-spinner {
+/* Loading spinner */
+.spinner {
   border: 3px solid rgba(27, 54, 93, 0.1);
-  border-top: 3px solid var(--primary-color);
+  border-top-color: var(--primary);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -131,107 +148,27 @@ html {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Fade In Animation */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
   to {
-    opacity: 1;
+    transform: rotate(360deg);
   }
 }
 
-/* Fade In Up Animation */
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out;
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Animation Delays */
-.animation-delay-200 {
-  animation-delay: 0.2s;
-  animation-fill-mode: backwards;
-}
-
-.animation-delay-400 {
-  animation-delay: 0.4s;
-  animation-fill-mode: backwards;
-}
-
-.animation-delay-600 {
-  animation-delay: 0.6s;
-  animation-fill-mode: backwards;
-}
-
-/* Slide Up Animation */
-.slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Focus Styles */
+/* Focus styles for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* Print Styles */
+/* Print styles */
 @media print {
   .no-print {
     display: none !important;
-  }
-}
-
-/* Responsive Typography */
-@media (max-width: 640px) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media (min-width: 1920px) {
-  html {
-    font-size: 18px;
   }
 }

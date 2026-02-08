@@ -70,16 +70,15 @@ export const API_ENDPOINTS = {
   // ============================================================================
   // Prayer Times Service Endpoints
   // ============================================================================
-  PRAYER_TIMES: {
-    TIMES: '/api/prayer-times/times',
-    DAILY: '/api/prayer-times/times/daily',
-    MONTHLY: '/api/prayer-times/times/monthly',
-    YEARLY: '/api/prayer-times/times/yearly',
-    QIBLA: '/api/prayer-times/qibla',
-    HIJRI: '/api/prayer-times/hijri',
-    HIJRI_CONVERT: '/api/prayer-times/hijri/convert',
-    EVENTS: '/api/prayer-times/events',
-  },
+  PRAYER_TIMES: '/api/prayer-times/times',
+  PRAYER_TIMES_DAILY: '/api/prayer-times/times/daily',
+  MONTHLY_PRAYER_TIMES: '/api/prayer-times/times/monthly',
+  PRAYER_TIMES_YEARLY: '/api/prayer-times/times/yearly',
+  QIBLA: '/api/prayer-times/qibla',
+  HIJRI: '/api/prayer-times/hijri',
+  HIJRI_DATE: '/api/prayer-times/hijri/today',
+  HIJRI_CONVERT: '/api/prayer-times/hijri/convert',
+  EVENTS: '/api/prayer-times/events',
 
   // ============================================================================
   // AI Service Endpoints (RAG System)
@@ -120,16 +119,20 @@ export const API_ENDPOINTS = {
   // ============================================================================
   // User Service Endpoints
   // ============================================================================
-  USER: {
-    PROFILE: '/api/user/profile',
-    PREFERENCES: '/api/user/preferences',
-    BOOKMARKS: '/api/user/bookmarks',
-    READING_PROGRESS: '/api/user/reading-progress',
-    KHATMA: '/api/user/khatma',
-    STATISTICS: '/api/user/statistics',
-    ACHIEVEMENTS: '/api/user/achievements',
-    NOTIFICATIONS: '/api/user/notifications',
-  },
+  USER_PROFILE: '/api/user/profile',
+  USER_PREFERENCES: '/api/user/preferences',
+  USER_BOOKMARKS: '/api/user/bookmarks',
+  USER_READING_PROGRESS: '/api/user/reading-progress',
+  USER_KHATMA: '/api/user/khatma',
+  USER_STATISTICS: '/api/user/statistics',
+  USER_ACHIEVEMENTS: '/api/user/achievements',
+  USER_NOTIFICATIONS: '/api/user/notifications',
+  
+  // Dashboard endpoints
+  DASHBOARD: '/api/user/dashboard',
+  DAILY_WIRD: '/api/user/daily-wird',
+  UPDATE_DAILY_WIRD: '/api/user/daily-wird/update',
+  DAILY_CONTENT: '/api/user/daily-content',
 
   // ============================================================================
   // Offline Sync Endpoints

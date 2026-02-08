@@ -85,9 +85,11 @@ class ApiEndpoints {
   static const String prayerTimes = '$prayerTimesBase/times';
   static const String prayerTimesDaily = '$prayerTimesBase/times/daily';
   static const String prayerTimesMonthly = '$prayerTimesBase/times/monthly';
+  static const String monthlyPrayerTimes = '$prayerTimesBase/times/monthly';
   static const String prayerTimesYearly = '$prayerTimesBase/times/yearly';
   static const String qiblaDirection = '$prayerTimesBase/qibla';
   static const String hijriCalendar = '$prayerTimesBase/hijri';
+  static const String hijriDate = '$prayerTimesBase/hijri/today';
   static const String hijriToGregorian = '$prayerTimesBase/hijri/convert';
   static const String islamicEvents = '$prayerTimesBase/events';
   
@@ -136,6 +138,12 @@ class ApiEndpoints {
   static const String userStatistics = '$userBase/statistics';
   static const String userAchievements = '$userBase/achievements';
   static const String userNotifications = '$userBase/notifications';
+  
+  // Dashboard endpoints
+  static const String dashboard = '$userBase/dashboard';
+  static const String dailyWird = '$userBase/daily-wird';
+  static const String updateDailyWird = '$userBase/daily-wird/update';
+  static const String dailyContent = '$userBase/daily-content';
   
   // ============================================================================
   // Offline Sync Endpoints
