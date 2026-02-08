@@ -1,0 +1,153 @@
+name: sanad_mobile
+description: Sanad Islamic Application - Mobile Frontend
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+  
+  # UI Components
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.0.0
+  
+  # Navigation
+  go_router: ^13.0.0
+  
+  # Networking
+  dio: ^5.4.0
+  retrofit: ^4.0.3
+  json_annotation: ^4.8.1
+  
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+  
+  # Audio Processing
+  flutter_sound: ^9.2.13
+  audio_waveforms: ^1.0.5
+  just_audio: ^0.9.36
+  permission_handler: ^11.1.0
+  
+  # Location & Sensors
+  geolocator: ^11.0.0
+  flutter_compass: ^0.8.0
+  sensors_plus: ^4.0.2
+  
+  # Arabic & RTL Support
+  intl: ^0.19.0
+  flutter_localizations:
+    sdk: flutter
+  
+  # Utilities
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
+  logger: ^2.0.2+1
+  connectivity_plus: ^5.0.2
+  package_info_plus: ^5.0.1
+  device_info_plus: ^10.0.1
+  
+  # Firebase (for notifications)
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+  firebase_analytics: ^10.8.0
+  
+  # WebSocket
+  web_socket_channel: ^2.4.0
+  
+  # Image Handling
+  image_picker: ^1.0.7
+  flutter_native_splash: ^2.3.9
+  flutter_launcher_icons: ^0.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  riverpod_generator: ^2.3.9
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.0.6
+  hive_generator: ^2.0.1
+  
+  # Linting
+  flutter_lints: ^3.0.1
+  
+  # Testing
+  mockito: ^5.4.4
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+    - assets/animations/
+    - assets/audio/
+  
+  # Fonts
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Tajawal-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
+    
+    - family: Alexandria
+      fonts:
+        - asset: assets/fonts/Alexandria-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Alexandria-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Alexandria-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Alexandria-Bold.ttf
+          weight: 700
+    
+    - family: KFGQPC
+      fonts:
+        - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh.ttf
+          weight: 400
+        - asset: assets/fonts/KFGQPC-Uthman-Taha-Naskh-Bold.ttf
+          weight: 700
+
+# Flutter Native Splash Configuration
+flutter_native_splash:
+  color: "#1B365D"
+  image: assets/images/splash_logo.png
+  android: true
+  ios: true
+  android_12:
+    color: "#1B365D"
+    image: assets/images/splash_logo.png
+
+# Flutter Launcher Icons Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#1B365D"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
