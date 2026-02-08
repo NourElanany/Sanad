@@ -139,7 +139,7 @@ const nextConfig = {
   i18n: {
     locales: ['ar', 'en'],
     defaultLocale: 'ar',
-    localeDetection: true
+    localeDetection: false
   },
   images: {
     domains: ['localhost'],
@@ -151,7 +151,6 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production'
   },
   experimental: {
-    optimizeCss: true,
     optimizePackageImports: ['zustand', 'axios']
   }
 };
