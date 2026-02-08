@@ -2,6 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Islamic fonts */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+
+/* Uthmani font for Quranic text - using a CDN or local font */
+@font-face {
+  font-family: 'KFGQPC Uthman Taha Naskh';
+  src: url('/fonts/UthmanicHafs.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallback to Amiri if Uthmani is not available */
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+
+:root {
+  /* Islamic color palette */
+  --primary-navy: #1B365D;
+  --primary-navy-light: #2E4A6B;
+  --primary-navy-dark: #0F1F35;
+  
+  --secondary-green: #2D5A27;
+  --secondary-green-light: #4A7C59;
+  --secondary-green-dark: #1A3318;
+  
+  --accent-gold: #B8860B;
+  --accent-gold-light: #DAA520;
+  
+  --bg-primary: #FEFEFE;
+  --bg-secondary: #F8F9FA;
+  --bg-paper: #FFFFFF;
+  
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-disabled: #CCCCCC;
+  --text-quranic: #0F1F35;
+}
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Utility classes for Islamic design */
+.font-tajawal {
+  font-family: 'Tajawal', sans-serif;
+}
+
+.font-uthmani {
+  font-family: 'KFGQPC Uthman Taha Naskh', 'Amiri', serif;
+}
+
+/* Animation for modal slide up */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* RTL support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+/* Custom scrollbar for Quran reading */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-navy);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-navy-light);
+}
+
+/* Print styles for Quran pages */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+  }
+}
+
 :root {
   --primary: #1B365D;
   --secondary: #2D5A27;

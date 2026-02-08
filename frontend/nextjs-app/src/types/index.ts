@@ -128,3 +128,6 @@ export interface PaginatedResponse<T> {
   pageSize: number
   hasMore: boolean
 }
+
+// Re-export Quran types
+export * from './quran';

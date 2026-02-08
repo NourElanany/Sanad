@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ],
+      "env": {},
+      "disabled": true,
+      "autoApprove": []
+    },
+    "stitch": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "Authorization": "AQ.Ab8RN6IAXz1e4o5IOhwiP0AqJ9JoQnsHt4m31hARpvd81XlldA"
+      },
+      "autoApprove": [
+        "list_projects",
+        "create_project"
+      ]
+    }
+  }
+}
