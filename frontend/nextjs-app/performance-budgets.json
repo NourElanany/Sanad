@@ -1,0 +1,169 @@
+{
+  "budgets": [
+    {
+      "name": "Initial Bundle",
+      "description": "Main JavaScript bundle size",
+      "budget": {
+        "max": "250kb",
+        "warn": "200kb"
+      },
+      "path": "/_next/static/chunks/pages/_app*.js"
+    },
+    {
+      "name": "Page Bundles",
+      "description": "Individual page bundle sizes",
+      "budget": {
+        "max": "150kb",
+        "warn": "100kb"
+      },
+      "path": "/_next/static/chunks/pages/**/*.js"
+    },
+    {
+      "name": "Vendor Bundle",
+      "description": "Third-party dependencies",
+      "budget": {
+        "max": "300kb",
+        "warn": "250kb"
+      },
+      "path": "/_next/static/chunks/vendors*.js"
+    },
+    {
+      "name": "CSS Bundle",
+      "description": "Total CSS size",
+      "budget": {
+        "max": "100kb",
+        "warn": "75kb"
+      },
+      "path": "/_next/static/css/**/*.css"
+    },
+    {
+      "name": "Images",
+      "description": "Image assets per page",
+      "budget": {
+        "max": "500kb",
+        "warn": "400kb"
+      },
+      "path": "/images/**/*"
+    },
+    {
+      "name": "Fonts",
+      "description": "Font files",
+      "budget": {
+        "max": "200kb",
+        "warn": "150kb"
+      },
+      "path": "/fonts/**/*"
+    }
+  ],
+  "metrics": {
+    "FCP": {
+      "name": "First Contentful Paint",
+      "budget": {
+        "max": 1800,
+        "warn": 1500
+      },
+      "unit": "ms"
+    },
+    "LCP": {
+      "name": "Largest Contentful Paint",
+      "budget": {
+        "max": 2500,
+        "warn": 2000
+      },
+      "unit": "ms"
+    },
+    "FID": {
+      "name": "First Input Delay",
+      "budget": {
+        "max": 100,
+        "warn": 50
+      },
+      "unit": "ms"
+    },
+    "CLS": {
+      "name": "Cumulative Layout Shift",
+      "budget": {
+        "max": 0.1,
+        "warn": 0.05
+      },
+      "unit": "score"
+    },
+    "TTI": {
+      "name": "Time to Interactive",
+      "budget": {
+        "max": 3800,
+        "warn": 3000
+      },
+      "unit": "ms"
+    },
+    "TBT": {
+      "name": "Total Blocking Time",
+      "budget": {
+        "max": 300,
+        "warn": 200
+      },
+      "unit": "ms"
+    },
+    "SpeedIndex": {
+      "name": "Speed Index",
+      "budget": {
+        "max": 3400,
+        "warn": 2800
+      },
+      "unit": "ms"
+    }
+  },
+  "thresholds": {
+    "mobile": {
+      "FCP": 1800,
+      "LCP": 2500,
+      "FID": 100,
+      "CLS": 0.1,
+      "TTI": 3800
+    },
+    "desktop": {
+      "FCP": 1200,
+      "LCP": 2000,
+      "FID": 50,
+      "CLS": 0.05,
+      "TTI": 2500
+    }
+  },
+  "recommendations": {
+    "bundleSize": [
+      "Use dynamic imports for heavy components",
+      "Implement code splitting at route level",
+      "Remove unused dependencies",
+      "Use tree-shaking for libraries",
+      "Consider lazy loading for below-the-fold content"
+    ],
+    "images": [
+      "Use Next.js Image component for automatic optimization",
+      "Implement lazy loading for images",
+      "Use WebP/AVIF formats",
+      "Compress images before upload",
+      "Use appropriate image sizes for different viewports"
+    ],
+    "fonts": [
+      "Use font-display: swap for custom fonts",
+      "Preload critical fonts",
+      "Subset fonts to include only needed characters",
+      "Use system fonts when possible",
+      "Limit number of font weights and styles"
+    ],
+    "javascript": [
+      "Minimize third-party scripts",
+      "Defer non-critical JavaScript",
+      "Use React.lazy() for component code splitting",
+      "Implement service worker for caching",
+      "Remove console.log statements in production"
+    ],
+    "css": [
+      "Remove unused CSS",
+      "Use CSS-in-JS with critical CSS extraction",
+      "Minimize CSS files",
+      "Use Tailwind's purge feature",
+      "Avoid large CSS frameworks"
+    ]
+  }
+}
