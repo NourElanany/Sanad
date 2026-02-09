@@ -7,11 +7,15 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+pub mod api_key_manager;
 pub mod error;
+pub mod rate_limiter;
 pub mod traits;
 
 // Re-export main types
+pub use api_key_manager::{ApiKeyManager, SecretsClient};
 pub use error::ApiError;
+pub use rate_limiter::{RateLimiter, RateLimitUsage};
 pub use traits::*;
 
 /// Rate limit configuration for an API
@@ -46,7 +50,7 @@ pub enum ApiKeyType {
 }
 
 /// API key information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ApiKey {
     pub api_name: String,
     pub key: String,
@@ -54,6 +58,19 @@ pub struct ApiKey {
     pub created_at: std::time::SystemTime,
     pub expires_at: Option<std::time::SystemTime>,
     pub is_active: bool,
+}
+
+impl std::fmt::Debug for ApiKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ApiKey")
+            .field("api_name", &self.api_name)
+            .field("key", &self.masked_key())
+            .field("key_type", &self.key_type)
+            .field("created_at", &self.created_at)
+            .field("expires_at", &self.expires_at)
+            .field("is_active", &self.is_active)
+            .finish()
+    }
 }
 
 impl ApiKey {
@@ -82,5 +99,27 @@ impl ApiKey {
         }
 
         true
+    }
+
+    /// Get a masked version of the key for logging
+    /// Shows only the first 4 and last 4 characters
+    pub fn masked_key(&self) -> String {
+        if self.key.len() <= 8 {
+            "***".to_string()
+        } else {
+            format!("{}***{}", &self.key[..4], &self.key[self.key.len()-4..])
+        }
+    }
+}
+
+impl std::fmt::Display for ApiKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ApiKey(api_name={}, key={}, active={})",
+            self.api_name,
+            self.masked_key(),
+            self.is_active
+        )
     }
 }

@@ -13,48 +13,48 @@
   - Set up dependencies: reqwest, tokio, serde, redis, sqlx
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1_
 
-- [~] 2. Implement API Key Manager
-  - [ ] 2.1 Create ApiKeyManager struct with key storage
+- [x] 2. Implement API Key Manager
+  - [x] 2.1 Create ApiKeyManager struct with key storage
     - Implement key loading from environment variables
     - Implement key loading from secrets manager (optional)
     - Support different key types: Header, QueryParam, Bearer, Basic
     - _Requirements: 8.1_
   
-  - [ ] 2.2 Write property test for API key injection
+  - [x] 2.2 Write property test for API key injection
     - **Property 11: API Key Injection**
     - **Validates: Requirements 8.2**
   
-  - [ ] 2.3 Write property test for API key confidentiality
+  - [x] 2.3 Write property test for API key confidentiality
     - **Property 12: API Key Confidentiality**
     - **Validates: Requirements 8.4**
   
-  - [ ] 2.4 Implement key injection into HTTP requests
+  - [x] 2.4 Implement key injection into HTTP requests
     - Add method to inject keys based on ApiKeyType
     - Handle key expiration and validation
     - _Requirements: 8.2, 8.3_
   
-  - [ ] 2.5 Write unit tests for key rotation
+  - [x] 2.5 Write unit tests for key rotation
     - Test hot-reloading of API keys
     - Test error handling for invalid/expired keys
     - _Requirements: 8.5_
 
-- [~] 3. Implement Rate Limiter
-  - [ ] 3.1 Create RateLimiter struct with Redis backend
+- [x] 3. Implement Rate Limiter
+  - [x] 3.1 Create RateLimiter struct with Redis backend
     - Implement rate limit checking for minute/hour/day windows
     - Implement counter increment with TTL
     - Support per-API rate limit configuration
     - _Requirements: 9.1, 9.2, 9.5_
   
-  - [ ] 3.2 Write property test for rate limit enforcement
+  - [x] 3.2 Write property test for rate limit enforcement
     - **Property 13: Rate Limit Enforcement**
     - **Validates: Requirements 9.2, 9.3, 9.5**
   
-  - [ ] 3.3 Implement rate limit exceeded handling
+  - [x] 3.3 Implement rate limit exceeded handling
     - Queue requests or return rate limit error
     - Log warnings when approaching limits
     - _Requirements: 9.3, 9.4_
   
-  - [ ] 3.4 Write unit tests for rate limiting edge cases
+  - [x] 3.4 Write unit tests for rate limiting edge cases
     - Test boundary conditions (exactly at limit)
     - Test concurrent requests
     - _Requirements: 9.2, 9.3_

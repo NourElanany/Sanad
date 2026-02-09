@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8e50b988edbc019a34cae4e49e72f2948c7a86c027f8f5c54886434fde3d4578 # shrinks to api_name = "aaa.aaa", key_value = "0AAAaAAaA0A0Aa00", key_type = Header("X-API-Key")
