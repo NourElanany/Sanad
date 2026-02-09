@@ -1,0 +1,86 @@
+Sanad - Your Complete Islamic Companion
+
+Sanad is a comprehensive Islamic application designed to enhance your spiritual journey with cutting-edge technology and authentic Islamic content.
+
+🕌 KEY FEATURES:
+
+📖 QURAN READING
+• Beautiful Mushaf view with high-quality Uthmanic script
+• Multiple translations in various languages
+• Comprehensive Tafsir from renowned scholars
+• Audio recitations from famous Qaris
+• Bookmarks and reading progress tracking
+
+🎙️ RECITATION ANALYSIS
+• Record your Quran recitation
+• AI-powered Tajweed analysis
+• Detailed feedback on pronunciation
+• Track your improvement over time
+• Personalized coaching recommendations
+
+🤖 AI ISLAMIC ASSISTANT
+• Ask questions about Islam
+• Get answers with authentic sources
+• Citations from Quran and Hadith
+• Multiple scholarly perspectives
+• Voice and text input support
+
+📚 HADITH LIBRARY
+• Sahih Bukhari, Muslim, and more
+• Authenticity grading system
+• Search by topic, narrator, or collection
+• Chain of narration (Sanad) details
+• Bookmarking and favorites
+
+🕌 PRAYER TOOLS
+• Accurate prayer times based on your location
+• Multiple calculation methods
+• Qibla compass with AR support
+• Prayer time notifications
+• Monthly prayer calendar
+
+📊 PROGRESS TRACKING
+• Khatma completion tracking
+• Daily reading statistics
+• Recitation improvement metrics
+• Achievement system
+• Personal goals and reminders
+
+🔍 ADVANCED SEARCH
+• Semantic search across all content
+• AI-powered contextual results
+• Search in Quran, Hadith, and Fatawa
+• Save favorite searches
+• Advanced filters
+
+🌙 ISLAMIC STORIES
+• Stories of Prophets
+• Companions' biographies
+• Historical Islamic events
+• Lessons and morals
+• References to Quran and Hadith
+
+⚙️ CUSTOMIZATION
+• Light and dark themes
+• Adjustable font sizes
+• RTL/LTR support
+• Offline mode
+• Multiple languages
+
+🔒 PRIVACY & SECURITY
+• Encrypted local storage
+• No data selling
+• Secure authentication
+• Privacy-first design
+
+✨ ACCESSIBILITY
+• Screen reader support
+• High contrast mode
+• Voice navigation
+• Keyboard shortcuts
+• Inclusive design
+
+Download Sanad today and transform your Islamic learning experience!
+
+---
+Developed with ❤️ for the Muslim Ummah

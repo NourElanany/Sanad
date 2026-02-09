@@ -1,0 +1,58 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB
+    }
+    
+    function isValidAudioSize() {
+      return request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+    
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isAudioFile() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+    
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImageFile() && isValidImageSize();
+    }
+    
+    // User recitation recordings
+    match /users/{userId}/recitations/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAudioFile() && isValidAudioSize();
+    }
+    
+    // User backup files
+    match /users/{userId}/backups/{fileName} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Public Quran audio files (read-only)
+    match /quran/audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Public images (read-only)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

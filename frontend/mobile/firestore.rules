@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // User data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+      
+      // User preferences
+      match /preferences/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // User bookmarks
+      match /bookmarks/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // User progress
+      match /progress/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // User khatmas
+      match /khatmas/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Analytics data (write-only for users)
+    match /analytics/{document=**} {
+      allow read: if false;
+      allow write: if isAuthenticated();
+    }
+    
+    // Public content (read-only)
+    match /quran/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /hadith/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /stories/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

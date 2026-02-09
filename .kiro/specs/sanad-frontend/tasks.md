@@ -328,7 +328,7 @@
 
 ### المرحلة 17: النشر والتوزيع
 
-- [~] 17. إعداد بيئات النشر
+- [x] 17. إعداد بيئات النشر
   - تكوين CI/CD pipelines
   - إعداد Google Play Store للـ Android
   - تكوين Apple App Store للـ iOS
@@ -336,7 +336,7 @@
   - تنفيذ monitoring وanalytics
   - _المتطلبات: جميع المتطلبات_
 
-- [~] 17.1 تطوير نظام التحديثات
+- [x] 17.1 تطوير نظام التحديثات
   - تنفيذ over-the-air updates للـ Flutter
   - إعداد versioning strategy
   - تطوير migration scripts للبيانات

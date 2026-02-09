@@ -1,0 +1,98 @@
+# Fastfile for Android deployment automation
+
+default_platform(:android)
+
+platform :android do
+  desc "Deploy a new version to the Google Play Store (Internal Testing)"
+  lane :internal do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+    
+    upload_to_play_store(
+      track: 'internal',
+      aab: 'build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_screenshots: true,
+      skip_upload_images: true,
+      skip_upload_metadata: false
+    )
+  end
+
+  desc "Deploy a new version to the Google Play Store (Beta)"
+  lane :beta do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+    
+    upload_to_play_store(
+      track: 'beta',
+      aab: 'build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_screenshots: true,
+      skip_upload_images: true,
+      skip_upload_metadata: false
+    )
+  end
+
+  desc "Deploy a new version to the Google Play Store (Production)"
+  lane :production do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+    
+    upload_to_play_store(
+      track: 'production',
+      aab: 'build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_screenshots: false,
+      skip_upload_images: false,
+      skip_upload_metadata: true
+    )
+  end
+
+  desc "Deploy to Firebase App Distribution"
+  lane :firebase do
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+    
+    firebase_app_distribution(
+      app: ENV["FIREBASE_ANDROID_APP_ID"],
+      groups: "testers",
+      release_notes: "New build from CI/CD pipeline",
+      apk_path: "build/app/outputs/flutter-apk/app-release.apk"
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    gradle(
+      task: "test",
+      project_dir: "android/"
+    )
+  end
+
+  desc "Build debug APK"
+  lane :build_debug do
+    gradle(
+      task: "assemble",
+      build_type: "Debug",
+      project_dir: "android/"
+    )
+  end
+
+  desc "Build release APK"
+  lane :build_release do
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+  end
+end

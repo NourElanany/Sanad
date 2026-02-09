@@ -1,0 +1,198 @@
+name: Flutter Android Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'frontend/mobile/**'
+      - '.github/workflows/flutter-android-deploy.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'frontend/mobile/**'
+
+env:
+  FLUTTER_VERSION: '3.16.0'
+  JAVA_VERSION: '17'
+
+jobs:
+  test:
+    name: Test Flutter Application
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/mobile/coverage/lcov.info
+          flags: flutter
+          name: flutter-coverage
+
+  build-android:
+    name: Build Android APK/AAB
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: frontend/mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+
+      - name: Create key.properties
+        if: github.event_name == 'push'
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=keystore.jks
+          EOF
+
+      - name: Build APK (Debug)
+        if: github.event_name == 'pull_request'
+        run: flutter build apk --debug
+
+      - name: Build APK (Release)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: flutter build apk --release
+
+      - name: Build App Bundle (Release)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: flutter build appbundle --release
+
+      - name: Upload APK artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-apk
+          path: frontend/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-aab
+          path: frontend/mobile/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  deploy-play-store:
+    name: Deploy to Google Play Store
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: frontend/mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download AAB artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: android-aab
+          path: frontend/mobile/build/app/outputs/bundle/release/
+
+      - name: Create service account JSON
+        run: |
+          echo "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" > service-account.json
+
+      - name: Deploy to Play Store (Internal Testing)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: frontend/mobile/service-account.json
+          packageName: com.sanad.islamic_app
+          releaseFiles: frontend/mobile/build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          inAppUpdatePriority: 2
+          whatsNewDirectory: frontend/mobile/android/release-notes/
+
+      - name: Clean up
+        if: always()
+        run: rm -f service-account.json
+
+  deploy-firebase-distribution:
+    name: Deploy to Firebase App Distribution
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    defaults:
+      run:
+        working-directory: frontend/mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: android-apk
+          path: frontend/mobile/build/app/outputs/flutter-apk/
+
+      - name: Deploy to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: testers
+          file: frontend/mobile/build/app/outputs/flutter-apk/app-release.apk
+          releaseNotes: |
+            Automated build from commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}

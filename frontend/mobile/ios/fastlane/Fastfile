@@ -1,0 +1,105 @@
+# Fastfile for iOS deployment automation
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    # Increment build number
+    increment_build_number(xcodeproj: "Runner.xcodeproj")
+    
+    # Build the app
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.sanad.islamicApp" => "match AppStore com.sanad.islamicApp"
+        }
+      }
+    )
+    
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      skip_submission: true,
+      distribute_external: false,
+      notify_external_testers: false
+    )
+  end
+
+  desc "Deploy a new version to the App Store"
+  lane :release do
+    # Increment build number
+    increment_build_number(xcodeproj: "Runner.xcodeproj")
+    
+    # Build the app
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store"
+    )
+    
+    # Upload to App Store
+    upload_to_app_store(
+      submit_for_review: false,
+      automatic_release: false,
+      skip_metadata: false,
+      skip_screenshots: false,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  desc "Deploy to Firebase App Distribution"
+  lane :firebase do
+    # Build the app
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "development"
+    )
+    
+    # Upload to Firebase
+    firebase_app_distribution(
+      app: ENV["FIREBASE_IOS_APP_ID"],
+      groups: "testers",
+      release_notes: "New build from CI/CD pipeline"
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      devices: ["iPhone 14 Pro"]
+    )
+  end
+
+  desc "Setup code signing with match"
+  lane :setup_signing do
+    match(
+      type: "appstore",
+      app_identifier: "com.sanad.islamicApp",
+      readonly: true
+    )
+  end
+
+  desc "Capture screenshots"
+  lane :screenshots do
+    capture_screenshots(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner"
+    )
+  end
+
+  desc "Upload metadata and screenshots"
+  lane :upload_metadata do
+    upload_to_app_store(
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: false
+    )
+  end
+end

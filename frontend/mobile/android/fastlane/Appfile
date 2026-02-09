@@ -1,0 +1,2 @@
+json_key_file("service-account.json") # Path to the json secret file
+package_name("com.sanad.islamic_app") # e.g. com.sanad.islamic_app

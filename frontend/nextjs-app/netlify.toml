@@ -1,0 +1,50 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, s-maxage=604800"
+
+[[redirects]]
+  from = "/home"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.sanad.app/api/:splat"
+  status = 200
+  force = true
+
+[context.production]
+  environment = { NEXT_PUBLIC_APP_ENV = "production" }
+
+[context.deploy-preview]
+  environment = { NEXT_PUBLIC_APP_ENV = "preview" }
+
+[context.branch-deploy]
+  environment = { NEXT_PUBLIC_APP_ENV = "staging" }
