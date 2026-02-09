@@ -5,6 +5,7 @@ pub mod utils;
 pub mod cache;
 pub mod cache_client;
 pub mod digital_auth;
+pub mod api_clients;
 
 #[cfg(test)]
 pub mod cache_tests;
@@ -21,3 +22,7 @@ pub use config::*;
 pub use cache::{AdvancedCacheManager, CacheConfig, CacheType, CacheStrategies};
 pub use cache_client::CacheClient;
 pub use digital_auth::{DigitalAuthenticator, ContentSignature, ContentType, VerificationResult};
+pub use api_clients::{ApiClient, QuranApiClient, HadithApiClient, PrayerTimesApiClient, 
+                      TafsirApiClient, CalendarApiClient, QiblaApiClient, AiApiClient,
+                      ApiError as ApiClientError, RateLimitConfig, ApiKey, ApiKeyType};
+pub use api_clients::error::ApiResult;

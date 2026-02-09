@@ -4,7 +4,7 @@
  */
 
 window.SanadI18n = {
-    
+
     /**
      * Current language and settings
      */
@@ -12,7 +12,7 @@ window.SanadI18n = {
     currentDirection: 'rtl',
     translations: {},
     loadedNamespaces: new Set(),
-    
+
     /**
      * Initialize i18n system
      */
@@ -22,16 +22,16 @@ window.SanadI18n = {
         if (savedLanguage && window.SanadConfig.languages[savedLanguage]) {
             this.currentLanguage = savedLanguage;
         }
-        
+
         // Set initial language
         await this.setLanguage(this.currentLanguage);
-        
+
         // Load common translations
         await this.loadNamespace('common');
-        
+
         console.log('i18n system initialized with language:', this.currentLanguage);
     },
-    
+
     /**
      * Set current language
      */
@@ -40,40 +40,40 @@ window.SanadI18n = {
             console.warn('Unsupported language:', languageCode);
             return false;
         }
-        
+
         const language = window.SanadConfig.languages[languageCode];
         const previousLanguage = this.currentLanguage;
-        
+
         this.currentLanguage = languageCode;
         this.currentDirection = language.direction;
-        
+
         // Update document attributes
         document.documentElement.setAttribute('lang', languageCode);
         document.documentElement.setAttribute('dir', language.direction);
-        
+
         // Update body class
         document.body.className = document.body.className
             .replace(/lang-\w+/g, '')
             .trim() + ` lang-${languageCode}`;
-        
+
         // Update font family
         document.body.style.fontFamily = language.fontFamily;
-        
+
         // Save language preference
         window.SanadUtils.storage.set(window.SanadConfig.storage.language, languageCode);
-        
+
         // Clear translation cache if language changed
         if (previousLanguage !== languageCode) {
             this.translations = {};
             this.loadedNamespaces.clear();
         }
-        
+
         // Notify language change
         this.dispatchLanguageChange(languageCode, previousLanguage);
-        
+
         return true;
     },
-    
+
     /**
      * Load translations for a namespace
      */
@@ -81,34 +81,14 @@ window.SanadI18n = {
         if (this.loadedNamespaces.has(`${this.currentLanguage}:${namespace}`)) {
             return true;
         }
-        
-        try {
-            const response = await window.SanadAPI.i18n.getBulkTranslations(
-                this.getNamespaceKeys(namespace),
-                this.currentLanguage,
-                namespace
-            );
-            
-            if (response && response.translations) {
-                if (!this.translations[namespace]) {
-                    this.translations[namespace] = {};
-                }
-                
-                Object.assign(this.translations[namespace], response.translations);
-                this.loadedNamespaces.add(`${this.currentLanguage}:${namespace}`);
-                
-                console.log(`Loaded ${namespace} translations for ${this.currentLanguage}`);
-                return true;
-            }
-        } catch (error) {
-            console.error('Failed to load translations:', error);
-            // Use fallback translations
-            this.loadFallbackTranslations(namespace);
-        }
-        
-        return false;
+
+        // Use fallback translations immediately (no API call needed for demo mode)
+        console.log(`Using fallback translations for ${namespace}`);
+        this.loadFallbackTranslations(namespace);
+        this.loadedNamespaces.add(`${this.currentLanguage}:${namespace}`);
+        return true;
     },
-    
+
     /**
      * Get translation for a key
      */
@@ -119,28 +99,28 @@ window.SanadI18n = {
             plural = null,
             fallback = key
         } = options;
-        
+
         // Get translation from cache
         let translation = this.getTranslationFromCache(key, namespace);
-        
+
         // Use fallback if not found
         if (!translation) {
             translation = this.getFallbackTranslation(key, namespace) || fallback;
         }
-        
+
         // Handle pluralization
         if (plural !== null && typeof plural === 'number') {
             translation = this.handlePluralization(translation, plural);
         }
-        
+
         // Handle interpolation
         if (Object.keys(interpolation).length > 0) {
             translation = this.interpolate(translation, interpolation);
         }
-        
+
         return translation;
     },
-    
+
     /**
      * Get translation from cache
      */
@@ -151,20 +131,20 @@ window.SanadI18n = {
         }
         return null;
     },
-    
+
     /**
      * Get fallback translation
      */
     getFallbackTranslation(key, namespace) {
         const fallbackTranslations = this.getFallbackTranslations();
-        
+
         if (fallbackTranslations[namespace] && fallbackTranslations[namespace][key]) {
             return fallbackTranslations[namespace][key];
         }
-        
+
         return null;
     },
-    
+
     /**
      * Handle pluralization
      */
@@ -172,13 +152,13 @@ window.SanadI18n = {
         if (typeof translation !== 'object' || !translation.plural) {
             return translation;
         }
-        
+
         const pluralRules = this.getPluralRules(this.currentLanguage);
         const form = pluralRules(count);
-        
+
         return translation.plural[form] || translation.value || translation;
     },
-    
+
     /**
      * Get plural rules for language
      */
@@ -196,24 +176,24 @@ window.SanadI18n = {
             tr: (n) => n === 1 ? 'one' : 'other',
             fr: (n) => n <= 1 ? 'one' : 'other'
         };
-        
+
         return rules[language] || rules.en;
     },
-    
+
     /**
      * Interpolate variables in translation
      */
     interpolate(translation, variables) {
         let result = translation;
-        
+
         Object.keys(variables).forEach(key => {
             const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
             result = result.replace(regex, variables[key]);
         });
-        
+
         return result;
     },
-    
+
     /**
      * Update all translatable elements on the page
      */
@@ -224,38 +204,38 @@ window.SanadI18n = {
             const key = element.getAttribute('data-i18n');
             const namespace = element.getAttribute('data-i18n-ns') || 'common';
             const interpolation = this.parseInterpolationData(element);
-            
+
             const translation = this.t(key, { namespace, interpolation });
-            
+
             if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
                 element.placeholder = translation;
             } else {
                 element.textContent = translation;
             }
         });
-        
+
         // Update elements with data-i18n-html attribute (for HTML content)
         const htmlElements = document.querySelectorAll('[data-i18n-html]');
         htmlElements.forEach(element => {
             const key = element.getAttribute('data-i18n-html');
             const namespace = element.getAttribute('data-i18n-ns') || 'common';
             const interpolation = this.parseInterpolationData(element);
-            
+
             const translation = this.t(key, { namespace, interpolation });
             element.innerHTML = translation;
         });
-        
+
         // Update title and meta tags
         this.updateDocumentMeta();
     },
-    
+
     /**
      * Parse interpolation data from element attributes
      */
     parseInterpolationData(element) {
         const interpolationAttr = element.getAttribute('data-i18n-interpolation');
         if (!interpolationAttr) return {};
-        
+
         try {
             return JSON.parse(interpolationAttr);
         } catch (error) {
@@ -263,7 +243,7 @@ window.SanadI18n = {
             return {};
         }
     },
-    
+
     /**
      * Update document meta information
      */
@@ -272,7 +252,7 @@ window.SanadI18n = {
         if (titleKey) {
             document.title = this.t(titleKey);
         }
-        
+
         const descriptionKey = document.documentElement.getAttribute('data-i18n-description');
         if (descriptionKey) {
             const metaDescription = document.querySelector('meta[name="description"]');
@@ -281,7 +261,7 @@ window.SanadI18n = {
             }
         }
     },
-    
+
     /**
      * Format number according to current locale
      */
@@ -289,7 +269,7 @@ window.SanadI18n = {
         const locale = this.getLocaleCode();
         return new Intl.NumberFormat(locale, options).format(number);
     },
-    
+
     /**
      * Format date according to current locale
      */
@@ -300,10 +280,10 @@ window.SanadI18n = {
             month: 'long',
             day: 'numeric'
         };
-        
+
         return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(date);
     },
-    
+
     /**
      * Format time according to current locale
      */
@@ -314,10 +294,10 @@ window.SanadI18n = {
             minute: '2-digit',
             hour12: false
         };
-        
+
         return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(date);
     },
-    
+
     /**
      * Get locale code for Intl APIs
      */
@@ -329,24 +309,24 @@ window.SanadI18n = {
             tr: 'tr-TR',
             fr: 'fr-FR'
         };
-        
+
         return localeMap[this.currentLanguage] || 'en-US';
     },
-    
+
     /**
      * Get text direction for current language
      */
     getDirection() {
         return this.currentDirection;
     },
-    
+
     /**
      * Check if current language is RTL
      */
     isRTL() {
         return this.currentDirection === 'rtl';
     },
-    
+
     /**
      * Get available languages
      */
@@ -356,7 +336,7 @@ window.SanadI18n = {
             ...window.SanadConfig.languages[code]
         }));
     },
-    
+
     /**
      * Dispatch language change event
      */
@@ -368,10 +348,10 @@ window.SanadI18n = {
                 direction: this.currentDirection
             }
         });
-        
+
         document.dispatchEvent(event);
     },
-    
+
     /**
      * Get namespace keys (for loading translations)
      */
@@ -381,7 +361,7 @@ window.SanadI18n = {
             'save', 'cancel', 'delete', 'edit', 'search', 'close',
             'yes', 'no', 'ok', 'back', 'next', 'previous', 'home'
         ];
-        
+
         const namespaceKeys = {
             common: commonKeys,
             navigation: [
@@ -408,10 +388,10 @@ window.SanadI18n = {
                 'sources', 'confidence', 'aiWelcome'
             ]
         };
-        
+
         return namespaceKeys[namespace] || commonKeys;
     },
-    
+
     /**
      * Get fallback translations (hardcoded for offline use)
      */
@@ -472,23 +452,23 @@ window.SanadI18n = {
             }
         };
     },
-    
+
     /**
      * Load fallback translations
      */
     loadFallbackTranslations(namespace) {
         const fallbackTranslations = this.getFallbackTranslations();
-        
+
         if (fallbackTranslations[namespace]) {
             if (!this.translations[namespace]) {
                 this.translations[namespace] = {};
             }
-            
+
             Object.keys(fallbackTranslations[namespace]).forEach(key => {
                 const translations = fallbackTranslations[namespace][key];
                 this.translations[namespace][key] = translations[this.currentLanguage] || translations.en || key;
             });
-            
+
             console.log(`Loaded fallback translations for ${namespace}`);
         }
     }
@@ -502,7 +482,7 @@ window.SanadUtils.timing.ready(() => {
 // Listen for language change events
 document.addEventListener('languageChanged', (event) => {
     console.log('Language changed:', event.detail);
-    
+
     // Update page translations
     setTimeout(() => {
         window.SanadI18n.updatePageTranslations();

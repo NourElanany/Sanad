@@ -12,49 +12,49 @@ window.SanadConfig = {
             i18n: '/api/i18n',
             translations: '/api/i18n/translations',
             languages: '/api/i18n/languages',
-            
+
             // Quran Service
             quran: '/api/quran',
             surahs: '/api/quran/surahs',
             ayahs: '/api/quran/ayahs',
             tafsir: '/api/quran/tafsir',
-            
+
             // Hadith Service
             hadith: '/api/hadith',
             hadithBooks: '/api/hadith/books',
             hadithSearch: '/api/hadith/search',
-            
+
             // Stories Service
             stories: '/api/stories',
             storyCategories: '/api/stories/categories',
             storySearch: '/api/stories/search',
-            
+
             // Prayer Times Service
             prayerTimes: '/api/prayer-times',
             hijriCalendar: '/api/prayer-times/hijri',
             qibla: '/api/prayer-times/qibla',
-            
+
             // AI Assistant Service
             aiAssistant: '/api/ai-assistant',
             aiChat: '/api/ai-assistant/chat',
             aiSources: '/api/ai-assistant/sources',
-            
+
             // Search Service
             search: '/api/search',
             semanticSearch: '/api/search/semantic',
-            
+
             // Widgets Service
             widgets: '/api/widgets',
             dashboard: '/api/widgets/dashboard',
-            
+
             // User Service
             user: '/api/user',
             preferences: '/api/user/preferences',
             bookmarks: '/api/user/bookmarks'
         },
-        timeout: 30000, // 30 seconds
-        retryAttempts: 3,
-        retryDelay: 1000 // 1 second
+        timeout: 3000, // 3 seconds
+        retryAttempts: 0,
+        retryDelay: 500 // 0.5 second
     },
 
     // Supported Languages

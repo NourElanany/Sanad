@@ -1,0 +1,35 @@
+[package]
+name = "api-integration-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+reqwest = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+sqlx = { workspace = true }
+redis = { workspace = true }
+
+# Additional dependencies
+async-trait = "0.1"
+serde_yaml = "0.9"
+base64 = "0.21"
+
+# Shared library
+shared = { path = "../../shared" }
+
+[dev-dependencies]
+proptest = { workspace = true }
+tokio-test = "0.4"

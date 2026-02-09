@@ -36,17 +36,24 @@ window.SanadApp = {
         try {
             console.log('Initializing Sanad Islamic App...');
 
-            // Show loading screen
-            this.showLoadingScreen();
-
-            // Cache DOM elements
+            // Cache DOM elements first
             this.cacheElements();
+
+            // Show loading screen (elements are now cached)
+            this.showLoadingScreen();
 
             // Load user preferences
             await this.loadUserPreferences();
 
-            // Initialize services
-            await this.initializeServices();
+            // Initialize services (with timeout to prevent hanging)
+            try {
+                await Promise.race([
+                    this.initializeServices(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Service init timeout')), 2000))
+                ]);
+            } catch (serviceError) {
+                console.warn('Services initialization skipped:', serviceError.message);
+            }
 
             // Setup event listeners
             this.setupEventListeners();
@@ -54,11 +61,15 @@ window.SanadApp = {
             // Initialize UI components
             this.initializeUI();
 
-            // Load initial data
-            await this.loadInitialData();
-
-            // Hide loading screen and show app
-            this.hideLoadingScreen();
+            // Load initial data (with timeout)
+            try {
+                await Promise.race([
+                    this.loadInitialData(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Data load timeout')), 2000))
+                ]);
+            } catch (dataError) {
+                console.warn('Initial data load skipped:', dataError.message);
+            }
 
             // Mark as initialized
             this.state.initialized = true;
@@ -67,7 +78,9 @@ window.SanadApp = {
 
         } catch (error) {
             console.error('Failed to initialize app:', error);
-            this.showError('فشل في تحميل التطبيق. يرجى إعادة تحميل الصفحة.');
+        } finally {
+            // Always hide loading screen
+            this.hideLoadingScreen();
         }
     },
 
@@ -731,6 +744,40 @@ window.SanadApp = {
 
     displaySearchResults(results) {
         console.log('Displaying search results:', results);
+    },
+
+    /**
+     * Show loading screen
+     */
+    showLoadingScreen() {
+        const loadingScreen = this.elements?.loadingScreen || document.getElementById('loadingScreen');
+        const app = this.elements?.app || document.getElementById('app');
+
+        if (loadingScreen) {
+            loadingScreen.classList.remove('hidden');
+            loadingScreen.style.display = 'flex';
+        }
+        if (app) {
+            app.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Hide loading screen and show app
+     */
+    hideLoadingScreen() {
+        const loadingScreen = this.elements?.loadingScreen || document.getElementById('loadingScreen');
+        const app = this.elements?.app || document.getElementById('app');
+
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+            loadingScreen.style.display = 'none';
+        }
+        if (app) {
+            app.classList.remove('hidden');
+            app.style.display = 'block';
+        }
+        console.log('Loading screen hidden, app visible');
     },
 
     /**
