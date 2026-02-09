@@ -1,6 +1,39 @@
-'use client';
+import { Metadata } from 'next';
+import QiblaCompassClient from './QiblaCompassClient';
 
-import { useState, useEffect, useCallback } from 'react';
+export const metadata: Metadata = {
+  title: 'بوصلة القبلة',
+  description: 'حدد اتجاه القبلة بدقة باستخدام تقنية الواقع المعزز والبوصلة الرقمية. معرفة اتجاه الكعبة المشرفة من أي مكان في العالم',
+  keywords: [
+    'القبلة',
+    'اتجاه القبلة',
+    'بوصلة القبلة',
+    'الكعبة',
+    'Qibla',
+    'Qibla Direction',
+    'Qibla Compass',
+    'Kaaba Direction',
+  ],
+  openGraph: {
+    title: 'بوصلة القبلة | سند',
+    description: 'حدد اتجاه القبلة بدقة من أي مكان في العالم',
+    type: 'website',
+    locale: 'ar_SA',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'بوصلة القبلة | سند',
+    description: 'حدد اتجاه القبلة بدقة من أي مكان في العالم',
+  },
+  alternates: {
+    canonical: '/qibla',
+  },
+};
+
+export default function QiblaCompassPage() {
+  return <QiblaCompassClient />;
+}
+
 import { QiblaService } from '@/lib/services/qibla-service';
 import { QiblaData, CompassState, DeviceOrientation } from '@/types/qibla';
 import CompassVisualization from '@/components/qibla/CompassVisualization';

@@ -1,23 +1,46 @@
-'use client';
+import { Metadata } from 'next';
+import HomeClient from './HomeClient';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link'
-import { PreferencesService } from '@/lib/services/preferences-service';
+export const metadata: Metadata = {
+  title: 'سند - التطبيق الإسلامي الشامل',
+  description: 'تطبيق إسلامي شامل يوفر القرآن الكريم مع التفاسير، الأحاديث النبوية الصحيحة، مواقيت الصلاة الدقيقة، بوصلة القبلة، والمساعد الذكي للإجابة على الأسئلة الإسلامية. تطبيق متكامل لكل مسلم',
+  keywords: [
+    'قرآن كريم',
+    'حديث نبوي',
+    'مواقيت الصلاة',
+    'القبلة',
+    'تفسير القرآن',
+    'أحاديث صحيحة',
+    'تطبيق إسلامي',
+    'مساعد إسلامي ذكي',
+    'Quran',
+    'Hadith',
+    'Prayer Times',
+    'Qibla',
+    'Islamic App',
+  ],
+  openGraph: {
+    title: 'سند - التطبيق الإسلامي الشامل',
+    description: 'تطبيق إسلامي متكامل يوفر القرآن الكريم، الأحاديث النبوية، مواقيت الصلاة، والمساعد الذكي',
+    type: 'website',
+    locale: 'ar_SA',
+    url: 'https://sanad.app',
+    siteName: 'سند',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'سند - التطبيق الإسلامي الشامل',
+    description: 'تطبيق إسلامي متكامل لكل مسلم',
+  },
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Check if user has completed onboarding
-    const completed = PreferencesService.getOnboardingCompleted();
-    if (!completed) {
-      router.push('/onboarding');
-    }
-  }, [router]);
-
   return (
     <main className="min-h-screen bg-background-primary">
+      <HomeClient />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center">
         <div className="max-w-4xl mx-auto">
@@ -131,17 +154,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-primary text-white py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-lg mb-4">
-            سند - التطبيق الإسلامي الشامل
-          </p>
-          <p className="text-sm opacity-80">
-            جميع الحقوق محفوظة © {new Date().getFullYear()}
-          </p>
-        </div>
-      </footer>
     </main>
-  )
+  );
 }
