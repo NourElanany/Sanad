@@ -248,6 +248,45 @@ class SettingsScreen extends ConsumerWidget {
 
               const SizedBox(height: 32),
 
+              // Accessibility Section
+              _buildSectionHeader('إمكانية الوصول'),
+              const SizedBox(height: 12),
+              
+              IslamicCard(
+                padding: const EdgeInsets.all(16),
+                onTap: () => context.push('/accessibility'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.accessibility_new, color: AppColors.primaryMain),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إعدادات إمكانية الوصول',
+                            style: AppTextStyles.body1.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'قارئ الشاشة، التباين العالي، والمزيد',
+                            style: AppTextStyles.body2.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_back_ios, size: 16),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
               // Data Management Section
               _buildSectionHeader('إدارة البيانات'),
               const SizedBox(height: 12),

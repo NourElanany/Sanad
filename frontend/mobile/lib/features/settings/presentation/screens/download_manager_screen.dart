@@ -12,6 +12,7 @@ class DownloadManagerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final downloadsAsync = ref.watch(downloadsStreamProvider);
     final storageStatsAsync = ref.watch(storageStatsProvider);
+    final downloadManager = ref.read(downloadManagerServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,6 +35,17 @@ class DownloadManagerScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Text('خطأ في تحميل الإحصائيات: $error'),
             ),
+          ),
+
+          // Space warning
+          FutureBuilder(
+            future: downloadManager.getSpaceInfo(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && !snapshot.data!.hasEnough) {
+                return _buildSpaceWarning(context, snapshot.data!);
+              }
+              return const SizedBox.shrink();
+            },
           ),
 
           // Downloads list
@@ -97,6 +109,42 @@ class DownloadManagerScreen extends ConsumerWidget {
               error: (error, _) => Center(
                 child: Text('خطأ في تحميل القائمة: $error'),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpaceWarning(BuildContext context, SpaceInfo spaceInfo) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        border: Border.all(color: Colors.red[200]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning, color: Colors.red, size: 32),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'مساحة غير كافية',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                Text(
+                  'تحتاج إلى ${_formatBytes(spaceInfo.deficit)} إضافية لإكمال التحميلات',
+                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                ),
+              ],
             ),
           ),
         ],
@@ -246,6 +294,31 @@ class DownloadManagerScreen extends ConsumerWidget {
                           ),
                         ),
                       ],
+                      if (download.status == DownloadStatus.downloading) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (download.downloadSpeed != null)
+                              Text(
+                                'السرعة: ${_formatBytes(download.downloadSpeed!.toInt())}/ث',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            if (download.remainingTime != null) ...[
+                              const SizedBox(width: 12),
+                              Text(
+                                'الوقت المتبقي: ${_formatTime(download.remainingTime!)}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -273,6 +346,26 @@ class DownloadManagerScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              // Show chunk progress
+              if (download.chunks != null && download.chunks!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: download.chunks!.map((chunk) {
+                    return Expanded(
+                      child: Container(
+                        height: 4,
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: chunk.downloaded
+                              ? AppColors.success
+                              : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
             if (download.isFailed && download.error != null) ...[
               const SizedBox(height: 8),
@@ -388,6 +481,12 @@ class DownloadManagerScreen extends ConsumerWidget {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  String _formatTime(double seconds) {
+    if (seconds < 60) return '${seconds.round()}ث';
+    if (seconds < 3600) return '${(seconds / 60).round()}د';
+    return '${(seconds / 3600).round()}س';
   }
 
   String _formatDate(DateTime date) {

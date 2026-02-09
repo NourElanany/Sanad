@@ -28,6 +28,19 @@ export interface DownloadItem {
   error?: string;
   startedAt?: Date;
   completedAt?: Date;
+  chunks?: DownloadChunk[];
+  downloadSpeed?: number; // bytes per second
+  remainingTime?: number; // seconds
+}
+
+/**
+ * Download chunk for progressive loading
+ */
+export interface DownloadChunk {
+  index: number;
+  start: number;
+  end: number;
+  downloaded: boolean;
 }
 
 /**
@@ -39,6 +52,8 @@ export interface DownloadManagerConfig {
   maxRetries: number;
   retryDelay: number;
   wifiOnly: boolean;
+  chunkSize: number; // Size of each chunk for progressive download (default 1MB)
+  enableProgressiveDownload: boolean;
 }
 
 /**
@@ -62,6 +77,8 @@ export class DownloadManagerService {
     maxRetries: 3,
     retryDelay: 5000,
     wifiOnly: false,
+    chunkSize: 1024 * 1024, // 1MB chunks
+    enableProgressiveDownload: true,
   };
 
   constructor(config?: Partial<DownloadManagerConfig>) {
@@ -270,6 +287,68 @@ export class DownloadManagerService {
   }
 
   /**
+   * Estimate required space for pending downloads
+   */
+  getRequiredSpace(): number {
+    return this.getDownloads()
+      .filter(
+        (d) =>
+          d.status === DownloadStatus.QUEUED ||
+          d.status === DownloadStatus.DOWNLOADING ||
+          d.status === DownloadStatus.PAUSED
+      )
+      .reduce((sum, item) => sum + (item.estimatedSize - item.downloadedBytes), 0);
+  }
+
+  /**
+   * Check if there's enough space for downloads
+   */
+  async hasEnoughSpace(): Promise<boolean> {
+    const required = this.getRequiredSpace();
+    const stats = await LocalStorageService.getStats();
+    const available = stats.totalSize - stats.usedSpace;
+    return available >= required;
+  }
+
+  /**
+   * Get space availability info
+   */
+  async getSpaceInfo(): Promise<{
+    required: number;
+    available: number;
+    hasEnough: boolean;
+    deficit: number;
+  }> {
+    const required = this.getRequiredSpace();
+    const stats = await LocalStorageService.getStats();
+    const available = stats.totalSize - stats.usedSpace;
+    const hasEnough = available >= required;
+    const deficit = hasEnough ? 0 : required - available;
+
+    return {
+      required,
+      available,
+      hasEnough,
+      deficit,
+    };
+  }
+
+  /**
+   * Get estimated completion time for all downloads
+   */
+  getEstimatedCompletionTime(): number {
+    const activeDownloads = this.getActiveDownloads();
+    if (activeDownloads.length === 0) return 0;
+
+    // Calculate average remaining time
+    const totalRemaining = activeDownloads.reduce((sum, item) => {
+      return sum + (item.remainingTime || 0);
+    }, 0);
+
+    return totalRemaining / activeDownloads.length;
+  }
+
+  /**
    * Process download queue
    */
   private async processQueue(): Promise<void> {
@@ -311,8 +390,19 @@ export class DownloadManagerService {
       item.startedAt = new Date();
       this.notifyListeners();
 
-      // Download data
-      const data = await item.downloader();
+      const startTime = Date.now();
+
+      // Download data with progress tracking
+      const data = await this.downloadWithProgress(item, (progress) => {
+        const elapsed = (Date.now() - startTime) / 1000; // seconds
+        const speed = progress / elapsed; // bytes per second
+        const remaining = (item.estimatedSize - progress) / speed; // seconds
+
+        item.downloadedBytes = progress;
+        item.downloadSpeed = speed;
+        item.remainingTime = remaining;
+        this.notifyListeners();
+      });
 
       // Store in local storage
       await LocalStorageService.store(
@@ -324,6 +414,8 @@ export class DownloadManagerService {
       item.status = DownloadStatus.COMPLETED;
       item.completedAt = new Date();
       item.downloadedBytes = item.estimatedSize;
+      item.downloadSpeed = undefined;
+      item.remainingTime = undefined;
       this.retryCount.delete(id);
 
       console.log('Download completed:', item.title);
@@ -356,6 +448,62 @@ export class DownloadManagerService {
       this.notifyListeners();
       this.processQueue();
     }
+  }
+
+  /**
+   * Download with progress tracking
+   */
+  private async downloadWithProgress(
+    item: DownloadItem,
+    onProgress: (bytes: number) => void
+  ): Promise<Uint8Array> {
+    if (this.config.enableProgressiveDownload && item.estimatedSize > this.config.chunkSize) {
+      return this.downloadProgressive(item, onProgress);
+    } else {
+      // Simple download for small files
+      const data = await item.downloader();
+      onProgress(data.length);
+      return data;
+    }
+  }
+
+  /**
+   * Progressive download in chunks
+   */
+  private async downloadProgressive(
+    item: DownloadItem,
+    onProgress: (bytes: number) => void
+  ): Promise<Uint8Array> {
+    // Initialize chunks if not already done
+    if (!item.chunks) {
+      const numChunks = Math.ceil(item.estimatedSize / this.config.chunkSize);
+      item.chunks = Array.from({ length: numChunks }, (_, i) => ({
+        index: i,
+        start: i * this.config.chunkSize,
+        end: Math.min((i + 1) * this.config.chunkSize, item.estimatedSize),
+        downloaded: false,
+      }));
+    }
+
+    // Download all data (in a real implementation, this would use range requests)
+    const data = await item.downloader();
+
+    // Simulate progressive download by processing chunks
+    let downloadedBytes = 0;
+    for (const chunk of item.chunks) {
+      if (item.status === DownloadStatus.PAUSED) {
+        throw new Error('Download paused');
+      }
+
+      chunk.downloaded = true;
+      downloadedBytes = chunk.end;
+      onProgress(downloadedBytes);
+
+      // Small delay to simulate chunk processing
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    return data;
   }
 
   /**

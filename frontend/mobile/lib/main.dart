@@ -7,12 +7,17 @@ import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/logger.dart';
+import 'core/services/performance_service.dart';
+import 'core/services/image_optimization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize logger
   AppLogger.init();
+  
+  // Initialize performance monitoring for 60fps tracking
+  PerformanceService().initialize();
   
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -25,6 +30,9 @@ void main() async {
   
   // Initialize app configuration
   await AppConfig.init();
+  
+  // Clean old image cache on startup
+  ImageOptimizationService().cleanOldCache();
   
   // Run the app
   runApp(

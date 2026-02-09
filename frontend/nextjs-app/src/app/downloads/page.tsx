@@ -11,6 +11,12 @@ import { LocalStorageService, StorageStats } from '@/lib/services/local-storage-
 export default function DownloadsPage() {
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [stats, setStats] = useState<StorageStats | null>(null);
+  const [spaceInfo, setSpaceInfo] = useState<{
+    required: number;
+    available: number;
+    hasEnough: boolean;
+    deficit: number;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'failed'>('active');
 
   useEffect(() => {
@@ -19,11 +25,13 @@ export default function DownloadsPage() {
     // Subscribe to download updates
     const unsubscribe = downloadManager.subscribe(() => {
       setDownloads(downloadManager.getDownloads());
+      loadSpaceInfo();
     });
 
     // Load initial data
     setDownloads(downloadManager.getDownloads());
     loadStats();
+    loadSpaceInfo();
 
     return unsubscribe;
   }, []);
@@ -33,10 +41,17 @@ export default function DownloadsPage() {
     setStats(storageStats);
   };
 
+  const loadSpaceInfo = async () => {
+    const downloadManager = getDownloadManager();
+    const info = await downloadManager.getSpaceInfo();
+    setSpaceInfo(info);
+  };
+
   const handleCleanup = async () => {
     if (confirm('هل تريد تنظيف التخزين وحذف المحتوى القديم؟')) {
       await LocalStorageService.performCleanup(true);
       await loadStats();
+      await loadSpaceInfo();
     }
   };
 
@@ -61,6 +76,21 @@ export default function DownloadsPage() {
 
         {/* Storage Stats Card */}
         {stats && <StorageStatsCard stats={stats} />}
+
+        {/* Space Info Card */}
+        {spaceInfo && !spaceInfo.hasEnough && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 text-red-800">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="font-bold">مساحة غير كافية</h3>
+                <p className="text-sm">
+                  تحتاج إلى {formatBytes(spaceInfo.deficit)} إضافية لإكمال التحميلات
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-md mb-6">
@@ -208,6 +238,14 @@ function DownloadCard({
           {download.description && (
             <p className="text-sm text-gray-600 mt-1">{download.description}</p>
           )}
+          {download.status === DownloadStatus.DOWNLOADING && download.downloadSpeed && (
+            <div className="flex gap-4 text-xs text-gray-500 mt-1">
+              <span>السرعة: {formatBytes(download.downloadSpeed)}/ث</span>
+              {download.remainingTime && (
+                <span>الوقت المتبقي: {formatTime(download.remainingTime)}</span>
+              )}
+            </div>
+          )}
         </div>
         <StatusIcon status={download.status} />
       </div>
@@ -227,6 +265,19 @@ function DownloadCard({
               {formatBytes(download.downloadedBytes)} / {formatBytes(download.estimatedSize)}
             </span>
           </div>
+          {download.chunks && (
+            <div className="flex gap-1 mt-2">
+              {download.chunks.map((chunk) => (
+                <div
+                  key={chunk.index}
+                  className={`h-1 flex-1 rounded ${
+                    chunk.downloaded ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                  title={`Chunk ${chunk.index + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -290,4 +341,10 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}ث`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}د`;
+  return `${Math.round(seconds / 3600)}س`;
 }

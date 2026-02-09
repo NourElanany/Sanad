@@ -102,6 +102,46 @@ export const viewport: Viewport = {
   ],
 }
 
+'use client';
+
+import { useEffect } from 'react';
+import { usePerformanceMonitoring, reportWebVitals } from '@/lib/hooks/usePerformanceMonitoring';
+
+export function PerformanceMonitor({ children }: { children: React.ReactNode }) {
+  // Monitor performance metrics
+  const metrics = usePerformanceMonitoring('RootLayout', {
+    enabled: process.env.NODE_ENV === 'production',
+    logToConsole: process.env.NODE_ENV === 'development',
+    onMetricsUpdate: (metrics) => {
+      // Send to analytics in production
+      if (process.env.NODE_ENV === 'production') {
+        // analytics.track('performance', metrics);
+      }
+    },
+  });
+
+  useEffect(() => {
+    // Report Web Vitals
+    if (typeof window !== 'undefined' && 'performance' in window) {
+      // Report initial load metrics
+      window.addEventListener('load', () => {
+        const perfData = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (perfData) {
+          reportWebVitals({
+            name: 'page-load',
+            value: perfData.loadEventEnd - perfData.fetchStart,
+            rating: perfData.loadEventEnd - perfData.fetchStart < 3000 ? 'good' : 'needs-improvement',
+          });
+        }
+      });
+    }
+  }, []);
+
+  return <>{children}</>;
+}
+
+
+
 export default function RootLayout({
   children,
 }: {
@@ -143,7 +183,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        {children}
+        <PerformanceMonitor>
+          {children}
+        </PerformanceMonitor>
       </body>
     </html>
   )

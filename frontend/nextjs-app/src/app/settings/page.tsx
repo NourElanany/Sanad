@@ -231,6 +231,32 @@ export default function SettingsPage() {
           </IslamicCard>
         </section>
 
+        {/* Accessibility Settings */}
+        <section>
+          <h2 className="text-2xl font-bold text-text-primary mb-4">
+            إمكانية الوصول
+          </h2>
+          <IslamicCard
+            onClick={() => router.push('/accessibility')}
+            className="cursor-pointer hover:shadow-islamic-lg transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="text-2xl">♿</div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-text-primary">
+                  إعدادات إمكانية الوصول
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  قارئ الشاشة، التباين العالي، التنقل الصوتي، والمزيد
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </div>
+          </IslamicCard>
+        </section>
+
         {/* Data Management */}
         <section>
           <h2 className="text-2xl font-bold text-text-primary mb-4">

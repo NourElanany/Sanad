@@ -27,6 +27,9 @@ class DownloadItem {
   String? error;
   DateTime? startedAt;
   DateTime? completedAt;
+  List<DownloadChunk>? chunks;
+  double? downloadSpeed; // bytes per second
+  double? remainingTime; // seconds
 
   DownloadItem({
     required this.id,
@@ -41,6 +44,9 @@ class DownloadItem {
     this.error,
     this.startedAt,
     this.completedAt,
+    this.chunks,
+    this.downloadSpeed,
+    this.remainingTime,
   });
 
   double get progress {
@@ -59,6 +65,9 @@ class DownloadItem {
     String? error,
     DateTime? startedAt,
     DateTime? completedAt,
+    List<DownloadChunk>? chunks,
+    double? downloadSpeed,
+    double? remainingTime,
   }) {
     return DownloadItem(
       id: id,
@@ -73,6 +82,9 @@ class DownloadItem {
       error: error ?? this.error,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      chunks: chunks ?? this.chunks,
+      downloadSpeed: downloadSpeed ?? this.downloadSpeed,
+      remainingTime: remainingTime ?? this.remainingTime,
     );
   }
 
@@ -88,7 +100,24 @@ class DownloadItem {
         'error': error,
         'startedAt': startedAt?.toIso8601String(),
         'completedAt': completedAt?.toIso8601String(),
+        'downloadSpeed': downloadSpeed,
+        'remainingTime': remainingTime,
       };
+}
+
+/// Download chunk for progressive loading
+class DownloadChunk {
+  final int index;
+  final int start;
+  final int end;
+  bool downloaded;
+
+  DownloadChunk({
+    required this.index,
+    required this.start,
+    required this.end,
+    this.downloaded = false,
+  });
 }
 
 /// Download manager configuration
@@ -98,6 +127,8 @@ class DownloadManagerConfig {
   final int maxRetries;
   final Duration retryDelay;
   final bool wifiOnly;
+  final int chunkSize; // Size of each chunk for progressive download
+  final bool enableProgressiveDownload;
 
   const DownloadManagerConfig({
     this.maxConcurrentDownloads = 3,
@@ -105,6 +136,8 @@ class DownloadManagerConfig {
     this.maxRetries = 3,
     this.retryDelay = const Duration(seconds: 5),
     this.wifiOnly = false,
+    this.chunkSize = 1024 * 1024, // 1MB chunks
+    this.enableProgressiveDownload = true,
   });
 }
 
@@ -269,6 +302,53 @@ class DownloadManagerService {
     return (getDownloadedSize() / total).clamp(0.0, 1.0);
   }
 
+  /// Estimate required space for pending downloads
+  int getRequiredSpace() {
+    return _downloads.values
+        .where((d) =>
+            d.status == DownloadStatus.queued ||
+            d.status == DownloadStatus.downloading ||
+            d.status == DownloadStatus.paused)
+        .fold(0, (sum, item) => sum + (item.estimatedSize - item.downloadedBytes));
+  }
+
+  /// Check if there's enough space for downloads
+  Future<bool> hasEnoughSpace() async {
+    final required = getRequiredSpace();
+    final stats = await _storageService.getStats();
+    final available = stats.totalSize - stats.usedSpace;
+    return available >= required;
+  }
+
+  /// Get space availability info
+  Future<SpaceInfo> getSpaceInfo() async {
+    final required = getRequiredSpace();
+    final stats = await _storageService.getStats();
+    final available = stats.totalSize - stats.usedSpace;
+    final hasEnough = available >= required;
+    final deficit = hasEnough ? 0 : required - available;
+
+    return SpaceInfo(
+      required: required,
+      available: available,
+      hasEnough: hasEnough,
+      deficit: deficit,
+    );
+  }
+
+  /// Get estimated completion time for all downloads
+  double getEstimatedCompletionTime() {
+    final active = activeDownloads;
+    if (active.isEmpty) return 0;
+
+    final totalRemaining = active.fold<double>(
+      0,
+      (sum, item) => sum + (item.remainingTime ?? 0),
+    );
+
+    return totalRemaining / active.length;
+  }
+
   /// Process download queue
   Future<void> _processQueue() async {
     // Check if we can start more downloads
@@ -304,20 +384,27 @@ class DownloadManagerService {
       item.startedAt = DateTime.now();
       _notifyListeners();
 
+      final startTime = DateTime.now();
+
       // Download with progress tracking
-      await _storageService.downloadContent(
-        item.key,
-        item.downloader,
-        priority: item.priority,
-        onProgress: (received, total) {
-          item.downloadedBytes = received;
+      await _downloadWithProgress(item, (progress) {
+        final elapsed = DateTime.now().difference(startTime).inSeconds;
+        if (elapsed > 0) {
+          final speed = progress / elapsed.toDouble();
+          final remaining = (item.estimatedSize - progress) / speed;
+
+          item.downloadedBytes = progress;
+          item.downloadSpeed = speed;
+          item.remainingTime = remaining;
           _notifyListeners();
-        },
-      );
+        }
+      });
 
       item.status = DownloadStatus.completed;
       item.completedAt = DateTime.now();
       item.downloadedBytes = item.estimatedSize;
+      item.downloadSpeed = null;
+      item.remainingTime = null;
       _retryCount.remove(id);
       
       debugPrint('Download completed: ${item.title}');
@@ -348,6 +435,63 @@ class DownloadManagerService {
     }
   }
 
+  /// Download with progress tracking
+  Future<void> _downloadWithProgress(
+    DownloadItem item,
+    void Function(int bytes) onProgress,
+  ) async {
+    if (config.enableProgressiveDownload && item.estimatedSize > config.chunkSize) {
+      await _downloadProgressive(item, onProgress);
+    } else {
+      // Simple download for small files
+      await _storageService.downloadContent(
+        item.key,
+        item.downloader,
+        priority: item.priority,
+        onProgress: (received, total) {
+          onProgress(received);
+        },
+      );
+    }
+  }
+
+  /// Progressive download in chunks
+  Future<void> _downloadProgressive(
+    DownloadItem item,
+    void Function(int bytes) onProgress,
+  ) async {
+    // Initialize chunks if not already done
+    if (item.chunks == null) {
+      final numChunks = (item.estimatedSize / config.chunkSize).ceil();
+      item.chunks = List.generate(
+        numChunks,
+        (i) => DownloadChunk(
+          index: i,
+          start: i * config.chunkSize,
+          end: ((i + 1) * config.chunkSize).clamp(0, item.estimatedSize),
+        ),
+      );
+    }
+
+    // Download content with chunk tracking
+    await _storageService.downloadContent(
+      item.key,
+      item.downloader,
+      priority: item.priority,
+      onProgress: (received, total) {
+        // Update chunk status
+        if (item.chunks != null) {
+          for (final chunk in item.chunks!) {
+            if (received >= chunk.end) {
+              chunk.downloaded = true;
+            }
+          }
+        }
+        onProgress(received);
+      },
+    );
+  }
+
   /// Notify listeners
   void _notifyListeners() {
     _downloadsController.add(downloads);
@@ -357,4 +501,26 @@ class DownloadManagerService {
   void dispose() {
     _downloadsController.close();
   }
+}
+
+/// Space availability information
+class SpaceInfo {
+  final int required;
+  final int available;
+  final bool hasEnough;
+  final int deficit;
+
+  const SpaceInfo({
+    required this.required,
+    required this.available,
+    required this.hasEnough,
+    required this.deficit,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'required': required,
+        'available': available,
+        'hasEnough': hasEnough,
+        'deficit': deficit,
+      };
 }
