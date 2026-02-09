@@ -3,6 +3,10 @@ import '../services/quran_service.dart';
 import '../network/dio_client.dart';
 import '../../features/quran/data/models/surah_model.dart';
 import '../../features/quran/data/models/ayah_model.dart';
+import 'cache_provider.dart';
+import 'offline_provider.dart';
+import 'error_handler_provider.dart';
+import 'app_state_provider.dart';
 
 // Provider for QuranService
 final quranServiceProvider = Provider<QuranService>((ref) {
@@ -97,38 +101,125 @@ enum QuranFilterType {
   ayahCount,
 }
 
-// Notifier for Quran index
+// Notifier for Quran index with cache and offline support
 class QuranIndexNotifier extends StateNotifier<QuranIndexState> {
   final QuranService _quranService;
+  final CacheService _cacheService;
+  final OfflineManager _offlineManager;
+  final ErrorHandlerNotifier _errorHandler;
+  final bool _isOnline;
 
-  QuranIndexNotifier(this._quranService) : super(const QuranIndexState());
+  QuranIndexNotifier(
+    this._quranService,
+    this._cacheService,
+    this._offlineManager,
+    this._errorHandler,
+    this._isOnline,
+  ) : super(const QuranIndexState());
 
   Future<void> loadSurahs() async {
     state = state.copyWith(isLoading: true, error: null);
+    
     try {
-      final surahs = await _quranService.getSurahs();
-      state = state.copyWith(surahs: surahs, isLoading: false);
+      // Try cache first
+      final cached = _cacheService.get<List<SurahModel>>(
+        'quran_surahs',
+        (json) => (json as List).map((e) => SurahModel.fromJson(e)).toList(),
+      );
+      
+      if (cached != null) {
+        state = state.copyWith(surahs: cached, isLoading: false);
+        return;
+      }
+      
+      // Fetch from API if online
+      if (_isOnline) {
+        final surahs = await _quranService.getSurahs();
+        await _cacheService.put(
+          'quran_surahs',
+          surahs.map((s) => s.toJson()).toList(),
+          ttl: const Duration(days: 7), // Long cache for static content
+        );
+        state = state.copyWith(surahs: surahs, isLoading: false);
+      } else {
+        throw AppError(
+          type: ErrorType.network,
+          message: 'لا يوجد اتصال بالإنترنت',
+        );
+      }
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      _errorHandler.handleError(e);
+      state = state.copyWith(
+        error: AppError.fromException(e).userFriendlyMessage,
+        isLoading: false,
+      );
     }
   }
 
   Future<void> loadJuzs() async {
     state = state.copyWith(isLoading: true, error: null);
+    
     try {
-      final juzs = await _quranService.getJuzs();
-      state = state.copyWith(juzs: juzs, isLoading: false);
+      // Try cache first
+      final cached = _cacheService.get<List<JuzModel>>(
+        'quran_juzs',
+        (json) => (json as List).map((e) => JuzModel.fromJson(e)).toList(),
+      );
+      
+      if (cached != null) {
+        state = state.copyWith(juzs: cached, isLoading: false);
+        return;
+      }
+      
+      // Fetch from API if online
+      if (_isOnline) {
+        final juzs = await _quranService.getJuzs();
+        await _cacheService.put(
+          'quran_juzs',
+          juzs.map((j) => j.toJson()).toList(),
+          ttl: const Duration(days: 7),
+        );
+        state = state.copyWith(juzs: juzs, isLoading: false);
+      } else {
+        throw AppError(
+          type: ErrorType.network,
+          message: 'لا يوجد اتصال بالإنترنت',
+        );
+      }
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      _errorHandler.handleError(e);
+      state = state.copyWith(
+        error: AppError.fromException(e).userFriendlyMessage,
+        isLoading: false,
+      );
     }
   }
 
   Future<void> loadBookmarks() async {
     try {
-      final bookmarks = await _quranService.getBookmarks();
-      state = state.copyWith(bookmarks: bookmarks);
+      // Try cache first
+      final cached = _cacheService.get<List<QuranBookmark>>(
+        'quran_bookmarks',
+        (json) => (json as List).map((e) => QuranBookmark.fromJson(e)).toList(),
+      );
+      
+      if (cached != null) {
+        state = state.copyWith(bookmarks: cached);
+      }
+      
+      // Fetch fresh data if online
+      if (_isOnline) {
+        final bookmarks = await _quranService.getBookmarks();
+        await _cacheService.put(
+          'quran_bookmarks',
+          bookmarks.map((b) => b.toJson()).toList(),
+          ttl: const Duration(hours: 1), // Short cache for user data
+        );
+        state = state.copyWith(bookmarks: bookmarks);
+      }
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      _errorHandler.handleError(e);
+      state = state.copyWith(error: AppError.fromException(e).userFriendlyMessage);
     }
   }
 
@@ -139,28 +230,77 @@ class QuranIndexNotifier extends StateNotifier<QuranIndexState> {
     String? note,
   }) async {
     try {
-      final bookmark = await _quranService.addBookmark(
-        surahNumber: surahNumber,
-        ayahNumber: ayahNumber,
-        pageNumber: pageNumber,
-        note: note,
-      );
-      state = state.copyWith(
-        bookmarks: [...state.bookmarks, bookmark],
-      );
+      if (_isOnline) {
+        final bookmark = await _quranService.addBookmark(
+          surahNumber: surahNumber,
+          ayahNumber: ayahNumber,
+          pageNumber: pageNumber,
+          note: note,
+        );
+        
+        // Update cache
+        final updatedBookmarks = [...state.bookmarks, bookmark];
+        await _cacheService.put(
+          'quran_bookmarks',
+          updatedBookmarks.map((b) => b.toJson()).toList(),
+        );
+        
+        state = state.copyWith(bookmarks: updatedBookmarks);
+      } else {
+        // Queue for offline processing
+        await _offlineManager.queueOperation('add_bookmark', {
+          'surah_number': surahNumber,
+          'ayah_number': ayahNumber,
+          'page_number': pageNumber,
+          'note': note,
+        });
+        
+        // Optimistic update
+        final tempBookmark = QuranBookmark(
+          id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+          surahNumber: surahNumber,
+          ayahNumber: ayahNumber,
+          pageNumber: pageNumber,
+          note: note,
+          createdAt: DateTime.now(),
+        );
+        state = state.copyWith(
+          bookmarks: [...state.bookmarks, tempBookmark],
+        );
+      }
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      _errorHandler.handleError(e);
+      state = state.copyWith(error: AppError.fromException(e).userFriendlyMessage);
     }
   }
 
   Future<void> deleteBookmark(String bookmarkId) async {
     try {
-      await _quranService.deleteBookmark(bookmarkId);
-      state = state.copyWith(
-        bookmarks: state.bookmarks.where((b) => b.id != bookmarkId).toList(),
-      );
+      if (_isOnline) {
+        await _quranService.deleteBookmark(bookmarkId);
+        
+        // Update cache
+        final updatedBookmarks = state.bookmarks.where((b) => b.id != bookmarkId).toList();
+        await _cacheService.put(
+          'quran_bookmarks',
+          updatedBookmarks.map((b) => b.toJson()).toList(),
+        );
+        
+        state = state.copyWith(bookmarks: updatedBookmarks);
+      } else {
+        // Queue for offline processing
+        await _offlineManager.queueOperation('delete_bookmark', {
+          'bookmark_id': bookmarkId,
+        });
+        
+        // Optimistic update
+        state = state.copyWith(
+          bookmarks: state.bookmarks.where((b) => b.id != bookmarkId).toList(),
+        );
+      }
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      _errorHandler.handleError(e);
+      state = state.copyWith(error: AppError.fromException(e).userFriendlyMessage);
     }
   }
 
@@ -180,10 +320,21 @@ class QuranIndexNotifier extends StateNotifier<QuranIndexState> {
   }
 }
 
-// Provider for Quran index
+// Provider for Quran index with integrated state management
 final quranIndexProvider = StateNotifierProvider<QuranIndexNotifier, QuranIndexState>((ref) {
   final quranService = ref.watch(quranServiceProvider);
-  return QuranIndexNotifier(quranService);
+  final cacheService = ref.watch(configuredCacheServiceProvider);
+  final offlineManager = ref.watch(offlineManagerProvider.notifier);
+  final errorHandler = ref.watch(errorHandlerProvider.notifier);
+  final isOnline = ref.watch(isOnlineProvider);
+  
+  return QuranIndexNotifier(
+    quranService,
+    cacheService,
+    offlineManager,
+    errorHandler,
+    isOnline,
+  );
 });
 
 // State for Mushaf reading view
@@ -215,31 +366,87 @@ class QuranReadingState {
   }
 }
 
-// Notifier for Mushaf reading view
+// Notifier for Mushaf reading view with cache and offline support
 class QuranReadingNotifier extends StateNotifier<AsyncValue<QuranReadingState>> {
   final QuranService _quranService;
+  final CacheService _cacheService;
+  final OfflineManager _offlineManager;
+  final ErrorHandlerNotifier _errorHandler;
+  final bool _isOnline;
 
-  QuranReadingNotifier(this._quranService) : super(const AsyncValue.loading());
+  QuranReadingNotifier(
+    this._quranService,
+    this._cacheService,
+    this._offlineManager,
+    this._errorHandler,
+    this._isOnline,
+  ) : super(const AsyncValue.loading());
 
   Future<void> loadPage(int pageNumber) async {
     state = const AsyncValue.loading();
+    
     try {
-      final page = await _quranService.getPage(pageNumber);
-      state = AsyncValue.data(QuranReadingState(currentPage: page));
+      // Try cache first
+      final cached = _cacheService.get<QuranPageModel>(
+        'quran_page_$pageNumber',
+        (json) => QuranPageModel.fromJson(json),
+      );
+      
+      if (cached != null) {
+        state = AsyncValue.data(QuranReadingState(currentPage: cached));
+        return;
+      }
+      
+      // Fetch from API if online
+      if (_isOnline) {
+        final page = await _quranService.getPage(pageNumber);
+        await _cacheService.put(
+          'quran_page_$pageNumber',
+          page.toJson(),
+          ttl: const Duration(days: 30), // Very long cache for Quran pages
+        );
+        state = AsyncValue.data(QuranReadingState(currentPage: page));
+      } else {
+        throw AppError(
+          type: ErrorType.network,
+          message: 'لا يوجد اتصال بالإنترنت',
+        );
+      }
     } catch (e, stack) {
+      _errorHandler.handleError(e);
       state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> loadReadingProgress() async {
     try {
-      final progress = await _quranService.getReadingProgress();
-      if (state is AsyncData) {
+      // Try cache first
+      final cached = _cacheService.get<Map<String, dynamic>>(
+        'reading_progress',
+        (json) => Map<String, dynamic>.from(json),
+      );
+      
+      if (cached != null && state is AsyncData) {
         final currentState = (state as AsyncData<QuranReadingState>).value;
-        state = AsyncValue.data(currentState.copyWith(readingProgress: progress));
+        state = AsyncValue.data(currentState.copyWith(readingProgress: cached));
+      }
+      
+      // Fetch fresh data if online
+      if (_isOnline) {
+        final progress = await _quranService.getReadingProgress();
+        await _cacheService.put(
+          'reading_progress',
+          progress,
+          ttl: const Duration(hours: 1),
+        );
+        
+        if (state is AsyncData) {
+          final currentState = (state as AsyncData<QuranReadingState>).value;
+          state = AsyncValue.data(currentState.copyWith(readingProgress: progress));
+        }
       }
     } catch (e) {
-      // Don't update state on error, just log it
+      _errorHandler.handleError(e);
       print('Failed to load reading progress: $e');
     }
   }
@@ -250,13 +457,47 @@ class QuranReadingNotifier extends StateNotifier<AsyncValue<QuranReadingState>> 
     required int pageNumber,
   }) async {
     try {
-      await _quranService.updateReadingProgress(
-        surahNumber: surahNumber ?? 1,
-        ayahNumber: ayahNumber ?? 1,
-        pageNumber: pageNumber,
-      );
-      await loadReadingProgress();
+      if (_isOnline) {
+        await _quranService.updateReadingProgress(
+          surahNumber: surahNumber ?? 1,
+          ayahNumber: ayahNumber ?? 1,
+          pageNumber: pageNumber,
+        );
+        
+        // Update cache
+        final progress = {
+          'surah_number': surahNumber ?? 1,
+          'ayah_number': ayahNumber ?? 1,
+          'page_number': pageNumber,
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+        await _cacheService.put('reading_progress', progress);
+        
+        await loadReadingProgress();
+      } else {
+        // Queue for offline processing
+        await _offlineManager.queueOperation('update_reading_progress', {
+          'surah_number': surahNumber ?? 1,
+          'ayah_number': ayahNumber ?? 1,
+          'page_number': pageNumber,
+        });
+        
+        // Optimistic update in cache
+        final progress = {
+          'surah_number': surahNumber ?? 1,
+          'ayah_number': ayahNumber ?? 1,
+          'page_number': pageNumber,
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+        await _cacheService.put('reading_progress', progress);
+        
+        if (state is AsyncData) {
+          final currentState = (state as AsyncData<QuranReadingState>).value;
+          state = AsyncValue.data(currentState.copyWith(readingProgress: progress));
+        }
+      }
     } catch (e) {
+      _errorHandler.handleError(e);
       print('Failed to update reading progress: $e');
     }
   }
@@ -267,17 +508,43 @@ class QuranReadingNotifier extends StateNotifier<AsyncValue<QuranReadingState>> 
     required int pageNumber,
     String? note,
   }) async {
-    await _quranService.addBookmark(
-      surahNumber: surahNumber,
-      ayahNumber: ayahNumber,
-      pageNumber: pageNumber,
-      note: note,
-    );
+    try {
+      if (_isOnline) {
+        await _quranService.addBookmark(
+          surahNumber: surahNumber,
+          ayahNumber: ayahNumber,
+          pageNumber: pageNumber,
+          note: note,
+        );
+      } else {
+        // Queue for offline processing
+        await _offlineManager.queueOperation('add_bookmark', {
+          'surah_number': surahNumber,
+          'ayah_number': ayahNumber,
+          'page_number': pageNumber,
+          'note': note,
+        });
+      }
+    } catch (e) {
+      _errorHandler.handleError(e);
+      rethrow;
+    }
   }
 }
 
-// Provider for Mushaf reading view
+// Provider for Mushaf reading view with integrated state management
 final quranProvider = StateNotifierProvider<QuranReadingNotifier, AsyncValue<QuranReadingState>>((ref) {
   final quranService = ref.watch(quranServiceProvider);
-  return QuranReadingNotifier(quranService);
+  final cacheService = ref.watch(configuredCacheServiceProvider);
+  final offlineManager = ref.watch(offlineManagerProvider.notifier);
+  final errorHandler = ref.watch(errorHandlerProvider.notifier);
+  final isOnline = ref.watch(isOnlineProvider);
+  
+  return QuranReadingNotifier(
+    quranService,
+    cacheService,
+    offlineManager,
+    errorHandler,
+    isOnline,
+  );
 });
