@@ -14,7 +14,7 @@ mod property_tests {
     use std::time::{Duration, Instant};
     
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig {cases: 100, .. ProptestConfig::default()})]
         
         /// Property 18: Retry with Exponential Backoff
         /// 

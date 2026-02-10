@@ -21,6 +21,7 @@ const API_NAME: &str = "hugging_face";
 /// - Text classification
 /// - Question answering (technical only, not religious rulings)
 /// - Text summarization
+#[derive(Debug)]
 pub struct HuggingFaceClient {
     client: Client,
     base_url: String,
@@ -140,7 +141,7 @@ impl HuggingFaceClient {
 
         let response = request.send().await.map_err(|e| {
             if e.is_timeout() {
-                ApiError::Timeout(API_NAME.to_string())
+                ApiError::Timeout
             } else if e.is_connect() {
                 ApiError::Network(format!("Connection error: {}", e))
             } else {
@@ -150,7 +151,7 @@ impl HuggingFaceClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response
+            let error_text: String = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
@@ -160,7 +161,7 @@ impl HuggingFaceClient {
             ));
         }
 
-        let api_response: HuggingFaceResponse = response.json().await.map_err(|e| {
+        let api_response: HuggingFaceResponse = response.json::<HuggingFaceResponse>().await.map_err(|e| {
             ApiError::InvalidResponse(
                 API_NAME.to_string(),
                 format!("Failed to parse JSON: {}", e),
@@ -248,7 +249,7 @@ impl AiApiClient for HuggingFaceClient {
     async fn process_query(&self, request: &AiQueryRequest) -> Result<AiQueryResponse, ApiError> {
         // Validate input
         if request.query.trim().is_empty() {
-            return Err(ApiError::InvalidInput(
+            return Err(ApiError::Validation(
                 "Query cannot be empty".to_string(),
             ));
         }
@@ -342,8 +343,8 @@ mod tests {
             max_tokens: None,
         };
 
-        let result = client.process_query(request).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        let result = client.process_query(&request).await;
+        assert!(matches!(result, Err(ApiError::Validation(_))));
     }
 
     #[tokio::test]
@@ -356,7 +357,7 @@ mod tests {
             max_tokens: None,
         };
 
-        let result = client.process_query(request).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        let result = client.process_query(&request).await;
+        assert!(matches!(result, Err(ApiError::Validation(_))));
     }
 }

@@ -12,6 +12,10 @@ use std::time::{Duration, Instant, SystemTime};
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 
+#[cfg(test)]
+#[path = "health_monitor_property_tests.rs"]
+mod property_tests;
+
 /// Health status for an API
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiHealthStatus {
@@ -143,13 +147,10 @@ impl HealthMonitor {
     /// Start monitoring in the background
     /// 
     /// This spawns a background task that periodically checks all registered APIs
-    pub async fn start_monitoring<Req, Res>(
+    pub async fn start_monitoring(
         self: Arc<Self>,
-        clients: Vec<Arc<dyn ApiClient<Request = Req, Response = Res>>>,
-    ) where
-        Req: Send + Sync + 'static,
-        Res: Send + Sync + 'static,
-    {
+        clients: Vec<Arc<dyn ApiClient>>,
+    ) {
         let mut is_running = self.is_running.write().await;
         if *is_running {
             log::warn!("Health monitoring is already running");
@@ -190,11 +191,7 @@ impl HealthMonitor {
     }
     
     /// Check the health of a single API
-    pub async fn check_api<Req, Res>(&self, client: &dyn ApiClient<Request = Req, Response = Res>) -> bool
-    where
-        Req: Send + Sync,
-        Res: Send + Sync,
-    {
+    pub async fn check_api(&self, client: &dyn ApiClient) -> bool {
         let api_name = client.api_name();
         let start = Instant::now();
         

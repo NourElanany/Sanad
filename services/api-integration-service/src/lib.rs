@@ -13,6 +13,12 @@
 pub mod models;
 pub mod service;
 
+#[cfg(test)]
+mod property_tests;
+
+#[cfg(test)]
+mod integration_tests;
+
 // Re-export main types
 pub use models::*;
 pub use service::ApiIntegrationService;

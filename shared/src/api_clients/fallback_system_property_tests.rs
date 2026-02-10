@@ -59,7 +59,7 @@ mod property_tests {
     }
     
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig {cases: 100, .. ProptestConfig::default()})]
         
         /// Property 19: Stale Cache as Last Resort
         /// 

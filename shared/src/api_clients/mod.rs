@@ -139,3 +139,47 @@ impl std::fmt::Display for ApiKey {
         )
     }
 }
+
+#[cfg(test)]
+pub mod test_utils {
+    use redis::{aio::ConnectionLike, Cmd, Pipeline, RedisFuture, RedisResult, Value};
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+    use std::collections::HashMap;
+    
+    /// Mock Redis client for testing
+    #[derive(Clone)]
+    pub struct MockRedisClient {
+        data: Arc<Mutex<HashMap<String, String>>>,
+    }
+    
+    impl MockRedisClient {
+        pub fn new() -> Self {
+            Self {
+                data: Arc::new(Mutex::new(HashMap::new())),
+            }
+        }
+    }
+    
+    impl ConnectionLike for MockRedisClient {
+        fn req_packed_command<'a>(&'a mut self, _cmd: &'a Cmd) -> RedisFuture<'a, Value> {
+            Box::pin(async move { Ok(Value::Nil) })
+        }
+        
+        fn req_packed_commands<'a>(
+            &'a mut self,
+            _cmd: &'a Pipeline,
+            _offset: usize,
+            _count: usize,
+        ) -> RedisFuture<'a, Vec<Value>> {
+            Box::pin(async move { Ok(vec![]) })
+        }
+        
+        fn get_db(&self) -> i64 {
+            0
+        }
+    }
+}
+
+#[cfg(test)]
+pub use test_utils::MockRedisClient;

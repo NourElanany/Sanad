@@ -69,16 +69,24 @@ impl FallbackSystem {
     /// Execute request with fallback logic
     /// 
     /// Tries APIs in priority order. If all fail, attempts to serve from stale cache.
-    pub async fn execute_with_fallback<Req, Res>(
+    /// 
+    /// # Arguments
+    /// * `clients` - List of API clients to try in priority order
+    /// * `request_fn` - Async function that takes a client and returns a result
+    /// * `cache_key` - Optional cache key for stale cache fallback
+    /// * `request_id` - Unique request identifier for logging
+    pub async fn execute_with_fallback<T, Res, F, Fut>(
         &self,
-        clients: &[Box<dyn ApiClient<Request = Req, Response = Res>>],
-        request: Req,
+        clients: &[Arc<T>],
+        request_fn: F,
         cache_key: Option<&str>,
         request_id: String,
     ) -> Result<(Res, Option<FallbackEvent>), ApiError>
     where
-        Req: Clone + Send + Sync,
+        T: ApiClient + ?Sized,
         Res: Clone + Send + Sync + serde::Serialize + serde::de::DeserializeOwned,
+        F: Fn(Arc<T>) -> Fut,
+        Fut: std::future::Future<Output = Result<Res, ApiError>>,
     {
         if clients.is_empty() {
             return Err(ApiError::Configuration("No API clients configured".to_string()));
@@ -108,7 +116,7 @@ impl FallbackSystem {
             }
             
             // Try the API
-            match client.request(request.clone()).await {
+            match request_fn(client.clone()).await {
                 Ok(response) => {
                     // Success!
                     if index > 0 {
@@ -253,19 +261,15 @@ impl FallbackSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api_clients::traits::ApiClient;
+    use crate::api_clients::RateLimitConfig;
     use async_trait::async_trait;
-    
-    #[derive(Clone)]
-    struct TestRequest {
-        id: String,
-    }
     
     #[derive(Clone, serde::Serialize, serde::Deserialize)]
     struct TestResponse {
         data: String,
     }
     
+    #[derive(Debug)]
     struct MockApiClient {
         name: String,
         priority: u8,
@@ -275,9 +279,6 @@ mod tests {
     
     #[async_trait]
     impl ApiClient for MockApiClient {
-        type Request = TestRequest;
-        type Response = TestResponse;
-        
         fn api_name(&self) -> &str {
             &self.name
         }
@@ -290,7 +291,17 @@ mod tests {
             self.healthy
         }
         
-        async fn request(&self, _req: Self::Request) -> Result<Self::Response, ApiError> {
+        fn rate_limit(&self) -> RateLimitConfig {
+            RateLimitConfig {
+                requests_per_minute: 60,
+                requests_per_hour: 1000,
+                requests_per_day: 10000,
+            }
+        }
+    }
+    
+    impl MockApiClient {
+        async fn make_request(&self) -> Result<TestResponse, ApiError> {
             if self.should_fail {
                 Err(ApiError::Network("Mock failure".to_string()))
             } else {
@@ -305,8 +316,8 @@ mod tests {
     async fn test_fallback_primary_success() {
         let fallback = FallbackSystem::without_logging(None);
         
-        let clients: Vec<Box<dyn ApiClient<Request = TestRequest, Response = TestResponse>>> = vec![
-            Box::new(MockApiClient {
+        let clients: Vec<Arc<MockApiClient>> = vec![
+            Arc::new(MockApiClient {
                 name: "primary".to_string(),
                 priority: 1,
                 healthy: true,
@@ -314,8 +325,12 @@ mod tests {
             }),
         ];
         
-        let request = TestRequest { id: "test".to_string() };
-        let result = fallback.execute_with_fallback(&clients, request, None, "req-1".to_string()).await;
+        let result = fallback.execute_with_fallback(
+            &clients,
+            |client: Arc<MockApiClient>| async move { client.make_request().await },
+            None,
+            "req-1".to_string()
+        ).await;
         
         assert!(result.is_ok());
         let (response, event) = result.unwrap();
@@ -327,14 +342,14 @@ mod tests {
     async fn test_fallback_to_secondary() {
         let fallback = FallbackSystem::without_logging(None);
         
-        let clients: Vec<Box<dyn ApiClient<Request = TestRequest, Response = TestResponse>>> = vec![
-            Box::new(MockApiClient {
+        let clients: Vec<Arc<MockApiClient>> = vec![
+            Arc::new(MockApiClient {
                 name: "primary".to_string(),
                 priority: 1,
                 healthy: true,
                 should_fail: true,
             }),
-            Box::new(MockApiClient {
+            Arc::new(MockApiClient {
                 name: "secondary".to_string(),
                 priority: 2,
                 healthy: true,
@@ -342,8 +357,12 @@ mod tests {
             }),
         ];
         
-        let request = TestRequest { id: "test".to_string() };
-        let result = fallback.execute_with_fallback(&clients, request, None, "req-1".to_string()).await;
+        let result = fallback.execute_with_fallback(
+            &clients,
+            |client: Arc<MockApiClient>| async move { client.make_request().await },
+            None,
+            "req-1".to_string()
+        ).await;
         
         assert!(result.is_ok());
         let (response, event) = result.unwrap();
@@ -359,14 +378,14 @@ mod tests {
     async fn test_fallback_skip_unhealthy() {
         let fallback = FallbackSystem::without_logging(None);
         
-        let clients: Vec<Box<dyn ApiClient<Request = TestRequest, Response = TestResponse>>> = vec![
-            Box::new(MockApiClient {
+        let clients: Vec<Arc<MockApiClient>> = vec![
+            Arc::new(MockApiClient {
                 name: "primary".to_string(),
                 priority: 1,
                 healthy: false, // Unhealthy
                 should_fail: false,
             }),
-            Box::new(MockApiClient {
+            Arc::new(MockApiClient {
                 name: "secondary".to_string(),
                 priority: 2,
                 healthy: true,
@@ -374,8 +393,12 @@ mod tests {
             }),
         ];
         
-        let request = TestRequest { id: "test".to_string() };
-        let result = fallback.execute_with_fallback(&clients, request, None, "req-1".to_string()).await;
+        let result = fallback.execute_with_fallback(
+            &clients,
+            |client: Arc<MockApiClient>| async move { client.make_request().await },
+            None,
+            "req-1".to_string()
+        ).await;
         
         assert!(result.is_ok());
         let (response, event) = result.unwrap();
@@ -390,14 +413,14 @@ mod tests {
     async fn test_fallback_all_fail() {
         let fallback = FallbackSystem::without_logging(None);
         
-        let clients: Vec<Box<dyn ApiClient<Request = TestRequest, Response = TestResponse>>> = vec![
-            Box::new(MockApiClient {
+        let clients: Vec<Arc<MockApiClient>> = vec![
+            Arc::new(MockApiClient {
                 name: "primary".to_string(),
                 priority: 1,
                 healthy: true,
                 should_fail: true,
             }),
-            Box::new(MockApiClient {
+            Arc::new(MockApiClient {
                 name: "secondary".to_string(),
                 priority: 2,
                 healthy: true,
@@ -405,8 +428,12 @@ mod tests {
             }),
         ];
         
-        let request = TestRequest { id: "test".to_string() };
-        let result = fallback.execute_with_fallback(&clients, request, None, "req-1".to_string()).await;
+        let result = fallback.execute_with_fallback(
+            &clients,
+            |client: Arc<MockApiClient>| async move { client.make_request().await },
+            None,
+            "req-1".to_string()
+        ).await;
         
         assert!(result.is_err());
     }

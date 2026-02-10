@@ -17,6 +17,7 @@ const API_NAME: &str = "aladhan_qibla";
 /// Aladhan Qibla API client
 ///
 /// Provides Qibla direction calculation using the Aladhan API
+#[derive(Debug)]
 pub struct AladhanQiblaClient {
     client: Client,
     base_url: String,
@@ -122,13 +123,13 @@ impl QiblaApiClient for AladhanQiblaClient {
     async fn get_direction(&self, latitude: f64, longitude: f64) -> Result<QiblaResponse, ApiError> {
         // Validate coordinates
         if !(-90.0..=90.0).contains(&latitude) {
-            return Err(ApiError::InvalidInput(format!(
+            return Err(ApiError::Validation(format!(
                 "Invalid latitude: {}. Must be between -90 and 90",
                 latitude
             )));
         }
         if !(-180.0..=180.0).contains(&longitude) {
-            return Err(ApiError::InvalidInput(format!(
+            return Err(ApiError::Validation(format!(
                 "Invalid longitude: {}. Must be between -180 and 180",
                 longitude
             )));
@@ -144,7 +145,7 @@ impl QiblaApiClient for AladhanQiblaClient {
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    ApiError::Timeout(API_NAME.to_string())
+                    ApiError::Timeout
                 } else if e.is_connect() {
                     ApiError::Network(format!("Connection error: {}", e))
                 } else {
@@ -154,7 +155,7 @@ impl QiblaApiClient for AladhanQiblaClient {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response
+            let error_text: String = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
@@ -164,7 +165,7 @@ impl QiblaApiClient for AladhanQiblaClient {
             ));
         }
 
-        let api_response: AladhanQiblaApiResponse = response.json().await.map_err(|e| {
+        let api_response: AladhanQiblaApiResponse = response.json::<AladhanQiblaApiResponse>().await.map_err(|e| {
             ApiError::InvalidResponse(
                 API_NAME.to_string(),
                 format!("Failed to parse JSON: {}", e),
@@ -244,18 +245,18 @@ mod tests {
 
         // Invalid latitude (> 90)
         let result = client.get_direction(91.0, 0.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid latitude (< -90)
         let result = client.get_direction(-91.0, 0.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid longitude (> 180)
         let result = client.get_direction(0.0, 181.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid longitude (< -180)
         let result = client.get_direction(0.0, -181.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
     }
 }

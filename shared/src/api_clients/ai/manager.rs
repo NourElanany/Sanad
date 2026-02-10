@@ -8,6 +8,7 @@ use crate::api_clients::{
     CacheManager, RateLimiter,
 };
 use std::sync::Arc;
+use std::time::Duration;
 
 use super::HuggingFaceClient;
 
@@ -109,7 +110,7 @@ impl AiApiManager {
         // 1. Check cache
         if let Ok(Some(cached)) = self
             .cache
-            .get::<AiQueryResponse>(&cache_key, CacheCategory::AiResponse)
+            .get::<AiQueryResponse>(&cache_key)
             .await
         {
             log::debug!("AI query cache hit");
@@ -163,9 +164,15 @@ impl AiApiManager {
                     );
 
                     // Cache the response
+                    let ttl = self
+                        .cache
+                        .get_strategy(CacheCategory::AiResponse)
+                        .map(|s| s.ttl)
+                        .unwrap_or(Duration::from_secs(3600)); // Default 1 hour
+                    
                     if let Err(e) = self
                         .cache
-                        .set(&cache_key, &response, CacheCategory::AiResponse)
+                        .set(&cache_key, &response, ttl)
                         .await
                     {
                         log::warn!("Failed to cache AI response: {}", e);
@@ -182,9 +189,7 @@ impl AiApiManager {
         }
 
         // 3. All clients failed
-        Err(last_error.unwrap_or_else(|| {
-            ApiError::AllApisFailed("All AI APIs failed or unavailable".to_string())
-        }))
+        Err(last_error.unwrap_or(ApiError::AllApisFailed))
     }
 
     /// Get all available AI API clients

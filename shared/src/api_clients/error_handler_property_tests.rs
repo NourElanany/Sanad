@@ -43,11 +43,11 @@ mod property_tests {
     }
     
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig {cases: 100, .. ProptestConfig::default()})]
         
         /// Property 17: Error Categorization
         /// 
-        /// For any API error, the Error_Handler should categorize it into one of the 
+        /// For any API error, the ErrorHandler should categorize it into one of the 
         /// defined categories (network, authentication, rate limit, server error, 
         /// validation, timeout, unknown), and the category should be included in the 
         /// error response.

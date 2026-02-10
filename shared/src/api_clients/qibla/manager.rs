@@ -67,7 +67,7 @@ impl QiblaApiManager {
         let cache_key = Self::cache_key(latitude, longitude);
 
         // 1. Check cache
-        if let Ok(Some(cached)) = self.cache.get::<QiblaResponse>(&cache_key, CacheCategory::Qibla).await {
+        if let Ok(Some(cached)) = self.cache.get::<QiblaResponse>(&cache_key).await {
             log::debug!("Qibla cache hit for location ({}, {})", latitude, longitude);
             return Ok(cached);
         }
@@ -110,7 +110,13 @@ impl QiblaApiManager {
                     );
 
                     // Cache the response
-                    if let Err(e) = self.cache.set(&cache_key, &response, CacheCategory::Qibla).await {
+                    let ttl = self
+                        .cache
+                        .get_strategy(CacheCategory::Qibla)
+                        .map(|s| s.ttl)
+                        .unwrap_or(Duration::from_secs(86400)); // Default 24 hours
+                    
+                    if let Err(e) = self.cache.set(&cache_key, &response, ttl).await {
                         log::warn!("Failed to cache Qibla response: {}", e);
                     }
 
@@ -131,15 +137,13 @@ impl QiblaApiManager {
         }
 
         // 3. All clients failed, try expired cache
-        if let Ok(Some(cached)) = self.cache.get_expired::<QiblaResponse>(&cache_key, CacheCategory::Qibla).await {
+        if let Ok(Some(cached)) = self.cache.get_expired::<QiblaResponse>(&cache_key).await {
             log::warn!("Serving expired cache for Qibla request at ({}, {})", latitude, longitude);
             return Ok(cached);
         }
 
         // 4. Everything failed
-        Err(last_error.unwrap_or_else(|| {
-            ApiError::AllApisFailed("All Qibla APIs failed and no cache available".to_string())
-        }))
+        Err(last_error.unwrap_or(ApiError::AllApisFailed))
     }
 
     /// Get all available Qibla API clients

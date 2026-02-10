@@ -20,6 +20,7 @@ const EARTH_RADIUS_KM: f64 = 6371.0;
 ///
 /// This client calculates Qibla direction using astronomical formulas
 /// without making external API calls. It serves as a reliable fallback.
+#[derive(Debug)]
 pub struct IslamicFinderQiblaClient {
     timeout: Duration,
 }
@@ -110,13 +111,13 @@ impl QiblaApiClient for IslamicFinderQiblaClient {
     async fn get_direction(&self, latitude: f64, longitude: f64) -> Result<QiblaResponse, ApiError> {
         // Validate coordinates
         if !(-90.0..=90.0).contains(&latitude) {
-            return Err(ApiError::InvalidInput(format!(
+            return Err(ApiError::Validation(format!(
                 "Invalid latitude: {}. Must be between -90 and 90",
                 latitude
             )));
         }
         if !(-180.0..=180.0).contains(&longitude) {
-            return Err(ApiError::InvalidInput(format!(
+            return Err(ApiError::Validation(format!(
                 "Invalid longitude: {}. Must be between -180 and 180",
                 longitude
             )));
@@ -227,19 +228,19 @@ mod tests {
 
         // Invalid latitude (> 90)
         let result = client.get_direction(91.0, 0.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid latitude (< -90)
         let result = client.get_direction(-91.0, 0.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid longitude (> 180)
         let result = client.get_direction(0.0, 181.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
 
         // Invalid longitude (< -180)
         let result = client.get_direction(0.0, -181.0).await;
-        assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+        assert!(matches!(result, Err(ApiError::Validation(_))));
     }
 
     #[tokio::test]

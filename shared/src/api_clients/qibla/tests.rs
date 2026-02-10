@@ -33,11 +33,11 @@ async fn test_aladhan_invalid_latitude() {
 
     // Latitude > 90
     let result = client.get_direction(91.0, 0.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 
     // Latitude < -90
     let result = client.get_direction(-91.0, 0.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 }
 
 #[tokio::test]
@@ -46,11 +46,11 @@ async fn test_aladhan_invalid_longitude() {
 
     // Longitude > 180
     let result = client.get_direction(0.0, 181.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 
     // Longitude < -180
     let result = client.get_direction(0.0, -181.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 }
 
 #[tokio::test]
@@ -173,17 +173,17 @@ async fn test_islamic_finder_invalid_coordinates() {
 
     // Invalid latitude
     let result = client.get_direction(91.0, 0.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 
     let result = client.get_direction(-91.0, 0.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 
     // Invalid longitude
     let result = client.get_direction(0.0, 181.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 
     let result = client.get_direction(0.0, -181.0).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 }
 
 #[tokio::test]

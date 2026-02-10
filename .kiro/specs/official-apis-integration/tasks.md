@@ -336,50 +336,50 @@
     - Test local calculation fallback
     - _Requirements: 12.1, 12.2, 12.3, 12.4_
 
-- [-] 17. Implement Health Monitor
+- [x] 17. Implement Health Monitor
   - [x] 17.1 Create HealthMonitor with periodic health checks
     - Check health of all APIs every 5 minutes
     - Track response times and success rates
     - Mark APIs as healthy/unhealthy based on consecutive failures
     - _Requirements: 13.1, 13.2, 13.4_
   
-  - [~] 17.2 Implement automatic recovery detection
+  - [x] 17.2 Implement automatic recovery detection
     - Detect when unhealthy APIs recover
     - Restore recovered APIs as primary sources
     - _Requirements: 12.5, 13.2_
   
-  - [~] 17.3 Create health metrics endpoint
+  - [x] 17.3 Create health metrics endpoint
     - Expose health status for all APIs
     - Expose response times and success rates
     - _Requirements: 13.5_
   
-  - [~] 17.4 Write property test for periodic health checks
+  - [x] 17.4 Write property test for periodic health checks
     - **Property 23: Periodic Health Checks**
     - **Validates: Requirements 13.1**
   
-  - [~] 17.5 Write property test for primary API recovery detection
+  - [x] 17.5 Write property test for primary API recovery detection
     - **Property 22: Primary API Recovery Detection**
     - **Validates: Requirements 12.5**
   
-  - [~] 17.6 Write property test for automatic fallback on unhealthy status
+  - [x] 17.6 Write property test for automatic fallback on unhealthy status
     - **Property 25: Automatic Fallback on Unhealthy Status**
     - **Validates: Requirements 13.3**
   
-  - [~] 17.7 Write unit tests for health monitoring
+  - [x] 17.7 Write unit tests for health monitoring
     - Test health check execution
     - Test unhealthy marking and alerts
     - Test recovery detection
     - Test metrics tracking
     - _Requirements: 13.1, 13.2, 13.3, 13.4_
 
-- [~] 18. Implement Main Integration Service
-  - [~] 18.1 Create ApiIntegrationService struct
+- [x] 18. Implement Main Integration Service
+  - [x] 18.1 Create ApiIntegrationService struct
     - Initialize all API managers
     - Initialize cache, rate limiter, health monitor
     - Load configuration from YAML file
     - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1_
   
-  - [~] 18.2 Implement service methods for all API categories
+  - [x] 18.2 Implement service methods for all API categories
     - Implement get_quran_text, get_quran_audio
     - Implement search_hadith, get_hadith_by_id
     - Implement get_prayer_times
@@ -389,16 +389,16 @@
     - Implement process_ai_query
     - _Requirements: All requirements_
   
-  - [~] 18.3 Implement health_check endpoint
+  - [x] 18.3 Implement health_check endpoint
     - Return overall service health
     - Return individual API health status
     - _Requirements: 13.5_
   
-  - [~] 18.4 Write property test for API client initialization completeness
+  - [x] 18.4 Write property test for API client initialization completeness
     - **Property 1: API Client Initialization Completeness**
     - **Validates: Requirements 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1**
   
-  - [~] 18.5 Write integration tests for end-to-end flows
+  - [x] 18.5 Write integration tests for end-to-end flows
     - Test complete request flow from service to API and back
     - Test caching integration
     - Test rate limiting integration
