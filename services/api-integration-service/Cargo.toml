@@ -43,3 +43,4 @@ proptest = { workspace = true }
 tokio-test = "0.4"
 urlencoding = "2.1"
 tempfile = "3.8"
+serial_test = "3.0"

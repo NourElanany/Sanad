@@ -305,6 +305,7 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
+    use serial_test::serial;
 
     fn create_test_yaml_config() -> String {
         r#"
@@ -385,6 +386,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_load_config_from_yaml() {
         // Clear any environment variables that might interfere
         env::remove_var("SERVICE_NAME");
@@ -414,6 +416,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_env_override_service_name() {
         // Clear all env vars first
         env::remove_var("SERVICE_NAME");
@@ -433,6 +436,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_env_override_service_port() {
         // Clear all env vars first
         env::remove_var("SERVICE_NAME");
@@ -452,6 +456,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_env_override_redis_url() {
         let yaml_content = create_test_yaml_config();
         let mut temp_file = NamedTempFile::new().unwrap();
@@ -466,6 +471,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_env_override_postgres_url() {
         let yaml_content = create_test_yaml_config();
         let mut temp_file = NamedTempFile::new().unwrap();
@@ -480,6 +486,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_env_override_database_url() {
         let yaml_content = create_test_yaml_config();
         let mut temp_file = NamedTempFile::new().unwrap();
@@ -494,6 +501,7 @@ retry:
     }
 
     #[test]
+    #[serial]
     fn test_multiple_env_overrides() {
         // Clear all env vars first
         env::remove_var("SERVICE_NAME");
