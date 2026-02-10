@@ -55,6 +55,9 @@ pub enum ApiError {
     
     #[error("Configuration error: {0}")]
     Configuration(String),
+    
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 /// Result type for API operations

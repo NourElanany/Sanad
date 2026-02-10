@@ -1,0 +1,15 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc cfa3352caf7e8edba89597c05e6f87ab50d4736a1d51fc08d4962c65211bb5be # shrinks to requests = 1, limit = 10
+cc 4faba859e91abd5d52aed5a89034a90d66ac2b32678c3e01a528bb0b25f06d5e # shrinks to requests = 129, limit = 55
+cc b686834ffd579ead253905964be5f3f74627899378eff0cb16ecbbccdbb0e25d # shrinks to minute_limit = 12, hour_limit = 81, requests = 72
+cc e9e8e34b336575702d8777459578096e1dbd5cd99e4cf0308b1ebcb7a0ae1c4c # shrinks to requests = 153, limit = 79
+cc 4ea2c7a2edfa8ea4197540e245699cf1e4a3e6ff7b93c06a949df9bb279e42dc # shrinks to minute_limit = 6, hour_limit = 95, requests = 118
+cc 87d8aa828d3c59b3abe4c4dcbfa7279fdcd5de7da8fe53bd5a9ea7882ddb3317 # shrinks to requests = 126, limit = 65
+cc 12d5f9af058ddfcb103983414814fad45cb14cd43dec2b72ac630ffd75086c06 # shrinks to requests = 198, limit = 89
+cc fc7e0f2f22cf5e94504bbedf8033865f5309edd655eeb9886d2b36b0ad171720 # shrinks to requests = 44, limit = 41
+cc abde32c9a82f5557b4d86f9672bb4772360334e1e901146236193c1249a4c7d2 # shrinks to limit = 42, requests = 106

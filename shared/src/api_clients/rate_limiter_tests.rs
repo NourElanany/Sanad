@@ -59,25 +59,33 @@ mod unit_tests {
     async fn test_concurrent_requests() {
         let api_name = format!("test_concurrent_{}", rand::random::<u32>());
         let limit = 20;
-        let concurrent_requests = 50;
+        let concurrent_requests = 50usize;
         let limiter = Arc::new(create_test_limiter(&api_name, limit, 1000, 10000).await);
         
         // Reset to ensure clean state
         limiter.reset(&api_name).await.unwrap();
+        
+        // Use a barrier to ensure all tasks start at the same time
+        let barrier = Arc::new(tokio::sync::Barrier::new(concurrent_requests));
         
         // Spawn concurrent tasks
         let mut tasks = JoinSet::new();
         for _ in 0..concurrent_requests {
             let limiter_clone = Arc::clone(&limiter);
             let api_name_clone = api_name.clone();
+            let barrier_clone = Arc::clone(&barrier);
             tasks.spawn(async move {
+                // Wait for all tasks to be ready
+                barrier_clone.wait().await;
+                // Small random delay to simulate real-world timing
+                tokio::time::sleep(tokio::time::Duration::from_micros(rand::random::<u64>() % 100)).await;
                 limiter_clone.check_and_increment(&api_name_clone).await.unwrap()
             });
         }
         
         // Collect results
-        let mut allowed_count = 0;
-        let mut denied_count = 0;
+        let mut allowed_count = 0usize;
+        let mut denied_count = 0usize;
         while let Some(result) = tasks.join_next().await {
             if result.unwrap() {
                 allowed_count += 1;
@@ -88,7 +96,7 @@ mod unit_tests {
         
         // Verify that we didn't exceed the limit
         assert!(
-            allowed_count <= limit,
+            allowed_count <= limit as usize,
             "Allowed {} requests but limit was {}",
             allowed_count,
             limit

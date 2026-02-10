@@ -170,6 +170,8 @@ mod tests {
                     CacheType::SemanticQuery => self.config.semantic_query_ttl_seconds,
                     CacheType::QuranContent => self.config.quran_content_ttl_seconds,
                     CacheType::HadithContent => self.config.hadith_content_ttl_seconds,
+                    CacheType::HeavyContent => self.config.heavy_content_ttl_seconds,
+                    CacheType::FrequentQuery => self.config.semantic_query_ttl_seconds * 2,
                     _ => self.config.default_ttl_seconds,
                 }
             }
@@ -197,7 +199,7 @@ mod tests {
             fn should_cache_in_memory(&self, cache_type: &CacheType) -> bool {
                 matches!(
                     cache_type,
-                    CacheType::QuranContent | CacheType::UserPreferences | CacheType::PrayerTimes
+                    CacheType::QuranContent | CacheType::UserPreferences | CacheType::PrayerTimes | CacheType::FrequentQuery
                 )
             }
         }

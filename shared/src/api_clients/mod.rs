@@ -3,17 +3,21 @@
 //! This module provides a unified interface for all external API integrations
 //! with support for fallback mechanisms, rate limiting, and health monitoring.
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 pub mod api_key_manager;
+pub mod cache_manager;
 pub mod error;
+pub mod hadith;
+pub mod prayer;
+pub mod quran;
 pub mod rate_limiter;
 pub mod traits;
 
 // Re-export main types
 pub use api_key_manager::{ApiKeyManager, SecretsClient};
+pub use cache_manager::{CacheCategory, CacheManager, CacheStats, CacheStrategy};
 pub use error::ApiError;
 pub use rate_limiter::{RateLimiter, RateLimitUsage};
 pub use traits::*;
