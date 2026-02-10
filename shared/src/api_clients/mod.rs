@@ -6,14 +6,20 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+pub mod ai;
 pub mod api_key_manager;
 pub mod cache_manager;
 pub mod calendar;
 pub mod error;
+pub mod error_handler;
+pub mod fallback_system;
 pub mod hadith;
+pub mod health_monitor;
 pub mod prayer;
+pub mod qibla;
 pub mod quran;
 pub mod rate_limiter;
+pub mod retry_mechanism;
 pub mod tafsir;
 pub mod traits;
 
@@ -21,7 +27,11 @@ pub mod traits;
 pub use api_key_manager::{ApiKeyManager, SecretsClient};
 pub use cache_manager::{CacheCategory, CacheManager, CacheStats, CacheStrategy};
 pub use error::ApiError;
+pub use error_handler::{ErrorCategory, ErrorHandler, ErrorResponse};
+pub use fallback_system::{FallbackEvent, FallbackReason, FallbackSystem};
+pub use health_monitor::{ApiHealthStatus, HealthMonitor, HealthMonitorConfig, OverallHealth};
 pub use rate_limiter::{RateLimiter, RateLimitUsage};
+pub use retry_mechanism::{RetryMechanism, RetryStrategy};
 pub use traits::*;
 
 /// Rate limit configuration for an API
