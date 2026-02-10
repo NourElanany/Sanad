@@ -15,12 +15,15 @@ pub mod error_handler;
 pub mod fallback_system;
 pub mod hadith;
 pub mod health_monitor;
+pub mod logging;
+pub mod metrics;
 pub mod prayer;
 pub mod qibla;
 pub mod quran;
 pub mod rate_limiter;
 pub mod retry_mechanism;
 pub mod tafsir;
+pub mod tracing;
 pub mod traits;
 
 // Re-export main types
@@ -30,6 +33,7 @@ pub use error::ApiError;
 pub use error_handler::{ErrorCategory, ErrorHandler, ErrorResponse};
 pub use fallback_system::{FallbackEvent, FallbackReason, FallbackSystem};
 pub use health_monitor::{ApiHealthStatus, HealthMonitor, HealthMonitorConfig, OverallHealth};
+pub use logging::{log_api_call, ApiCallLogger, LogApiResult};
 pub use rate_limiter::{RateLimiter, RateLimitUsage};
 pub use retry_mechanism::{RetryMechanism, RetryStrategy};
 pub use traits::*;

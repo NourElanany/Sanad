@@ -7,7 +7,7 @@ edition = "2021"
 # Workspace dependencies
 tokio = { workspace = true }
 axum = { workspace = true }
-tower = { workspace = true }
+tower = { version = "0.4", features = ["util"] }
 tower-http = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -27,9 +27,19 @@ async-trait = "0.1"
 serde_yaml = "0.9"
 base64 = "0.21"
 
+# Metrics and observability
+metrics = "0.21"
+metrics-exporter-prometheus = "0.13"
+opentelemetry = { version = "0.21", features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.14", features = ["trace", "metrics"] }
+opentelemetry_sdk = { version = "0.21", features = ["trace", "metrics", "rt-tokio"] }
+tracing-opentelemetry = "0.22"
+
 # Shared library
 shared = { path = "../../shared" }
 
 [dev-dependencies]
 proptest = { workspace = true }
 tokio-test = "0.4"
+urlencoding = "2.1"
+tempfile = "3.8"

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-integration-config
+data:
+  RUST_LOG: "debug"
+  ENVIRONMENT: "development"

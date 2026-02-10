@@ -5,6 +5,7 @@
 
 use super::*;
 use crate::api_clients::traits::ApiClient;
+use crate::api_clients::RateLimitConfig;
 use async_trait::async_trait;
 use proptest::prelude::*;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -12,6 +13,7 @@ use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
 // Mock API client for testing
+#[derive(Debug)]
 struct MockHealthCheckClient {
     name: String,
     healthy: Arc<AtomicBool>,
@@ -20,9 +22,6 @@ struct MockHealthCheckClient {
 
 #[async_trait]
 impl ApiClient for MockHealthCheckClient {
-    type Request = ();
-    type Response = ();
-    
     fn api_name(&self) -> &str {
         &self.name
     }
@@ -36,8 +35,12 @@ impl ApiClient for MockHealthCheckClient {
         self.healthy.load(Ordering::SeqCst)
     }
     
-    async fn request(&self, _req: Self::Request) -> Result<Self::Response, ApiError> {
-        Ok(())
+    fn rate_limit(&self) -> RateLimitConfig {
+        RateLimitConfig {
+            requests_per_minute: 60,
+            requests_per_hour: 1000,
+            requests_per_day: 10000,
+        }
     }
 }
 
@@ -78,7 +81,7 @@ proptest! {
             
             // Start monitoring
             let monitor_clone = monitor.clone();
-            let clients: Vec<Arc<dyn ApiClient<Request = (), Response = ()>>> = vec![client];
+            let clients: Vec<Arc<dyn ApiClient>> = vec![client];
             monitor_clone.start_monitoring(clients).await;
             
             // Wait for multiple check intervals
@@ -98,6 +101,8 @@ proptest! {
             let status = status.unwrap();
             prop_assert!(status.total_checks >= 2, "Total checks should be at least 2");
             prop_assert_eq!(status.is_healthy, initial_healthy || status.consecutive_successes >= 2);
+            
+            Ok(())
         });
     }
     
@@ -138,6 +143,8 @@ proptest! {
                 prop_assert_eq!(status.consecutive_successes, 2);
                 prop_assert_eq!(status.consecutive_failures, 0);
             }
+            
+            Ok(())
         });
     }
     
@@ -187,6 +194,8 @@ proptest! {
             if failure_count >= 3 {
                 prop_assert!(!status.is_healthy);
             }
+            
+            Ok(())
         });
     }
 }

@@ -43,8 +43,6 @@ mod property_tests {
     }
     
     proptest! {
-        #![proptest_config(ProptestConfig {cases: 100, .. ProptestConfig::default()})]
-        
         /// Property 17: Error Categorization
         /// 
         /// For any API error, the ErrorHandler should categorize it into one of the 

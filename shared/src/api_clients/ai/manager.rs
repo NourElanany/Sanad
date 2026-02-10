@@ -53,7 +53,7 @@ impl AiApiManager {
     }
 
     /// Generate cache key for AI query
-    fn cache_key(request: &AiQueryRequest) -> String {
+    pub fn cache_key(request: &AiQueryRequest) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
@@ -68,7 +68,7 @@ impl AiApiManager {
     }
 
     /// Validate AI response for inappropriate content
-    fn validate_response(&self, response: &str) -> Result<(), ApiError> {
+    pub fn validate_response(&self, response: &str) -> Result<(), ApiError> {
         // Check for religious ruling keywords that should not be in AI responses
         let forbidden_keywords = vec![
             "fatwa",
@@ -211,23 +211,21 @@ impl AiApiManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api_clients::MockRedisClient;
 
-    fn create_test_manager() -> AiApiManager {
-        let redis = Arc::new(MockRedisClient::new());
-        let cache = Arc::new(CacheManager::new(redis.clone()));
-        let rate_limiter = Arc::new(RateLimiter::new(redis));
-        AiApiManager::new(cache, rate_limiter, None)
+    async fn create_test_manager() -> Result<AiApiManager, ApiError> {
+        let cache = Arc::new(CacheManager::new("redis://localhost:6379").await?);
+        let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await?);
+        Ok(AiApiManager::new(cache, rate_limiter, None))
     }
 
-    #[test]
-    fn test_manager_creation() {
-        let manager = create_test_manager();
+    #[tokio::test]
+    async fn test_manager_creation() {
+        let manager = create_test_manager().await.unwrap();
         assert_eq!(manager.clients.len(), 1);
     }
 
-    #[test]
-    fn test_cache_key_generation() {
+    #[tokio::test]
+    async fn test_cache_key_generation() {
         let request1 = AiQueryRequest {
             query: "What is the meaning of this verse?".to_string(),
             context: None,

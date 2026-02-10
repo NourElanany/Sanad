@@ -48,7 +48,7 @@ impl QiblaApiManager {
     }
 
     /// Generate cache key for Qibla request
-    fn cache_key(latitude: f64, longitude: f64) -> String {
+    pub fn cache_key(latitude: f64, longitude: f64) -> String {
         // Round to 4 decimal places (~11 meters precision) for cache key
         format!("qibla:{}:{}", 
             (latitude * 10000.0).round() / 10000.0,
@@ -165,18 +165,16 @@ impl QiblaApiManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api_clients::MockRedisClient;
 
-    fn create_test_manager() -> QiblaApiManager {
-        let redis = Arc::new(MockRedisClient::new());
-        let cache = Arc::new(CacheManager::new(redis.clone()));
-        let rate_limiter = Arc::new(RateLimiter::new(redis));
-        QiblaApiManager::new(cache, rate_limiter)
+    async fn create_test_manager() -> Result<QiblaApiManager, ApiError> {
+        let cache = Arc::new(CacheManager::new("redis://localhost:6379").await?);
+        let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await?);
+        Ok(QiblaApiManager::new(cache, rate_limiter))
     }
 
-    #[test]
-    fn test_manager_creation() {
-        let manager = create_test_manager();
+    #[tokio::test]
+    async fn test_manager_creation() {
+        let manager = create_test_manager().await.unwrap();
         assert_eq!(manager.clients.len(), 2);
     }
 
@@ -194,7 +192,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_direction() {
-        let manager = create_test_manager();
+        let manager = create_test_manager().await.unwrap();
 
         // Test getting Qibla direction
         let result = manager.get_direction(40.7128, -74.0060).await;

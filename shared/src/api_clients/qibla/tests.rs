@@ -218,21 +218,20 @@ async fn test_islamic_finder_direction_range() {
 // QiblaApiManager Tests
 // ============================================================================
 
-fn create_test_manager() -> QiblaApiManager {
-    let redis = Arc::new(MockRedisClient::new());
-    let cache = Arc::new(CacheManager::new(redis.clone()));
-    let rate_limiter = Arc::new(RateLimiter::new(redis));
-    QiblaApiManager::new(cache, rate_limiter)
+async fn create_test_manager() -> Result<QiblaApiManager, ApiError> {
+    let cache = Arc::new(CacheManager::new("redis://localhost:6379").await?);
+    let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await?);
+    Ok(QiblaApiManager::new(cache, rate_limiter))
 }
 
-#[test]
-fn test_manager_creation() {
-    let manager = create_test_manager();
+#[tokio::test]
+async fn test_manager_creation() {
+    let manager = create_test_manager().await.unwrap();
     assert_eq!(manager.get_clients().len(), 2);
 }
 
-#[test]
-fn test_cache_key_generation() {
+#[tokio::test]
+async fn test_cache_key_generation() {
     let key1 = QiblaApiManager::cache_key(40.7128, -74.0060);
     let key2 = QiblaApiManager::cache_key(40.7128, -74.0060);
     assert_eq!(key1, key2);
@@ -413,9 +412,8 @@ async fn test_direction_range_validation() {
 
 #[tokio::test]
 async fn test_fallback_to_local_calculation() {
-    let redis = Arc::new(MockRedisClient::new());
-    let cache = Arc::new(CacheManager::new(redis.clone()));
-    let rate_limiter = Arc::new(RateLimiter::new(redis));
+    let cache = Arc::new(CacheManager::new("redis://localhost:6379").await.unwrap());
+    let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await.unwrap());
 
     // Create manager with only local calculation
     let clients: Vec<Box<dyn QiblaApiClient + Send + Sync>> = vec![

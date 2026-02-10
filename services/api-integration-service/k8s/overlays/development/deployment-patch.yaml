@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-integration-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: api-integration-service
+          # Lower resource limits for development
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          # More verbose logging
+          env:
+            - name: RUST_LOG
+              value: debug

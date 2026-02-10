@@ -73,6 +73,8 @@ impl RateLimiter {
                 "Rate limit exceeded for {} (minute): {}/{}",
                 api_name, minute_count, config.requests_per_minute
             );
+            // Record rate limit exceeded metric
+            super::metrics::record_rate_limit_exceeded(api_name, "minute");
             return Ok(false);
         }
         
@@ -81,6 +83,8 @@ impl RateLimiter {
                 "Rate limit exceeded for {} (hour): {}/{}",
                 api_name, hour_count, config.requests_per_hour
             );
+            // Record rate limit exceeded metric
+            super::metrics::record_rate_limit_exceeded(api_name, "hour");
             return Ok(false);
         }
         
@@ -89,8 +93,27 @@ impl RateLimiter {
                 "Rate limit exceeded for {} (day): {}/{}",
                 api_name, day_count, config.requests_per_day
             );
+            // Record rate limit exceeded metric
+            super::metrics::record_rate_limit_exceeded(api_name, "day");
             return Ok(false);
         }
+
+        // Update rate limit remaining metrics
+        super::metrics::update_rate_limit_remaining(
+            api_name,
+            "minute",
+            config.requests_per_minute - minute_count
+        );
+        super::metrics::update_rate_limit_remaining(
+            api_name,
+            "hour",
+            config.requests_per_hour - hour_count
+        );
+        super::metrics::update_rate_limit_remaining(
+            api_name,
+            "day",
+            config.requests_per_day - day_count
+        );
 
         // Log warnings when approaching limits (80% threshold)
         if minute_count as f64 >= config.requests_per_minute as f64 * 0.8 {

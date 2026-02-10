@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sanad-dev
+
+# Base configuration
+bases:
+  - ../../
+
+# Name prefix for all resources
+namePrefix: dev-
+
+# Common labels for development
+commonLabels:
+  environment: development
+
+# Images for development
+images:
+  - name: sanad/api-integration-service
+    newTag: dev
+
+# Replicas for development (lower than production)
+replicas:
+  - name: api-integration-service
+    count: 1
+
+# Patches for development environment
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - configmap-patch.yaml
+
+# ConfigMap for development-specific settings
+configMapGenerator:
+  - name: api-integration-config-dev
+    behavior: merge
+    literals:
+      - RUST_LOG=debug
+      - ENVIRONMENT=development

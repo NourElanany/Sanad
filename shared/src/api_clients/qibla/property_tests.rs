@@ -60,6 +60,8 @@ proptest! {
                 latitude,
                 longitude
             );
+            
+            Ok(())
         });
     }
 }
@@ -80,9 +82,8 @@ proptest! {
     ) {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let redis = Arc::new(MockRedisClient::new());
-            let cache = Arc::new(CacheManager::new(redis.clone()));
-            let rate_limiter = Arc::new(RateLimiter::new(redis));
+            let cache = Arc::new(CacheManager::new("redis://localhost:6379").await.unwrap());
+            let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await.unwrap());
             
             // Create manager with only local calculation client
             let clients: Vec<Box<dyn QiblaApiClient + Send + Sync>> = vec![
@@ -128,6 +129,8 @@ proptest! {
                 latitude,
                 longitude
             );
+            
+            Ok(())
         });
     }
 }
@@ -174,6 +177,8 @@ proptest! {
                 response1.distance_km,
                 response2.distance_km
             );
+            
+            Ok(())
         });
     }
 }
@@ -272,6 +277,8 @@ proptest! {
                 direction2,
                 diff_normalized
             );
+            
+            Ok(())
         });
     }
 }

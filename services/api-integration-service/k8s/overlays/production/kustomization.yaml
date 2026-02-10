@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sanad
+
+# Base configuration
+bases:
+  - ../../
+
+# Name prefix for production
+namePrefix: prod-
+
+# Common labels for production
+commonLabels:
+  environment: production
+
+# Images for production
+images:
+  - name: sanad/api-integration-service
+    newTag: v1.0.0  # Use specific version tags in production
+
+# Replicas for production (higher than development)
+replicas:
+  - name: api-integration-service
+    count: 5
+
+# Patches for production environment
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - hpa-patch.yaml
+
+# ConfigMap for production-specific settings
+configMapGenerator:
+  - name: api-integration-config-prod
+    behavior: merge
+    literals:
+      - RUST_LOG=info
+      - ENVIRONMENT=production

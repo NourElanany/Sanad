@@ -3,13 +3,13 @@
 use thiserror::Error;
 
 /// API client error types
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum ApiError {
     #[error("Network error: {0}")]
     Network(String),
     
     #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(String),
     
     #[error("Rate limit exceeded for API: {0}")]
     RateLimitExceeded(String),
@@ -36,7 +36,7 @@ pub enum ApiError {
     CacheError(String),
     
     #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
+    Serialization(String),
     
     #[error("Unknown API: {0}")]
     UnknownApi(String),
@@ -62,3 +62,15 @@ pub enum ApiError {
 
 /// Result type for API operations
 pub type ApiResult<T> = Result<T, ApiError>;
+
+impl From<reqwest::Error> for ApiError {
+    fn from(err: reqwest::Error) -> Self {
+        ApiError::Http(err.to_string())
+    }
+}
+
+impl From<serde_json::Error> for ApiError {
+    fn from(err: serde_json::Error) -> Self {
+        ApiError::Serialization(err.to_string())
+    }
+}

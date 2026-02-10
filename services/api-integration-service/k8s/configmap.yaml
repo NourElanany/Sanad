@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-integration-config
+  namespace: sanad
+  labels:
+    app: api-integration-service
+    component: config
+data:
+  # Service configuration
+  SERVICE_PORT: "8080"
+  SERVICE_HOST: "0.0.0.0"
+  ENVIRONMENT: "production"
+  RUST_LOG: "info"
+  
+  # Redis configuration
+  REDIS_URL: "redis://redis-service:6379"
+  REDIS_POOL_SIZE: "10"
+  
+  # PostgreSQL configuration
+  DATABASE_URL: "postgresql://sanad:$(POSTGRES_PASSWORD)@postgres-service:5432/sanad"
+  DATABASE_POOL_SIZE: "20"
+  
+  # API configuration file
+  api_integration_config.yaml: |
+    service:
+      name: api-integration-service
+      port: 8080
+      host: 0.0.0.0
+
+    redis:
+      url: redis://redis-service:6379
+      pool_size: 10
+      connection_timeout: 5s
+
+    postgres:
+      url: postgresql://sanad:password@postgres-service:5432/sanad
+      pool_size: 20
+      connection_timeout: 10s
+
+    apis:
+      quran:
+        - name: quran.com
+          base_url: https://api.quran.com/api/v4
+          priority: 1
+          rate_limit:
+            per_minute: 60
+            per_hour: 1000
+            per_day: 10000
+          timeout: 10s
+          
+        - name: alquran.cloud
+          base_url: https://api.alquran.cloud/v1
+          priority: 2
+          rate_limit:
+            per_minute: 30
+            per_hour: 500
+            per_day: 5000
+          timeout: 10s
+          
+        - name: tanzil
+          base_url: https://tanzil.net/api
+          priority: 3
+          rate_limit:
+            per_minute: 30
+            per_hour: 500
+            per_day: 5000
+          timeout: 10s
+          
+      hadith:
+        - name: sunnah.com
+          base_url: https://api.sunnah.com/v1
+          priority: 1
+          requires_key: true
+          rate_limit:
+            per_minute: 30
+            per_hour: 500
+            per_day: 5000
+          timeout: 15s
+          
+      prayer_times:
+        - name: aladhan
+          base_url: https://api.aladhan.com/v1
+          priority: 1
+          rate_limit:
+            per_minute: 60
+            per_hour: 1000
+            per_day: 10000
+          timeout: 5s
+          
+        - name: islamic_finder
+          base_url: https://www.islamicfinder.org/api
+          priority: 2
+          requires_key: true
+          rate_limit:
+            per_minute: 30
+            per_hour: 500
+            per_day: 5000
+          timeout: 5s
+
+      tafsir:
+        - name: quran.com
+          base_url: https://api.quran.com/api/v4
+          priority: 1
+          rate_limit:
+            per_minute: 60
+            per_hour: 1000
+            per_day: 10000
+          timeout: 10s
+
+      calendar:
+        - name: aladhan
+          base_url: https://api.aladhan.com/v1
+          priority: 1
+          rate_limit:
+            per_minute: 60
+            per_hour: 1000
+            per_day: 10000
+          timeout: 5s
+
+      qibla:
+        - name: aladhan
+          base_url: https://api.aladhan.com/v1
+          priority: 1
+          rate_limit:
+            per_minute: 60
+            per_hour: 1000
+            per_day: 10000
+          timeout: 5s
+
+      ai:
+        - name: hugging_face
+          base_url: https://api-inference.huggingface.co
+          priority: 1
+          requires_key: true
+          rate_limit:
+            per_minute: 30
+            per_hour: 500
+            per_day: 5000
+          timeout: 30s
+
+    cache:
+      strategies:
+        quran_text:
+          ttl: 30d
+          allow_stale: true
+          stale_ttl: 90d
+          
+        hadith:
+          ttl: 30d
+          allow_stale: true
+          stale_ttl: 90d
+          
+        prayer_times:
+          ttl: 1d
+          allow_stale: true
+          stale_ttl: 7d
+          
+        tafsir:
+          ttl: 30d
+          allow_stale: true
+          stale_ttl: 90d
+          
+        calendar:
+          ttl: 7d
+          allow_stale: true
+          stale_ttl: 30d
+          
+        qibla:
+          ttl: 30d
+          allow_stale: true
+          stale_ttl: 90d
+          
+        ai_response:
+          ttl: 1h
+          allow_stale: false
+
+    health_monitor:
+      check_interval: 5m
+      unhealthy_threshold: 3
+      recovery_threshold: 2
+
+    retry:
+      max_attempts: 3
+      initial_delay: 1s
+      max_delay: 10s
+      multiplier: 2.0

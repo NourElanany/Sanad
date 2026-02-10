@@ -51,7 +51,7 @@ async fn test_hugging_face_empty_query() {
     };
 
     let result = client.process_query(&request).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 }
 
 #[tokio::test]
@@ -66,7 +66,7 @@ async fn test_hugging_face_whitespace_query() {
     };
 
     let result = client.process_query(&request).await;
-    assert!(matches!(result, Err(ApiError::InvalidInput(_))));
+    assert!(matches!(result, Err(ApiError::Validation(_))));
 }
 
 #[tokio::test]
@@ -123,21 +123,20 @@ async fn test_hugging_face_arabic_query() {
 // AiApiManager Tests
 // ============================================================================
 
-fn create_test_manager() -> AiApiManager {
-    let redis = Arc::new(MockRedisClient::new());
-    let cache = Arc::new(CacheManager::new(redis.clone()));
-    let rate_limiter = Arc::new(RateLimiter::new(redis));
-    AiApiManager::new(cache, rate_limiter, None)
+async fn create_test_manager() -> Result<AiApiManager, ApiError> {
+    let cache = Arc::new(CacheManager::new("redis://localhost:6379").await?);
+    let rate_limiter = Arc::new(RateLimiter::new("redis://localhost:6379", Default::default()).await?);
+    Ok(AiApiManager::new(cache, rate_limiter, None))
 }
 
-#[test]
-fn test_manager_creation() {
-    let manager = create_test_manager();
+#[tokio::test]
+async fn test_manager_creation() {
+    let manager = create_test_manager().await.unwrap();
     assert_eq!(manager.get_clients().len(), 1);
 }
 
-#[test]
-fn test_cache_key_consistency() {
+#[tokio::test]
+async fn test_cache_key_consistency() {
     let request1 = AiQueryRequest {
         query: "test query".to_string(),
         context: None,

@@ -1,0 +1,131 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-integration-service
+  namespace: sanad
+  labels:
+    app: api-integration-service
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: api-integration-service
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+  namespaceSelector:
+    matchNames:
+      - sanad
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-integration-service
+  namespace: sanad
+  labels:
+    app: api-integration-service
+    component: monitoring
+spec:
+  groups:
+    - name: api-integration-service.rules
+      interval: 30s
+      rules:
+        # High error rate alert
+        - alert: HighErrorRate
+          expr: |
+            rate(http_requests_total{job="api-integration-service",status=~"5.."}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "High error rate detected"
+            description: "API Integration Service has error rate above 5% (current: {{ $value }})"
+        
+        # API unavailable alert
+        - alert: APIUnavailable
+          expr: |
+            up{job="api-integration-service"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: api-integration-service
+          annotations:
+            summary: "API Integration Service is down"
+            description: "API Integration Service has been unavailable for more than 2 minutes"
+        
+        # High response time alert
+        - alert: HighResponseTime
+          expr: |
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api-integration-service"}[5m])) > 1
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "High response time detected"
+            description: "95th percentile response time is above 1s (current: {{ $value }}s)"
+        
+        # High memory usage alert
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{pod=~"api-integration-service-.*"} / container_spec_memory_limit_bytes{pod=~"api-integration-service-.*"} > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "High memory usage detected"
+            description: "Pod {{ $labels.pod }} is using more than 90% of memory limit"
+        
+        # High CPU usage alert
+        - alert: HighCPUUsage
+          expr: |
+            rate(container_cpu_usage_seconds_total{pod=~"api-integration-service-.*"}[5m]) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "High CPU usage detected"
+            description: "Pod {{ $labels.pod }} is using more than 80% of CPU"
+        
+        # Cache miss rate alert
+        - alert: HighCacheMissRate
+          expr: |
+            rate(cache_misses_total{job="api-integration-service"}[5m]) / rate(cache_requests_total{job="api-integration-service"}[5m]) > 0.5
+          for: 10m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "High cache miss rate detected"
+            description: "Cache miss rate is above 50% (current: {{ $value }})"
+        
+        # External API failure alert
+        - alert: ExternalAPIFailure
+          expr: |
+            rate(external_api_errors_total{job="api-integration-service"}[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "External API failures detected"
+            description: "External API {{ $labels.api_name }} has high failure rate"
+        
+        # Pod restart alert
+        - alert: PodRestarting
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="sanad",pod=~"api-integration-service-.*"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: api-integration-service
+          annotations:
+            summary: "Pod is restarting frequently"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"

@@ -24,6 +24,9 @@ flate2 = "1.0"
 base64 = "0.21"
 async-trait = "0.1"
 
+# Metrics
+metrics = "0.21"
+
 [dev-dependencies]
 proptest = { workspace = true }
 rand = "0.8"

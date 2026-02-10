@@ -198,6 +198,82 @@ services:
       - sanad-network
     restart: unless-stopped
 
+  # API Integration Service - Orchestrates all external Islamic APIs
+  api-integration-service:
+    build:
+      context: .
+      dockerfile: services/api-integration-service/Dockerfile
+    image: sanad/api-integration-service:latest
+    container_name: sanad-api-integration-service
+    ports:
+      - "8092:8080"
+    environment:
+      # Service configuration
+      SERVICE_PORT: 8080
+      SERVICE_HOST: 0.0.0.0
+      ENVIRONMENT: production
+      RUST_LOG: info
+      
+      # Database connections
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sanad_user:sanad_password@postgres:5432/sanad
+      
+      # Redis Cluster (for advanced caching)
+      REDIS_CLUSTER_ENABLED: "true"
+      REDIS_CLUSTER_NODES: "redis://redis-node-1:7001,redis://redis-node-2:7002,redis://redis-node-3:7003"
+      
+      # API Keys for external services (use .env file or secrets manager in production)
+      QURAN_COM_API_KEY: ${QURAN_COM_API_KEY:-}
+      SUNNAH_COM_API_KEY: ${SUNNAH_COM_API_KEY:-}
+      ISLAMIC_FINDER_API_KEY: ${ISLAMIC_FINDER_API_KEY:-}
+      ALADHAN_API_KEY: ${ALADHAN_API_KEY:-}
+      HUGGING_FACE_API_KEY: ${HUGGING_FACE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      
+      # Rate limiting configuration
+      RATE_LIMIT_ENABLED: "true"
+      
+      # Cache configuration
+      CACHE_ENABLED: "true"
+      CACHE_DEFAULT_TTL: "3600"
+      
+      # Health monitoring
+      HEALTH_CHECK_INTERVAL: "300"
+      
+      # Observability
+      METRICS_ENABLED: "true"
+      TRACING_ENABLED: "true"
+      LOG_FORMAT: json
+    volumes:
+      # Mount configuration files
+      - ./config:/app/config:ro
+      # Mount logs directory for persistent logging
+      - api-integration-logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-cluster-setup:
+        condition: service_completed_successfully
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
   # Quran Service
   quran-service:
     build:
@@ -454,6 +530,8 @@ volumes:
   redis_node_3_data:
     driver: local
   qdrant_data:
+    driver: local
+  api-integration-logs:
     driver: local
 
 networks:

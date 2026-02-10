@@ -164,12 +164,16 @@ impl CacheManager {
         match value {
             Some(v) => {
                 debug!("Cache hit for key: {}", key);
+                // Record cache hit metric
+                super::metrics::record_cache_hit(key);
                 let deserialized = serde_json::from_str(&v)
-                    .map_err(|e| ApiError::Serialization(e))?;
+                    .map_err(|e| ApiError::Serialization(e.to_string()))?;
                 Ok(Some(deserialized))
             }
             None => {
                 debug!("Cache miss for key: {}", key);
+                // Record cache miss metric
+                super::metrics::record_cache_miss(key);
                 Ok(None)
             }
         }
@@ -183,7 +187,7 @@ impl CacheManager {
         ttl: Duration,
     ) -> Result<(), ApiError> {
         let serialized = serde_json::to_string(value)
-            .map_err(|e| ApiError::Serialization(e))?;
+            .map_err(|e| ApiError::Serialization(e.to_string()))?;
 
         let mut conn = self.redis.write().await;
         
@@ -191,6 +195,9 @@ impl CacheManager {
             .map_err(|e| ApiError::CacheError(format!("Failed to set in cache: {}", e)))?;
 
         debug!("Cached value for key: {} with TTL: {:?}", key, ttl);
+        
+        // Record cache set metric
+        super::metrics::record_cache_set(key);
 
         Ok(())
     }
@@ -208,8 +215,10 @@ impl CacheManager {
         match value {
             Some(v) => {
                 warn!("Serving stale cache for key: {}", key);
+                // Record stale cache served metric
+                super::metrics::record_stale_cache_served(key);
                 let deserialized = serde_json::from_str(&v)
-                    .map_err(|e| ApiError::Serialization(e))?;
+                    .map_err(|e| ApiError::Serialization(e.to_string()))?;
                 Ok(Some(deserialized))
             }
             None => {
@@ -230,7 +239,7 @@ impl CacheManager {
             .ok_or_else(|| ApiError::Configuration(format!("No strategy for category: {:?}", category)))?;
 
         let serialized = serde_json::to_string(value)
-            .map_err(|e| ApiError::Serialization(e))?;
+            .map_err(|e| ApiError::Serialization(e.to_string()))?;
 
         let mut conn = self.redis.write().await;
 
@@ -428,7 +437,8 @@ impl CacheManager {
         } else {
             // For tests without Redis, we'll use a connection that will be replaced
             // This is a workaround - in production tests, Redis should be available
-            client.get_multiplexed_async_connection_with_timeout(Duration::from_millis(100))
+            client.get_multiplexed_async_connection()
+                .await
                 .unwrap_or_else(|_| panic!("Mock cache requires Redis for testing"))
         };
         
@@ -458,7 +468,7 @@ impl CacheManager {
     ) -> Result<(), ApiError> {
         let stale_key = format!("{}:stale", key);
         let serialized = serde_json::to_string(value)
-            .map_err(|e| ApiError::Serialization(e))?;
+            .map_err(|e| ApiError::Serialization(e.to_string()))?;
 
         let mut conn = self.redis.write().await;
         

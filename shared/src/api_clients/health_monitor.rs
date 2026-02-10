@@ -5,6 +5,7 @@
 
 use crate::api_clients::error::ApiError;
 use crate::api_clients::traits::ApiClient;
+use crate::api_clients::RateLimitConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -298,6 +299,7 @@ mod tests {
     use crate::api_clients::traits::ApiClient;
     use async_trait::async_trait;
     
+    #[derive(Debug)]
     struct MockApiClient {
         name: String,
         healthy: bool,
@@ -305,9 +307,6 @@ mod tests {
     
     #[async_trait]
     impl ApiClient for MockApiClient {
-        type Request = ();
-        type Response = ();
-        
         fn api_name(&self) -> &str {
             &self.name
         }
@@ -320,8 +319,8 @@ mod tests {
             self.healthy
         }
         
-        async fn request(&self, _req: Self::Request) -> Result<Self::Response, ApiError> {
-            Ok(())
+        fn rate_limit(&self) -> RateLimitConfig {
+            RateLimitConfig::default()
         }
     }
     

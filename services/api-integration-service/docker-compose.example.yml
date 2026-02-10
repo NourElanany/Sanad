@@ -1,0 +1,148 @@
+version: '3.8'
+
+# Example Docker Compose configuration for API Integration Service
+# This file demonstrates how to run the service with all dependencies
+
+services:
+  # API Integration Service
+  api-integration-service:
+    build:
+      context: ../..
+      dockerfile: services/api-integration-service/Dockerfile
+    image: sanad/api-integration-service:latest
+    container_name: api-integration-service
+    ports:
+      - "8080:8080"
+    environment:
+      # Service configuration
+      SERVICE_PORT: 8080
+      SERVICE_HOST: 0.0.0.0
+      ENVIRONMENT: production
+      RUST_LOG: info
+      
+      # Database connections
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://sanad:sanad_password@postgres:5432/sanad
+      
+      # API Keys (replace with actual keys)
+      QURAN_COM_API_KEY: ${QURAN_COM_API_KEY:-your_key_here}
+      SUNNAH_COM_API_KEY: ${SUNNAH_COM_API_KEY:-your_key_here}
+      ISLAMIC_FINDER_API_KEY: ${ISLAMIC_FINDER_API_KEY:-your_key_here}
+      HUGGING_FACE_API_KEY: ${HUGGING_FACE_API_KEY:-your_key_here}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      # Mount custom configuration (optional)
+      - ../../config:/app/config:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Redis - Caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: sanad-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # PostgreSQL - Persistent storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: sanad-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: sanad
+      POSTGRES_USER: sanad
+      POSTGRES_PASSWORD: sanad_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sanad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus - Metrics collection (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sanad-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  # Grafana - Metrics visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sanad-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - sanad-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  sanad-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
