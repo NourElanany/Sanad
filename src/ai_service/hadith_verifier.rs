@@ -294,7 +294,7 @@ impl AuthenticityChecker {
         Ok(ChainVerificationResult {
             is_authentic: reliability_score > 0.7,
             reliability_score,
-            weak_narrators,
+            weak_narrators: weak_narrators.clone(),
             broken_links,
             analysis: self.generate_analysis(reliability_score, &weak_narrators),
         })

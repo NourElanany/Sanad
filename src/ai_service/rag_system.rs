@@ -5,6 +5,8 @@ use crate::ai_service::{
     source_scorer::{SourceScoringSystem, ScoredSource},
     anti_hallucination::{AntiHallucinationSystem, HallucinationCheckResult},
     multiple_viewpoints_system::{MultipleViewpointsSystem, MultipleViewpointsResult},
+    Citation as AiServiceCitation,
+    CitationType,
 };
 use std::time::Instant;
 use tokio::time::Duration;
@@ -402,11 +404,11 @@ impl RAGSystem {
     }
     
     /// Build citations for the response
-    fn build_citations(&self, sources: &[IslamicSource]) -> Vec<Citation> {
+    fn build_citations(&self, sources: &[IslamicSource]) -> Vec<AiServiceCitation> {
         sources.iter()
             .enumerate()
             .map(|(index, source)| {
-                Citation {
+                AiServiceCitation {
                     id: format!("cite_{}", index + 1),
                     source: source.clone(),
                     citation_text: self.format_citation(source),
@@ -683,23 +685,6 @@ mod tests {
         println!("وقت الاستجابة: {} مللي ثانية", response.response_time_ms);
         println!("الوقت الفعلي: {} مللي ثانية", elapsed.as_millis());
     }
-}
-
-/// Citation structure for source references
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Citation {
-    pub id: String,
-    pub source: IslamicSource,
-    pub citation_text: String,
-    pub relevance_score: f32,
-    pub usage_type: CitationType,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CitationType {
-    Primary,    // مصدر أساسي
-    Supporting, // مصدر داعم
-    Reference,  // مصدر مرجعي
 }
 
 /// Semantic search engine for retrieving relevant Islamic sources

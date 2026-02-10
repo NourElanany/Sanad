@@ -120,8 +120,8 @@ pub struct PrayerNotification {
     pub reminder_intervals: Vec<i32>, // minutes before prayer
     
     // Location context for prayer times
-    pub latitude: Option<rust_decimal::Decimal>,
-    pub longitude: Option<rust_decimal::Decimal>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
     pub timezone: Option<String>,
     
     // Notification preferences

@@ -39,7 +39,7 @@ pub struct IslamicModel {
 }
 
 /// Model specialization types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ModelSpecialization {
     General,
     Quran,
@@ -371,7 +371,7 @@ impl AIServiceConfig {
         self.hugging_face
             .islamic_models
             .iter()
-            .filter(|model| matches!(&model.specialization, &specialization) || matches!(model.specialization, ModelSpecialization::General))
+            .filter(|model| model.specialization == specialization || matches!(model.specialization, ModelSpecialization::General))
             .min_by_key(|model| model.priority)
     }
 

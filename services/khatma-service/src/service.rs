@@ -196,6 +196,47 @@ impl SmartKhatmaService {
         self.repository.get_user_khatma_plans(user_id, Some(KhatmaStatus::Active)).await
     }
 
+    /// Adjust khatma plan based on progress
+    pub async fn adjust_khatma_plan(&self, plan_id: Uuid) -> Result<KhatmaPlan> {
+        let plan = self.repository.get_khatma_plan(plan_id).await?;
+        let adjusted_plan = self.adjust_plan_automatically(&plan).await?;
+        self.repository.update_khatma_plan(&adjusted_plan).await?;
+        Ok(adjusted_plan)
+    }
+
+    /// Update reading progress
+    pub async fn update_reading_progress(&self, user_id: Uuid, session: ReadingSession) -> Result<PlanUpdate> {
+        let request = UpdateProgressRequest {
+            khatma_plan_id: session.khatma_plan_id,
+            reading_session: session,
+        };
+        self.update_progress(user_id, request).await
+    }
+
+    /// Get khatma statistics
+    pub async fn get_khatma_statistics(&self, plan_id: Uuid) -> Result<KhatmaStatistics> {
+        self.generate_statistics(plan_id).await
+    }
+
+    /// Get reading time suggestions
+    pub async fn get_reading_time_suggestions(&self, user_id: Uuid) -> Result<Vec<SmartReminder>> {
+        self.get_smart_reminders(user_id).await
+    }
+
+    /// Generate smart reminders
+    pub async fn generate_smart_reminders(&self, user_id: Uuid) -> Result<Vec<SmartReminder>> {
+        self.get_smart_reminders(user_id).await
+    }
+
+    /// Generate progress dashboard
+    pub async fn generate_progress_dashboard(&self, user_id: Uuid) -> Result<serde_json::Value> {
+        let active_plans = self.get_user_active_plans(user_id).await?;
+        Ok(serde_json::json!({
+            "active_plans": active_plans,
+            "total_plans": active_plans.len(),
+        }))
+    }
+
     // Helper methods
     async fn update_user_reading_statistics(&self, _user_id: Uuid, _sessions: &[ReadingSession]) -> Result<()> {
         // Implementation for updating user statistics

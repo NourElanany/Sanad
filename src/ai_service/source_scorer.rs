@@ -1,4 +1,5 @@
 use super::*;
+use super::question_processor::ProcessedQuestion;
 use std::collections::HashMap;
 
 /// Source scoring system for evaluating retrieved Islamic sources

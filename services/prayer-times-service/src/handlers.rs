@@ -82,7 +82,7 @@ pub struct UserPreferencesQuery {
 /// Calculate prayer times for a location and date
 pub async fn calculate_prayer_times(
     Query(params): Query<PrayerTimesQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<crate::models::PrayerTimesResponse>>, AppError> {
     let location = shared::Location {
         latitude: params.latitude,
@@ -119,7 +119,7 @@ pub async fn calculate_prayer_times(
 /// Calculate Qibla direction
 pub async fn calculate_qibla_direction(
     Query(params): Query<QiblaQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<crate::models::QiblaDirection>>, AppError> {
     let request = QiblaRequest {
         latitude: params.latitude,
@@ -134,7 +134,7 @@ pub async fn calculate_qibla_direction(
 /// Convert Gregorian date to Hijri
 pub async fn gregorian_to_hijri(
     Query(params): Query<HijriQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<shared::HijriDate>>, AppError> {
     let request = HijriConversionRequest {
         date: params.date,
@@ -148,7 +148,7 @@ pub async fn gregorian_to_hijri(
 /// Convert Hijri date to Gregorian
 pub async fn hijri_to_gregorian(
     Query(params): Query<GregorianQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<NaiveDate>>, AppError> {
     let request = GregorianConversionRequest {
         hijri_year: params.hijri_year,
@@ -164,7 +164,7 @@ pub async fn hijri_to_gregorian(
 /// Get Islamic events
 pub async fn get_islamic_events(
     Query(params): Query<EventsQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<Vec<crate::models::IslamicEventDetails>>>, AppError> {
     let request = IslamicEventsRequest {
         hijri_month: params.hijri_month,
@@ -182,7 +182,7 @@ pub async fn get_islamic_events(
 /// Get monthly Islamic calendar
 pub async fn get_monthly_calendar(
     Path((hijri_year, hijri_month)): Path<(i32, i32)>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<crate::models::MonthlyCalendarResponse>>, AppError> {
     let result = service.get_monthly_calendar(hijri_year, hijri_month).await
         .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -192,7 +192,7 @@ pub async fn get_monthly_calendar(
 /// Get event details
 pub async fn get_event_details(
     Query(params): Query<std::collections::HashMap<String, String>>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<Option<String>>>, AppError> {
     let event_name = params.get("event_name")
         .ok_or_else(|| AppError::BadRequest("Missing event_name parameter".to_string()))?;
@@ -204,7 +204,7 @@ pub async fn get_event_details(
 
 /// Get current Hijri date
 pub async fn get_current_hijri_date(
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<shared::HijriDate>>, AppError> {
     let result = service.get_current_hijri_date().await
         .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -223,7 +223,7 @@ pub async fn health_check() -> Json<ApiResponse<std::collections::HashMap<String
 /// Schedule prayer notifications for a user
 pub async fn schedule_prayer_notifications(
     Query(params): Query<NotificationQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<Vec<crate::models::ScheduledNotification>>>, AppError> {
     let location = Location {
         latitude: params.latitude,
@@ -271,7 +271,7 @@ pub async fn schedule_prayer_notifications(
 /// Get upcoming prayer notifications for a user
 pub async fn get_upcoming_notifications(
     Query(params): Query<NotificationQuery>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<Vec<crate::models::ScheduledNotification>>>, AppError> {
     let location = Location {
         latitude: params.latitude,
@@ -291,7 +291,7 @@ pub async fn get_upcoming_notifications(
 /// Get user prayer notification preferences
 pub async fn get_user_prayer_preferences(
     Path(user_id): Path<Uuid>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
     let result = service.get_user_prayer_preferences(user_id).await
         .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -302,7 +302,7 @@ pub async fn get_user_prayer_preferences(
 pub async fn update_user_prayer_preferences(
     Path(user_id): Path<Uuid>,
     Json(preferences): Json<UserPrayerPreferences>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
     let mut updated_preferences = preferences;
     updated_preferences.user_id = user_id;
@@ -316,7 +316,7 @@ pub async fn update_user_prayer_preferences(
 /// Create default prayer preferences for a user
 pub async fn create_default_prayer_preferences(
     Path(user_id): Path<Uuid>,
-    Extension(service): Extension<PrayerTimesService>,
+    Extension(service): Extension<std::sync::Arc<PrayerTimesService>>,
 ) -> Result<Json<ApiResponse<UserPrayerPreferences>>, AppError> {
     let result = service.create_default_prayer_preferences(user_id).await
         .map_err(|e| AppError::Internal(e.to_string()))?;

@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Initialize repository and service
     let repository = PrayerTimesRepository::new(pool);
-    let service = PrayerTimesService::new(repository);
+    let service = std::sync::Arc::new(PrayerTimesService::new(repository));
     
     // Build router
     let app = Router::new()

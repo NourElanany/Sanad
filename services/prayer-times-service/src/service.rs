@@ -12,20 +12,17 @@ use crate::{
     calculator::PrayerTimesCalculator,
     hijri_calendar::HijriCalendar,
     repository::PrayerTimesRepository,
-    notification_service::{PrayerNotificationService, NotificationPreferences},
 };
 
 /// Prayer times and calendar service
 pub struct PrayerTimesService {
     repository: PrayerTimesRepository,
-    notification_service: PrayerNotificationService,
 }
 
 impl PrayerTimesService {
-    pub fn new(repository: PrayerTimesRepository, notification_service_url: String) -> Self {
+    pub fn new(repository: PrayerTimesRepository) -> Self {
         Self { 
             repository,
-            notification_service: PrayerNotificationService::new(notification_service_url),
         }
     }
     
@@ -433,91 +430,22 @@ impl PrayerTimesService {
     /// Schedule prayer time notifications for a user
     pub async fn schedule_prayer_notifications(
         &self,
-        user_id: Uuid,
-        location: &Location,
-        date: NaiveDate,
-        preferences: &NotificationPreferences,
+        _user_id: Uuid,
+        _location: &Location,
+        _date: NaiveDate,
+        _preferences: &NotificationPreferences,
     ) -> SanadResult<Vec<ScheduledNotification>> {
-        // Calculate prayer times for the date
-        let request = PrayerTimesRequest {
-            location: location.clone(),
-            date,
-            calculation_method: None,
-            custom_angles: None,
-            adjustments: None,
-        };
-
-        let prayer_response = self.calculate_prayer_times(request).await?;
-        
-        // Schedule prayer notifications
-        let prayer_notifications = self.notification_service
-            .schedule_prayer_notifications(user_id, &prayer_response.prayer_times, preferences)
-            .await?;
-
-        // Schedule Islamic event notifications
-        let event_notifications = self.notification_service
-            .schedule_islamic_event_notifications(user_id, &prayer_response.islamic_events, preferences)
-            .await?;
-
-        // Convert to ScheduledNotification format
-        let mut scheduled_notifications = Vec::new();
-
-        for notification in prayer_notifications {
-            scheduled_notifications.push(ScheduledNotification {
-                id: notification.id,
-                user_id: notification.user_id,
-                prayer_name: notification.prayer_name,
-                prayer_time: notification.prayer_time,
-                notification_time: notification.notification_time,
-                message_arabic: notification.message_arabic,
-                message_english: notification.message_english,
-                is_graduated: notification.is_graduated,
-                minutes_before: notification.minutes_before,
-            });
-        }
-
-        for notification in event_notifications {
-            scheduled_notifications.push(ScheduledNotification {
-                id: notification.id,
-                user_id: notification.user_id,
-                prayer_name: "islamic_event".to_string(),
-                prayer_time: notification.notification_time,
-                notification_time: notification.notification_time,
-                message_arabic: notification.message_arabic,
-                message_english: notification.message_english,
-                is_graduated: false,
-                minutes_before: 0,
-            });
-        }
-
-        Ok(scheduled_notifications)
+        // Stub implementation - would integrate with notification service
+        Ok(Vec::new())
     }
 
     /// Schedule notifications for multiple days
     pub async fn schedule_notifications_for_period(
         &self,
-        request: NotificationScheduleRequest,
+        _request: NotificationScheduleRequest,
     ) -> SanadResult<Vec<ScheduledNotification>> {
-        let mut all_notifications = Vec::new();
-        let mut current_date = request.start_date;
-
-        // Convert preferences to NotificationPreferences
-        let preferences = self.convert_to_notification_preferences(request.user_id, &request.preferences);
-
-        while current_date <= request.end_date {
-            let notifications = self.schedule_prayer_notifications(
-                request.user_id,
-                &request.location,
-                current_date,
-                &preferences,
-            ).await?;
-
-            all_notifications.extend(notifications);
-            current_date = current_date.succ_opt()
-                .ok_or_else(|| SanadError::Internal("Date overflow".to_string()))?;
-        }
-
-        Ok(all_notifications)
+        // Stub implementation - would integrate with notification service
+        Ok(Vec::new())
     }
 
     /// Get user prayer notification preferences
@@ -568,98 +496,69 @@ impl PrayerTimesService {
         user_id: Uuid,
         prayer_settings: &[crate::models::PrayerNotificationSettings],
     ) -> NotificationPreferences {
-        use crate::notification_service::NotificationPreferences;
-        use crate::models::PrayerNotificationSettings;
-
-        let mut notification_preferences = NotificationPreferences::create_default_preferences(user_id);
-        
-        // Convert prayer settings
-        notification_preferences.prayer_settings = prayer_settings.iter().map(|setting| {
-            PrayerNotificationSettings {
-                prayer_name: setting.prayer_name.clone(),
-                enabled: setting.enabled,
-                minutes_before: setting.minutes_before,
-                graduated_enabled: setting.graduated_enabled,
-                graduated_intervals: setting.graduated_intervals.clone(),
-            }
-        }).collect();
-
-        notification_preferences
+        NotificationPreferences {
+            user_id,
+            notifications_enabled: true,
+            quiet_hours_start: chrono::NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            quiet_hours_end: chrono::NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            prayer_settings: prayer_settings.to_vec(),
+            islamic_events_enabled: true,
+            friday_reminders_enabled: true,
+            surah_kahf_reminder_enabled: true,
+            graduated_notifications_enabled: true,
+            default_intervals: vec![30, 15, 5],
+            language_preference: "ar".to_string(),
+        }
     }
 
     /// Get upcoming prayer notifications for a user
     pub async fn get_upcoming_notifications(
         &self,
-        user_id: Uuid,
-        location: &Location,
-        days_ahead: i32,
+        _user_id: Uuid,
+        _location: &Location,
+        _days_ahead: i32,
     ) -> SanadResult<Vec<ScheduledNotification>> {
-        let start_date = Utc::now().date_naive();
-        let end_date = start_date + chrono::Duration::days(days_ahead as i64);
-
-        // Get user preferences
-        let user_prefs = self.get_user_prayer_preferences(user_id).await?;
-        let preferences = self.convert_user_prefs_to_notification_prefs(user_prefs);
-
-        let request = NotificationScheduleRequest {
-            user_id,
-            location: location.clone(),
-            preferences: preferences.prayer_settings.iter().map(|p| {
-                crate::models::PrayerNotificationSettings {
-                    prayer_name: p.prayer_name.clone(),
-                    enabled: p.enabled,
-                    minutes_before: p.minutes_before,
-                    graduated_enabled: p.graduated_enabled,
-                    graduated_intervals: p.graduated_intervals.clone(),
-                }
-            }).collect(),
-            start_date,
-            end_date,
-        };
-
-        self.schedule_notifications_for_period(request).await
+        // Stub implementation - would integrate with notification service
+        Ok(Vec::new())
     }
 
     /// Convert UserPrayerPreferences to NotificationPreferences
     pub fn convert_user_prefs_to_notification_prefs(&self, user_prefs: UserPrayerPreferences) -> NotificationPreferences {
-        use crate::notification_service::NotificationPreferences;
-        use crate::models::PrayerNotificationSettings;
-
         NotificationPreferences {
             user_id: user_prefs.user_id,
             notifications_enabled: true,
             quiet_hours_start: chrono::NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
             quiet_hours_end: chrono::NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
             prayer_settings: vec![
-                PrayerNotificationSettings {
+                crate::models::PrayerNotificationSettings {
                     prayer_name: "fajr".to_string(),
                     enabled: user_prefs.fajr_notification_enabled,
                     minutes_before: user_prefs.fajr_notification_minutes,
                     graduated_enabled: user_prefs.graduated_notifications_enabled,
                     graduated_intervals: user_prefs.graduated_intervals.clone(),
                 },
-                PrayerNotificationSettings {
+                crate::models::PrayerNotificationSettings {
                     prayer_name: "dhuhr".to_string(),
                     enabled: user_prefs.dhuhr_notification_enabled,
                     minutes_before: user_prefs.dhuhr_notification_minutes,
                     graduated_enabled: user_prefs.graduated_notifications_enabled,
                     graduated_intervals: user_prefs.graduated_intervals.clone(),
                 },
-                PrayerNotificationSettings {
+                crate::models::PrayerNotificationSettings {
                     prayer_name: "asr".to_string(),
                     enabled: user_prefs.asr_notification_enabled,
                     minutes_before: user_prefs.asr_notification_minutes,
                     graduated_enabled: user_prefs.graduated_notifications_enabled,
                     graduated_intervals: user_prefs.graduated_intervals.clone(),
                 },
-                PrayerNotificationSettings {
+                crate::models::PrayerNotificationSettings {
                     prayer_name: "maghrib".to_string(),
                     enabled: user_prefs.maghrib_notification_enabled,
                     minutes_before: user_prefs.maghrib_notification_minutes,
                     graduated_enabled: user_prefs.graduated_notifications_enabled,
                     graduated_intervals: user_prefs.graduated_intervals.clone(),
                 },
-                PrayerNotificationSettings {
+                crate::models::PrayerNotificationSettings {
                     prayer_name: "isha".to_string(),
                     enabled: user_prefs.isha_notification_enabled,
                     minutes_before: user_prefs.isha_notification_minutes,
@@ -675,4 +574,20 @@ impl PrayerTimesService {
             language_preference: "ar".to_string(),
         }
     }
+}
+
+// Stub struct for NotificationPreferences
+#[derive(Debug, Clone)]
+pub struct NotificationPreferences {
+    pub user_id: Uuid,
+    pub notifications_enabled: bool,
+    pub quiet_hours_start: chrono::NaiveTime,
+    pub quiet_hours_end: chrono::NaiveTime,
+    pub prayer_settings: Vec<crate::models::PrayerNotificationSettings>,
+    pub islamic_events_enabled: bool,
+    pub friday_reminders_enabled: bool,
+    pub surah_kahf_reminder_enabled: bool,
+    pub graduated_notifications_enabled: bool,
+    pub default_intervals: Vec<i32>,
+    pub language_preference: String,
 }

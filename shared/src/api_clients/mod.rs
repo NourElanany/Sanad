@@ -8,11 +8,13 @@ use std::fmt::Debug;
 
 pub mod api_key_manager;
 pub mod cache_manager;
+pub mod calendar;
 pub mod error;
 pub mod hadith;
 pub mod prayer;
 pub mod quran;
 pub mod rate_limiter;
+pub mod tafsir;
 pub mod traits;
 
 // Re-export main types

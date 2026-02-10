@@ -133,72 +133,80 @@ impl OfflineStorageManager {
 
     /// Retrieve content from offline storage
     pub async fn get_content(&mut self, content_id: &str) -> Result<Option<OfflineResult<Vec<u8>>>> {
-        if let Some(content) = self.content_index.get_mut(content_id) {
-            // Update access statistics
-            content.storage_info.access_count += 1;
-            content.storage_info.last_accessed = Utc::now();
+        // First, extract all needed data from the content
+        let (data, compression_algorithm, expected_hash, is_compressed, updated_at, sync_status) = {
+            if let Some(content) = self.content_index.get_mut(content_id) {
+                // Update access statistics
+                content.storage_info.access_count += 1;
+                content.storage_info.last_accessed = Utc::now();
 
-            // Check if content has expired
-            if let Some(expires_at) = content.storage_info.expires_at {
-                if Utc::now() > expires_at {
-                    warn!("Content expired: {}", content_id);
-                    self.remove_content(content_id).await?;
-                    return Ok(None);
+                // Check if content has expired
+                if let Some(expires_at) = content.storage_info.expires_at {
+                    if Utc::now() > expires_at {
+                        warn!("Content expired: {}", content_id);
+                        self.remove_content(content_id).await?;
+                        return Ok(None);
+                    }
                 }
-            }
 
-            // Read from disk if not in memory
-            let data = if content.data.is_empty() {
-                if let Some(storage_path) = &content.storage_info.storage_path {
-                    fs::read(storage_path).await
-                        .context("Failed to read content from disk")?
+                // Read from disk if not in memory
+                let data = if content.data.is_empty() {
+                    if let Some(storage_path) = &content.storage_info.storage_path {
+                        fs::read(storage_path).await
+                            .context("Failed to read content from disk")?
+                    } else {
+                        return Ok(None);
+                    }
                 } else {
-                    return Ok(None);
-                }
+                    content.data.clone()
+                };
+
+                // Extract needed data before releasing the borrow
+                (
+                    data,
+                    content.storage_info.compression_algorithm.clone(),
+                    content.metadata.content_hash.clone(),
+                    content.storage_info.is_compressed,
+                    content.metadata.updated_at,
+                    content.sync_info.sync_status.clone(),
+                )
             } else {
-                content.data.clone()
-            };
-
-            // Get compression algorithm and content hash for verification
-            let compression_algorithm = content.storage_info.compression_algorithm.clone();
-            let expected_hash = content.metadata.content_hash.clone();
-            let is_compressed = content.storage_info.is_compressed;
-            let updated_at = content.metadata.updated_at;
-
-            // Decompress if needed
-            let final_data = if is_compressed {
-                self.decompress_data(&data, &compression_algorithm)?
-            } else {
-                data.clone()
-            };
-
-            // Verify integrity
-            let calculated_hash = self.calculate_hash(&data);
-            if calculated_hash != expected_hash {
-                error!("Content integrity check failed for: {}", content_id);
-                return Ok(Some(OfflineResult {
-                    success: false,
-                    data: None,
-                    error: Some("Content integrity check failed".to_string()),
-                    from_cache: true,
-                    sync_pending: false,
-                    last_updated: Some(updated_at),
-                }));
+                return Ok(None);
             }
+        };
 
-            debug!("Retrieved offline content: {} ({} bytes)", content_id, final_data.len());
-
-            Ok(Some(OfflineResult {
-                success: true,
-                data: Some(final_data),
-                error: None,
-                from_cache: true,
-                sync_pending: content.sync_info.sync_status != SyncStatus::Synced,
-                last_updated: Some(updated_at),
-            }))
+        // Now we can use self methods without borrowing issues
+        // Decompress if needed
+        let final_data = if is_compressed {
+            self.decompress_data(&data, &compression_algorithm)?
         } else {
-            Ok(None)
+            data.clone()
+        };
+
+        // Verify integrity
+        let calculated_hash = self.calculate_hash(&data);
+        if calculated_hash != expected_hash {
+            error!("Content integrity check failed for: {}", content_id);
+            return Ok(Some(OfflineResult {
+                success: false,
+                data: None,
+                error: Some("Content integrity check failed".to_string()),
+                from_cache: true,
+                sync_pending: false,
+                last_updated: Some(updated_at),
+            }));
         }
+
+        debug!("Retrieved offline content: {} ({} bytes)", content_id, final_data.len());
+
+        Ok(Some(OfflineResult {
+            success: true,
+            data: Some(final_data),
+            error: None,
+            from_cache: true,
+            sync_pending: sync_status != SyncStatus::Synced,
+            last_updated: Some(updated_at),
+        }))
     }
 
     /// Remove content from offline storage

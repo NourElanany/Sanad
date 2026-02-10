@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use shared::{ContentSignature, ContentType};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -21,7 +21,7 @@ impl SecurityRepository {
         let content_type_str = signature.content_type.to_string();
         let metadata_json = serde_json::to_string(&signature.metadata)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO content_signatures (
                 content_id, content_type, sha256_hash, sha512_hash, 
@@ -35,17 +35,17 @@ impl SecurityRepository {
                 authority = EXCLUDED.authority,
                 metadata = EXCLUDED.metadata,
                 updated_at = NOW()
-            "#,
-            signature.content_id,
-            content_type_str,
-            signature.sha256_hash,
-            signature.sha512_hash,
-            signature.digital_signature,
-            signature.created_at,
-            signature.version as i32,
-            signature.authority,
-            metadata_json
+            "#
         )
+        .bind(signature.content_id)
+        .bind(content_type_str)
+        .bind(&signature.sha256_hash)
+        .bind(&signature.sha512_hash)
+        .bind(&signature.digital_signature)
+        .bind(signature.created_at)
+        .bind(signature.version as i32)
+        .bind(&signature.authority)
+        .bind(metadata_json)
         .execute(&self.pool)
         .await?;
 
@@ -54,20 +54,21 @@ impl SecurityRepository {
 
     /// Retrieve a content signature by ID
     pub async fn get_content_signature(&self, content_id: Uuid) -> Result<Option<ContentSignature>> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT content_id, content_type, sha256_hash, sha512_hash,
                    digital_signature, created_at, version, authority, metadata
             FROM content_signatures 
             WHERE content_id = $1
-            "#,
-            content_id
+            "#
         )
+        .bind(content_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
-            let content_type = match row.content_type.as_str() {
+            let content_type_str: String = row.try_get("content_type")?;
+            let content_type = match content_type_str.as_str() {
                 "quran" => ContentType::Quran,
                 "hadith" => ContentType::Hadith,
                 "tafsir" => ContentType::Tafsir,
@@ -77,17 +78,18 @@ impl SecurityRepository {
                 other => ContentType::Other(other.to_string()),
             };
 
-            let metadata: HashMap<String, String> = serde_json::from_str(&row.metadata)?;
+            let metadata_str: String = row.try_get("metadata")?;
+            let metadata: HashMap<String, String> = serde_json::from_str(&metadata_str)?;
 
             Ok(Some(ContentSignature {
-                content_id: row.content_id,
+                content_id: row.try_get("content_id")?,
                 content_type,
-                sha256_hash: row.sha256_hash,
-                sha512_hash: row.sha512_hash,
-                digital_signature: row.digital_signature,
-                created_at: row.created_at,
-                version: row.version as u32,
-                authority: row.authority,
+                sha256_hash: row.try_get("sha256_hash")?,
+                sha512_hash: row.try_get("sha512_hash")?,
+                digital_signature: row.try_get("digital_signature")?,
+                created_at: row.try_get("created_at")?,
+                version: row.try_get::<i32, _>("version")? as u32,
+                authority: row.try_get("authority")?,
                 metadata,
             }))
         } else {
@@ -102,22 +104,22 @@ impl SecurityRepository {
         let content_manifest_json = serde_json::to_string(&backup.content_manifest)?;
         let metadata_json = serde_json::to_string(&backup.metadata)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO encrypted_backups (
                 id, backup_type, encryption_level, encrypted_data,
                 encryption_hash, content_manifest, created_at, metadata
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            "#,
-            backup.id,
-            backup_type_str,
-            encryption_level_str,
-            backup.encrypted_data,
-            backup.encryption_hash,
-            content_manifest_json,
-            backup.created_at,
-            metadata_json
+            "#
         )
+        .bind(backup.id)
+        .bind(backup_type_str)
+        .bind(encryption_level_str)
+        .bind(&backup.encrypted_data)
+        .bind(&backup.encryption_hash)
+        .bind(content_manifest_json)
+        .bind(backup.created_at)
+        .bind(metadata_json)
         .execute(&self.pool)
         .await?;
 
@@ -126,44 +128,48 @@ impl SecurityRepository {
 
     /// Retrieve an encrypted backup by ID
     pub async fn get_encrypted_backup(&self, backup_id: Uuid) -> Result<Option<EncryptedBackup>> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT id, backup_type, encryption_level, encrypted_data,
                    encryption_hash, content_manifest, created_at, metadata
             FROM encrypted_backups 
             WHERE id = $1
-            "#,
-            backup_id
+            "#
         )
+        .bind(backup_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
-            let backup_type = match row.backup_type.as_str() {
+            let backup_type_str: String = row.try_get("backup_type")?;
+            let backup_type = match backup_type_str.as_str() {
                 "full" => BackupType::Full,
                 "incremental" => BackupType::Incremental,
                 "differential" => BackupType::Differential,
                 _ => BackupType::Full,
             };
 
-            let encryption_level = match row.encryption_level.as_str() {
+            let encryption_level_str: String = row.try_get("encryption_level")?;
+            let encryption_level = match encryption_level_str.as_str() {
                 "standard" => EncryptionLevel::Standard,
                 "high" => EncryptionLevel::High,
                 "maximum" => EncryptionLevel::Maximum,
                 _ => EncryptionLevel::Standard,
             };
 
-            let content_manifest: Vec<Uuid> = serde_json::from_str(&row.content_manifest)?;
-            let metadata: HashMap<String, String> = serde_json::from_str(&row.metadata)?;
+            let content_manifest_str: String = row.try_get("content_manifest")?;
+            let content_manifest: Vec<Uuid> = serde_json::from_str(&content_manifest_str)?;
+            let metadata_str: String = row.try_get("metadata")?;
+            let metadata: HashMap<String, String> = serde_json::from_str(&metadata_str)?;
 
             Ok(Some(EncryptedBackup {
-                id: row.id,
+                id: row.try_get("id")?,
                 backup_type,
                 encryption_level,
-                encrypted_data: row.encrypted_data,
-                encryption_hash: row.encryption_hash,
+                encrypted_data: row.try_get("encrypted_data")?,
+                encryption_hash: row.try_get("encryption_hash")?,
                 content_manifest,
-                created_at: row.created_at,
+                created_at: row.try_get("created_at")?,
                 metadata,
             }))
         } else {
@@ -177,22 +183,22 @@ impl SecurityRepository {
         let severity_str = log.severity.to_string();
         let details_json = serde_json::to_string(&log.details)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO security_audit_logs (
                 id, event_type, content_id, user_id, ip_address,
                 details, severity, timestamp
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            "#,
-            log.id,
-            event_type_str,
-            log.content_id,
-            log.user_id,
-            log.ip_address,
-            details_json,
-            severity_str,
-            log.timestamp
+            "#
         )
+        .bind(log.id)
+        .bind(event_type_str)
+        .bind(log.content_id)
+        .bind(log.user_id)
+        .bind(&log.ip_address)
+        .bind(details_json)
+        .bind(severity_str)
+        .bind(log.timestamp)
         .execute(&self.pool)
         .await?;
 
@@ -246,22 +252,23 @@ impl SecurityRepository {
 
         // For simplicity, we'll use a basic query without dynamic parameters
         // In a production system, you'd want to use a query builder
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT id, event_type, content_id, user_id, ip_address,
                    details, severity, timestamp
             FROM security_audit_logs 
             ORDER BY timestamp DESC 
             LIMIT $1
-            "#,
-            limit.unwrap_or(100)
+            "#
         )
+        .bind(limit.unwrap_or(100))
         .fetch_all(&self.pool)
         .await?;
 
         let mut logs = Vec::new();
         for row in rows {
-            let event_type = match row.event_type.as_str() {
+            let event_type_str: String = row.try_get("event_type")?;
+            let event_type = match event_type_str.as_str() {
                 "content_signed" => SecurityEventType::ContentSigned,
                 "content_verified" => SecurityEventType::ContentVerified,
                 "verification_failed" => SecurityEventType::VerificationFailed,
@@ -273,7 +280,8 @@ impl SecurityRepository {
                 _ => SecurityEventType::SuspiciousActivity,
             };
 
-            let severity = match row.severity.as_str() {
+            let severity_str: String = row.try_get("severity")?;
+            let severity = match severity_str.as_str() {
                 "low" => SecuritySeverity::Low,
                 "medium" => SecuritySeverity::Medium,
                 "high" => SecuritySeverity::High,
@@ -281,17 +289,18 @@ impl SecurityRepository {
                 _ => SecuritySeverity::Medium,
             };
 
-            let details: HashMap<String, String> = serde_json::from_str(&row.details)?;
+            let details_str: String = row.try_get("details")?;
+            let details: HashMap<String, String> = serde_json::from_str(&details_str)?;
 
             logs.push(SecurityAuditLog {
-                id: row.id,
+                id: row.try_get("id")?,
                 event_type,
-                content_id: row.content_id,
-                user_id: row.user_id,
-                ip_address: row.ip_address,
+                content_id: row.try_get("content_id")?,
+                user_id: row.try_get("user_id")?,
+                ip_address: row.try_get("ip_address")?,
                 details,
                 severity,
-                timestamp: row.timestamp,
+                timestamp: row.try_get("timestamp")?,
             });
         }
 
@@ -302,7 +311,7 @@ impl SecurityRepository {
     pub async fn store_content_integrity_record(&self, record: &ContentIntegrityRecord) -> Result<()> {
         let content_type_str = record.content_type.to_string();
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO content_integrity_records (
                 content_id, content_type, sha256_hash, sha512_hash,
@@ -317,18 +326,18 @@ impl SecurityRepository {
                 last_verified = EXCLUDED.last_verified,
                 verification_count = EXCLUDED.verification_count,
                 is_trusted = EXCLUDED.is_trusted
-            "#,
-            record.content_id,
-            content_type_str,
-            record.sha256_hash,
-            record.sha512_hash,
-            record.digital_signature,
-            record.authority,
-            record.created_at,
-            record.last_verified,
-            record.verification_count,
-            record.is_trusted
+            "#
         )
+        .bind(record.content_id)
+        .bind(content_type_str)
+        .bind(&record.sha256_hash)
+        .bind(&record.sha512_hash)
+        .bind(&record.digital_signature)
+        .bind(&record.authority)
+        .bind(record.created_at)
+        .bind(record.last_verified)
+        .bind(record.verification_count)
+        .bind(record.is_trusted)
         .execute(&self.pool)
         .await?;
 
@@ -343,7 +352,7 @@ impl SecurityRepository {
     ) -> Result<Vec<ContentIntegrityRecord>> {
         let rows = if let Some(content_type) = content_type {
             let content_type_str = content_type.to_string();
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 SELECT content_id, content_type, sha256_hash, sha512_hash,
                        digital_signature, authority, created_at, last_verified,
@@ -351,14 +360,14 @@ impl SecurityRepository {
                 FROM content_integrity_records 
                 WHERE content_type = $1 AND ($2::boolean IS NULL OR is_trusted = $2)
                 ORDER BY created_at DESC
-                "#,
-                content_type_str,
-                is_trusted
+                "#
             )
+            .bind(content_type_str)
+            .bind(is_trusted)
             .fetch_all(&self.pool)
             .await?
         } else {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 SELECT content_id, content_type, sha256_hash, sha512_hash,
                        digital_signature, authority, created_at, last_verified,
@@ -366,16 +375,17 @@ impl SecurityRepository {
                 FROM content_integrity_records 
                 WHERE ($1::boolean IS NULL OR is_trusted = $1)
                 ORDER BY created_at DESC
-                "#,
-                is_trusted
+                "#
             )
+            .bind(is_trusted)
             .fetch_all(&self.pool)
             .await?
         };
 
         let mut records = Vec::new();
         for row in rows {
-            let content_type = match row.content_type.as_str() {
+            let content_type_str: String = row.try_get("content_type")?;
+            let content_type = match content_type_str.as_str() {
                 "quran" => ContentType::Quran,
                 "hadith" => ContentType::Hadith,
                 "tafsir" => ContentType::Tafsir,
@@ -386,16 +396,16 @@ impl SecurityRepository {
             };
 
             records.push(ContentIntegrityRecord {
-                content_id: row.content_id,
+                content_id: row.try_get("content_id")?,
                 content_type,
-                sha256_hash: row.sha256_hash,
-                sha512_hash: row.sha512_hash,
-                digital_signature: row.digital_signature,
-                authority: row.authority,
-                created_at: row.created_at,
-                last_verified: row.last_verified,
-                verification_count: row.verification_count,
-                is_trusted: row.is_trusted,
+                sha256_hash: row.try_get("sha256_hash")?,
+                sha512_hash: row.try_get("sha512_hash")?,
+                digital_signature: row.try_get("digital_signature")?,
+                authority: row.try_get("authority")?,
+                created_at: row.try_get("created_at")?,
+                last_verified: row.try_get("last_verified")?,
+                verification_count: row.try_get("verification_count")?,
+                is_trusted: row.try_get("is_trusted")?,
             });
         }
 

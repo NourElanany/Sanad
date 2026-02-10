@@ -4,6 +4,7 @@ use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc, Duration, NaiveTime, Datelike};
 use uuid::Uuid;
 use tracing::{info, warn, error};
+use sqlx::Row;
 
 pub struct NotificationService {
     pub repository: NotificationRepository,
@@ -158,10 +159,12 @@ impl NotificationService {
                         ).await?;
                     } else {
                         // Increment retry count for next attempt
-                        sqlx::query!(
-                            "UPDATE notifications SET retry_count = retry_count + 1, updated_at = NOW() WHERE id = $1",
-                            notification.id
-                        );
+                        sqlx::query(
+                            "UPDATE notifications SET retry_count = retry_count + 1, updated_at = NOW() WHERE id = $1"
+                        )
+                        .bind(notification.id)
+                        .execute(&self.repository.pool)
+                        .await?;
                     }
                 }
             }
@@ -222,17 +225,12 @@ impl NotificationService {
         info!("Scheduling upcoming seasonal notifications");
         
         // Get all active seasonal reminders
-        let all_reminders = sqlx::query_as!(
-            SeasonalReminder,
+        let rows = sqlx::query(
             r#"
             SELECT 
-                id, user_id,
-                season as "season: IslamicSeason",
-                event_name, event_description,
+                id, user_id, season, event_name, event_description,
                 hijri_month, hijri_day, gregorian_date, days_before_notification,
-                is_active,
-                priority as "priority: NotificationPriority",
-                reminder_message, recommended_actions,
+                is_active, priority, reminder_message, recommended_actions,
                 related_verses, related_hadiths,
                 created_at, updated_at
             FROM seasonal_reminders 
@@ -241,6 +239,28 @@ impl NotificationService {
         )
         .fetch_all(&self.repository.pool)
         .await?;
+
+        let all_reminders: Vec<SeasonalReminder> = rows.into_iter().map(|row| {
+            Ok(SeasonalReminder {
+                id: row.try_get("id")?,
+                user_id: row.try_get("user_id")?,
+                season: row.try_get("season")?,
+                event_name: row.try_get("event_name")?,
+                event_description: row.try_get("event_description")?,
+                hijri_month: row.try_get("hijri_month")?,
+                hijri_day: row.try_get("hijri_day")?,
+                gregorian_date: row.try_get("gregorian_date")?,
+                days_before_notification: row.try_get("days_before_notification")?,
+                is_active: row.try_get("is_active")?,
+                priority: row.try_get("priority")?,
+                reminder_message: row.try_get("reminder_message")?,
+                recommended_actions: row.try_get("recommended_actions")?,
+                related_verses: row.try_get("related_verses")?,
+                related_hadiths: row.try_get("related_hadiths")?,
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
+            })
+        }).collect::<Result<Vec<_>>>()?;
 
         let mut scheduled_count = 0;
 

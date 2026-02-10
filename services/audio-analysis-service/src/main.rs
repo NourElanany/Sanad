@@ -1,7 +1,7 @@
 use axum::{
     extract::{Multipart, Path, State},
     http::StatusCode,
-    response::Json,
+    response::{Json, IntoResponse, Response},
     routing::{get, post},
     Router,
 };
@@ -83,15 +83,15 @@ async fn health_check() -> Json<ApiResponse<HashMap<String, String>>> {
 async fn start_recording(
     State(state): State<AppState>,
     Json(request): Json<StartRecordingRequest>
-) -> Json<ApiResponse<RecordingSession>> {
+) -> Response {
     info!("Recording start requested for Surah {} Ayah {}-{}", 
           request.surah_number, request.ayah_start, request.ayah_end);
     
     match state.service.start_recording_session(request).await {
-        Ok(session) => Json(ApiResponse::success(session)),
+        Ok(session) => Json(ApiResponse::success(session)).into_response(),
         Err(e) => {
             tracing::error!("Failed to start recording: {}", e);
-            Json(ApiResponse::error(format!("Failed to start recording: {}", e)))
+            Json(ApiResponse::error(format!("Failed to start recording: {}", e))).into_response()
         }
     }
 }
@@ -99,14 +99,14 @@ async fn start_recording(
 async fn stop_recording(
     State(state): State<AppState>,
     Json(session_id): Json<String>
-) -> Json<ApiResponse<AudioRecording>> {
+) -> Response {
     info!("Recording stop requested for session: {}", session_id);
     
     match state.service.stop_recording_session(&session_id).await {
-        Ok(recording) => Json(ApiResponse::success(recording)),
+        Ok(recording) => Json(ApiResponse::success(recording)).into_response(),
         Err(e) => {
             tracing::error!("Failed to stop recording: {}", e);
-            Json(ApiResponse::error(format!("Failed to stop recording: {}", e)))
+            Json(ApiResponse::error(format!("Failed to stop recording: {}", e))).into_response()
         }
     }
 }
@@ -152,14 +152,14 @@ async fn analyze_recording(
     State(state): State<AppState>,
     Path(recording_id): Path<Uuid>,
     Json(request): Json<AnalyzeRecordingRequest>
-) -> Json<ApiResponse<RecitationAnalysis>> {
+) -> Response {
     info!("Analysis requested for recording: {}", recording_id);
     
     match state.service.analyze_recording(recording_id, request).await {
-        Ok(analysis) => Json(ApiResponse::success(analysis)),
+        Ok(analysis) => Json(ApiResponse::success(analysis)).into_response(),
         Err(e) => {
             tracing::error!("Failed to analyze recording: {}", e);
-            Json(ApiResponse::error(format!("Failed to analyze recording: {}", e)))
+            Json(ApiResponse::error(format!("Failed to analyze recording: {}", e))).into_response()
         }
     }
 }
@@ -167,26 +167,26 @@ async fn analyze_recording(
 async fn compare_recordings(
     State(state): State<AppState>,
     Json(request): Json<CompareRecordingsRequest>
-) -> Json<ApiResponse<AudioComparisonResult>> {
+) -> Response {
     info!("Audio comparison requested");
     
     match state.service.compare_recordings(request).await {
-        Ok(result) => Json(ApiResponse::success(result)),
+        Ok(result) => Json(ApiResponse::success(result)).into_response(),
         Err(e) => {
             tracing::error!("Failed to compare recordings: {}", e);
-            Json(ApiResponse::error(format!("Failed to compare recordings: {}", e)))
+            Json(ApiResponse::error(format!("Failed to compare recordings: {}", e))).into_response()
         }
     }
 }
 
-async fn get_reciters(State(state): State<AppState>) -> Json<ApiResponse<Vec<Reciter>>> {
+async fn get_reciters(State(state): State<AppState>) -> Response {
     info!("Reciters list requested");
     
     match state.service.get_all_reciters().await {
-        Ok(reciters) => Json(ApiResponse::success(reciters)),
+        Ok(reciters) => Json(ApiResponse::success(reciters)).into_response(),
         Err(e) => {
             tracing::error!("Failed to get reciters: {}", e);
-            Json(ApiResponse::error(format!("Failed to get reciters: {}", e)))
+            Json(ApiResponse::error(format!("Failed to get reciters: {}", e))).into_response()
         }
     }
 }
@@ -194,14 +194,14 @@ async fn get_reciters(State(state): State<AppState>) -> Json<ApiResponse<Vec<Rec
 async fn get_reference_recordings(
     State(state): State<AppState>,
     Path((surah, ayah)): Path<(u8, u16)>
-) -> Json<ApiResponse<Vec<ReferenceRecording>>> {
+) -> Response {
     info!("Reference recordings requested for Surah {} Ayah {}", surah, ayah);
     
     match state.service.get_reference_recordings(surah, ayah).await {
-        Ok(recordings) => Json(ApiResponse::success(recordings)),
+        Ok(recordings) => Json(ApiResponse::success(recordings)).into_response(),
         Err(e) => {
             tracing::error!("Failed to get reference recordings: {}", e);
-            Json(ApiResponse::error(format!("Failed to get reference recordings: {}", e)))
+            Json(ApiResponse::error(format!("Failed to get reference recordings: {}", e))).into_response()
         }
     }
 }
@@ -209,23 +209,23 @@ async fn get_reference_recordings(
 async fn get_audio_spectrum(
     State(state): State<AppState>,
     Path(recording_id): Path<Uuid>
-) -> Json<ApiResponse<AudioSpectrum>> {
+) -> Response {
     info!("Spectrum analysis requested for recording: {}", recording_id);
     
     match state.service.get_audio_spectrum(recording_id).await {
-        Ok(spectrum) => Json(ApiResponse::success(spectrum)),
+        Ok(spectrum) => Json(ApiResponse::success(spectrum)).into_response(),
         Err(e) => {
             tracing::error!("Failed to get audio spectrum: {}", e);
-            Json(ApiResponse::error(format!("Failed to get audio spectrum: {}", e)))
+            Json(ApiResponse::error(format!("Failed to get audio spectrum: {}", e))).into_response()
         }
     }
 }
 
-async fn get_system_health(State(state): State<AppState>) -> Json<ApiResponse<SystemHealth>> {
+async fn get_system_health(State(state): State<AppState>) -> Response {
     info!("System health check requested");
     
     match state.service.get_system_health().await {
-        Ok(health) => Json(ApiResponse::success(health)),
+        Ok(health) => Json(ApiResponse::success(health)).into_response(),
         Err(e) => {
             tracing::error!("Failed to get system health: {}", e);
             Json(ApiResponse::error(format!("Failed to get system health: {}", e)))

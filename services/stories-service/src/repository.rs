@@ -17,7 +17,7 @@ impl StoryRepository {
 
     /// Create a new story
     pub async fn create_story(&self, story: &Story) -> Result<Story> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             INSERT INTO stories (
                 id, title, arabic_title, content, content_hash, summary,
@@ -27,87 +27,90 @@ impl StoryRepository {
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
             ) RETURNING *
-            "#,
-            story.id,
-            story.title,
-            story.arabic_title,
-            story.content,
-            story.content_hash,
-            story.summary,
-            story.category as StoryCategory,
-            story.subcategory,
-            story.time_period as Option<TimePeriod>,
-            story.location,
-            story.word_count,
-            story.estimated_reading_time,
-            story.age_group as AgeGroup,
-            &story.moral_lessons,
-            &story.themes,
-            &story.keywords,
-            story.language,
-            story.authenticity_level as AuthenticityLevel,
-            story.scholarly_verification as ScholarlyVerification
+            "#
         )
+        .bind(story.id)
+        .bind(&story.title)
+        .bind(&story.arabic_title)
+        .bind(&story.content)
+        .bind(&story.content_hash)
+        .bind(&story.summary)
+        .bind(format!("{:?}", story.category).to_lowercase())
+        .bind(&story.subcategory)
+        .bind(story.time_period.as_ref().map(|tp| format!("{:?}", tp).to_lowercase()))
+        .bind(&story.location)
+        .bind(story.word_count)
+        .bind(story.estimated_reading_time)
+        .bind(format!("{:?}", story.age_group).to_lowercase())
+        .bind(&story.moral_lessons)
+        .bind(&story.themes)
+        .bind(&story.keywords)
+        .bind(&story.language)
+        .bind(format!("{:?}", story.authenticity_level).to_lowercase())
+        .bind(format!("{:?}", story.scholarly_verification).to_lowercase())
         .fetch_one(&self.pool)
         .await?;
 
         Ok(Story {
-            id: row.id,
-            title: row.title,
-            arabic_title: row.arabic_title,
-            content: row.content,
-            content_hash: row.content_hash,
-            summary: row.summary,
-            category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-            subcategory: row.subcategory,
-            time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-            location: row.location,
-            word_count: row.word_count,
-            estimated_reading_time: row.estimated_reading_time,
-            age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-            moral_lessons: row.moral_lessons.unwrap_or_default(),
-            themes: row.themes.unwrap_or_default(),
-            keywords: row.keywords.unwrap_or_default(),
-            language: row.language,
-            authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-            scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+            id: row.try_get("id")?,
+            title: row.try_get("title")?,
+            arabic_title: row.try_get("arabic_title")?,
+            content: row.try_get("content")?,
+            content_hash: row.try_get("content_hash")?,
+            summary: row.try_get("summary")?,
+            category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+            subcategory: row.try_get("subcategory")?,
+            time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+            location: row.try_get("location")?,
+            word_count: row.try_get("word_count")?,
+            estimated_reading_time: row.try_get("estimated_reading_time")?,
+            age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+            moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+            themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+            keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+            language: row.try_get("language")?,
+            authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+            scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 
     /// Get a story by ID
     pub async fn get_story_by_id(&self, story_id: Uuid) -> Result<Option<Story>> {
-        let row = sqlx::query!(
-            "SELECT * FROM stories WHERE id = $1",
-            story_id
+        let row = sqlx::query(
+            "SELECT id, title, arabic_title, content, content_hash, summary, category, subcategory, 
+             time_period, location, word_count, estimated_reading_time, age_group, moral_lessons, 
+             themes, keywords, language, authenticity_level, scholarly_verification, created_at, updated_at
+             FROM stories WHERE id = $1"
         )
+        .bind(story_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
             Ok(Some(Story {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                content: row.content,
-                content_hash: row.content_hash,
-                summary: row.summary,
-                category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-                subcategory: row.subcategory,
-                time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-                location: row.location,
-                word_count: row.word_count,
-                estimated_reading_time: row.estimated_reading_time,
-                age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-                moral_lessons: row.moral_lessons.unwrap_or_default(),
-                themes: row.themes.unwrap_or_default(),
-                keywords: row.keywords.unwrap_or_default(),
-                language: row.language,
-                authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-                scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                content: row.try_get("content")?,
+                content_hash: row.try_get("content_hash")?,
+                summary: row.try_get("summary")?,
+                category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+                subcategory: row.try_get("subcategory")?,
+                time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+                location: row.try_get("location")?,
+                word_count: row.try_get("word_count")?,
+                estimated_reading_time: row.try_get("estimated_reading_time")?,
+                age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+                moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+                language: row.try_get("language")?,
+                authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+                scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             }))
         } else {
             Ok(None)
@@ -116,36 +119,39 @@ impl StoryRepository {
 
     /// Get a story by title
     pub async fn get_story_by_title(&self, title: &str) -> Result<Option<Story>> {
-        let row = sqlx::query!(
-            "SELECT * FROM stories WHERE title = $1 OR arabic_title = $1",
-            title
+        let row = sqlx::query(
+            "SELECT id, title, arabic_title, content, content_hash, summary, category, subcategory, 
+             time_period, location, word_count, estimated_reading_time, age_group, moral_lessons, 
+             themes, keywords, language, authenticity_level, scholarly_verification, created_at, updated_at
+             FROM stories WHERE title = $1 OR arabic_title = $1"
         )
+        .bind(title)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
             Ok(Some(Story {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                content: row.content,
-                content_hash: row.content_hash,
-                summary: row.summary,
-                category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-                subcategory: row.subcategory,
-                time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-                location: row.location,
-                word_count: row.word_count,
-                estimated_reading_time: row.estimated_reading_time,
-                age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-                moral_lessons: row.moral_lessons.unwrap_or_default(),
-                themes: row.themes.unwrap_or_default(),
-                keywords: row.keywords.unwrap_or_default(),
-                language: row.language,
-                authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-                scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                content: row.try_get("content")?,
+                content_hash: row.try_get("content_hash")?,
+                summary: row.try_get("summary")?,
+                category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+                subcategory: row.try_get("subcategory")?,
+                time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+                location: row.try_get("location")?,
+                word_count: row.try_get("word_count")?,
+                estimated_reading_time: row.try_get("estimated_reading_time")?,
+                age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+                moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+                language: row.try_get("language")?,
+                authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+                scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             }))
         } else {
             Ok(None)
@@ -276,39 +282,39 @@ impl StoryRepository {
         offset: i32,
     ) -> Result<Vec<Story>> {
         let category_str = format!("{:?}", category).to_lowercase();
-        let rows = sqlx::query!(
-            "SELECT * FROM stories WHERE category = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
-            category_str,
-            limit,
-            offset
+        let rows = sqlx::query(
+            "SELECT * FROM stories WHERE category = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         )
+        .bind(category_str)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await?;
 
         let mut stories = Vec::new();
         for row in rows {
             stories.push(Story {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                content: row.content,
-                content_hash: row.content_hash,
-                summary: row.summary,
-                category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-                subcategory: row.subcategory,
-                time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-                location: row.location,
-                word_count: row.word_count,
-                estimated_reading_time: row.estimated_reading_time,
-                age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-                moral_lessons: row.moral_lessons.unwrap_or_default(),
-                themes: row.themes.unwrap_or_default(),
-                keywords: row.keywords.unwrap_or_default(),
-                language: row.language,
-                authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-                scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                content: row.try_get("content")?,
+                content_hash: row.try_get("content_hash")?,
+                summary: row.try_get("summary")?,
+                category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+                subcategory: row.try_get("subcategory")?,
+                time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+                location: row.try_get("location")?,
+                word_count: row.try_get("word_count")?,
+                estimated_reading_time: row.try_get("estimated_reading_time")?,
+                age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+                moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+                language: row.try_get("language")?,
+                authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+                scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -317,7 +323,7 @@ impl StoryRepository {
 
     /// Update a story
     pub async fn update_story(&self, story: &Story) -> Result<Story> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             UPDATE stories SET
                 title = $2, arabic_title = $3, content = $4, content_hash = $5,
@@ -328,61 +334,61 @@ impl StoryRepository {
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
-            "#,
-            story.id,
-            story.title,
-            story.arabic_title,
-            story.content,
-            story.content_hash,
-            story.summary,
-            story.category as StoryCategory,
-            story.subcategory,
-            story.time_period as Option<TimePeriod>,
-            story.location,
-            story.word_count,
-            story.estimated_reading_time,
-            story.age_group as AgeGroup,
-            &story.moral_lessons,
-            &story.themes,
-            &story.keywords,
-            story.language,
-            story.authenticity_level as AuthenticityLevel,
-            story.scholarly_verification as ScholarlyVerification
+            "#
         )
+        .bind(story.id)
+        .bind(&story.title)
+        .bind(&story.arabic_title)
+        .bind(&story.content)
+        .bind(&story.content_hash)
+        .bind(&story.summary)
+        .bind(format!("{:?}", story.category).to_lowercase())
+        .bind(&story.subcategory)
+        .bind(story.time_period.as_ref().map(|tp| format!("{:?}", tp).to_lowercase()))
+        .bind(&story.location)
+        .bind(story.word_count)
+        .bind(story.estimated_reading_time)
+        .bind(format!("{:?}", story.age_group).to_lowercase())
+        .bind(&story.moral_lessons)
+        .bind(&story.themes)
+        .bind(&story.keywords)
+        .bind(&story.language)
+        .bind(format!("{:?}", story.authenticity_level).to_lowercase())
+        .bind(format!("{:?}", story.scholarly_verification).to_lowercase())
         .fetch_one(&self.pool)
         .await?;
 
         Ok(Story {
-            id: row.id,
-            title: row.title,
-            arabic_title: row.arabic_title,
-            content: row.content,
-            content_hash: row.content_hash,
-            summary: row.summary,
-            category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-            subcategory: row.subcategory,
-            time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-            location: row.location,
-            word_count: row.word_count,
-            estimated_reading_time: row.estimated_reading_time,
-            age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-            moral_lessons: row.moral_lessons.unwrap_or_default(),
-            themes: row.themes.unwrap_or_default(),
-            keywords: row.keywords.unwrap_or_default(),
-            language: row.language,
-            authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-            scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+            id: row.try_get("id")?,
+            title: row.try_get("title")?,
+            arabic_title: row.try_get("arabic_title")?,
+            content: row.try_get("content")?,
+            content_hash: row.try_get("content_hash")?,
+            summary: row.try_get("summary")?,
+            category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+            subcategory: row.try_get("subcategory")?,
+            time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+            location: row.try_get("location")?,
+            word_count: row.try_get("word_count")?,
+            estimated_reading_time: row.try_get("estimated_reading_time")?,
+            age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+            moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+            themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+            keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+            language: row.try_get("language")?,
+            authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+            scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 
     /// Delete a story
     pub async fn delete_story(&self, story_id: Uuid) -> Result<bool> {
-        let result = sqlx::query!(
-            "DELETE FROM stories WHERE id = $1",
-            story_id
+        let result = sqlx::query(
+            "DELETE FROM stories WHERE id = $1"
         )
+        .bind(story_id)
         .execute(&self.pool)
         .await?;
 
@@ -391,7 +397,7 @@ impl StoryRepository {
 
     /// Create a new character
     pub async fn create_character(&self, character: &Character) -> Result<Character> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             INSERT INTO characters (
                 id, name, arabic_name, character_type, description,
@@ -399,66 +405,70 @@ impl StoryRepository {
                 virtues, role_significance
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-            ) RETURNING *
-            "#,
-            character.id,
-            character.name,
-            character.arabic_name,
-            character.character_type as CharacterType,
-            character.description,
-            character.historical_period as Option<TimePeriod>,
-            character.birth_year,
-            character.death_year,
-            character.biography,
-            &character.virtues,
-            character.role_significance
+            ) RETURNING id, name, arabic_name, character_type, description,
+                historical_period, birth_year, death_year, biography,
+                virtues, role_significance, related_stories_count, created_at, updated_at
+            "#
         )
+        .bind(character.id)
+        .bind(&character.name)
+        .bind(&character.arabic_name)
+        .bind(format!("{:?}", character.character_type).to_lowercase())
+        .bind(&character.description)
+        .bind(character.historical_period.as_ref().map(|hp| format!("{:?}", hp).to_lowercase()))
+        .bind(character.birth_year)
+        .bind(character.death_year)
+        .bind(&character.biography)
+        .bind(&character.virtues)
+        .bind(&character.role_significance)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(Character {
-            id: row.id,
-            name: row.name,
-            arabic_name: row.arabic_name,
-            character_type: row.character_type.parse().unwrap_or(CharacterType::HistoricalFigure),
-            description: row.description,
-            historical_period: row.historical_period.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
-            birth_year: row.birth_year,
-            death_year: row.death_year,
-            biography: row.biography,
-            virtues: row.virtues.unwrap_or_default(),
-            role_significance: row.role_significance,
-            related_stories_count: row.related_stories_count,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            arabic_name: row.try_get("arabic_name")?,
+            character_type: row.try_get::<String, _>("character_type")?.parse().unwrap_or(CharacterType::HistoricalFigure),
+            description: row.try_get("description")?,
+            historical_period: row.try_get::<Option<String>, _>("historical_period")?.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
+            birth_year: row.try_get("birth_year")?,
+            death_year: row.try_get("death_year")?,
+            biography: row.try_get("biography")?,
+            virtues: row.try_get::<Option<Vec<String>>, _>("virtues")?.unwrap_or_default(),
+            role_significance: row.try_get("role_significance")?,
+            related_stories_count: row.try_get("related_stories_count")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 
     /// Get a character by ID
     pub async fn get_character_by_id(&self, character_id: Uuid) -> Result<Option<Character>> {
-        let row = sqlx::query!(
-            "SELECT * FROM characters WHERE id = $1",
-            character_id
+        let row = sqlx::query(
+            "SELECT id, name, arabic_name, character_type, description, historical_period, 
+             birth_year, death_year, biography, virtues, role_significance, related_stories_count, 
+             created_at, updated_at FROM characters WHERE id = $1"
         )
+        .bind(character_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
             Ok(Some(Character {
-                id: row.id,
-                name: row.name,
-                arabic_name: row.arabic_name,
-                character_type: row.character_type.parse().unwrap_or(CharacterType::HistoricalFigure),
-                description: row.description,
-                historical_period: row.historical_period.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
-                birth_year: row.birth_year,
-                death_year: row.death_year,
-                biography: row.biography,
-                virtues: row.virtues.unwrap_or_default(),
-                role_significance: row.role_significance,
-                related_stories_count: row.related_stories_count,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                name: row.try_get("name")?,
+                arabic_name: row.try_get("arabic_name")?,
+                character_type: row.try_get::<String, _>("character_type")?.parse().unwrap_or(CharacterType::HistoricalFigure),
+                description: row.try_get("description")?,
+                historical_period: row.try_get::<Option<String>, _>("historical_period")?.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
+                birth_year: row.try_get("birth_year")?,
+                death_year: row.try_get("death_year")?,
+                biography: row.try_get("biography")?,
+                virtues: row.try_get::<Option<Vec<String>>, _>("virtues")?.unwrap_or_default(),
+                role_significance: row.try_get("role_significance")?,
+                related_stories_count: row.try_get("related_stories_count")?,
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             }))
         } else {
             Ok(None)
@@ -467,30 +477,32 @@ impl StoryRepository {
 
     /// Get characters by name
     pub async fn get_characters_by_name(&self, name: &str) -> Result<Vec<Character>> {
-        let rows = sqlx::query!(
-            "SELECT * FROM characters WHERE name ILIKE $1 OR arabic_name ILIKE $1",
-            format!("%{}%", name)
+        let rows = sqlx::query(
+            "SELECT id, name, arabic_name, character_type, description, historical_period, 
+             birth_year, death_year, biography, virtues, role_significance, related_stories_count, 
+             created_at, updated_at FROM characters WHERE name ILIKE $1 OR arabic_name ILIKE $1"
         )
+        .bind(format!("%{}%", name))
         .fetch_all(&self.pool)
         .await?;
 
         let mut characters = Vec::new();
         for row in rows {
             characters.push(Character {
-                id: row.id,
-                name: row.name,
-                arabic_name: row.arabic_name,
-                character_type: row.character_type.parse().unwrap_or(CharacterType::HistoricalFigure),
-                description: row.description,
-                historical_period: row.historical_period.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
-                birth_year: row.birth_year,
-                death_year: row.death_year,
-                biography: row.biography,
-                virtues: row.virtues.unwrap_or_default(),
-                role_significance: row.role_significance,
-                related_stories_count: row.related_stories_count,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                name: row.try_get("name")?,
+                arabic_name: row.try_get("arabic_name")?,
+                character_type: row.try_get::<String, _>("character_type")?.parse().unwrap_or(CharacterType::HistoricalFigure),
+                description: row.try_get("description")?,
+                historical_period: row.try_get::<Option<String>, _>("historical_period")?.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
+                birth_year: row.try_get("birth_year")?,
+                death_year: row.try_get("death_year")?,
+                biography: row.try_get("biography")?,
+                virtues: row.try_get::<Option<Vec<String>>, _>("virtues")?.unwrap_or_default(),
+                role_significance: row.try_get("role_significance")?,
+                related_stories_count: row.try_get("related_stories_count")?,
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -499,16 +511,19 @@ impl StoryRepository {
 
     /// Get characters for a story
     pub async fn get_story_characters(&self, story_id: Uuid) -> Result<Vec<CharacterInStory>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
-            SELECT c.*, sc.role_in_story, sc.importance_level, sc.character_description_in_story
+            SELECT c.id, c.name, c.arabic_name, c.character_type, c.description, c.historical_period,
+                   c.birth_year, c.death_year, c.biography, c.virtues, c.role_significance, 
+                   c.related_stories_count, c.created_at, c.updated_at,
+                   sc.role_in_story, sc.importance_level, sc.character_description_in_story
             FROM characters c
             JOIN story_characters sc ON c.id = sc.character_id
             WHERE sc.story_id = $1
             ORDER BY sc.importance_level, c.name
-            "#,
-            story_id
+            "#
         )
+        .bind(story_id)
         .fetch_all(&self.pool)
         .await?;
 
@@ -516,24 +531,24 @@ impl StoryRepository {
         for row in rows {
             characters.push(CharacterInStory {
                 character: Character {
-                    id: row.id,
-                    name: row.name,
-                    arabic_name: row.arabic_name,
-                    character_type: row.character_type.parse().unwrap_or(CharacterType::HistoricalFigure),
-                    description: row.description,
-                    historical_period: row.historical_period.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
-                    birth_year: row.birth_year,
-                    death_year: row.death_year,
-                    biography: row.biography,
-                    virtues: row.virtues.unwrap_or_default(),
-                    role_significance: row.role_significance,
-                    related_stories_count: row.related_stories_count,
-                    created_at: row.created_at,
-                    updated_at: row.updated_at,
+                    id: row.try_get("id")?,
+                    name: row.try_get("name")?,
+                    arabic_name: row.try_get("arabic_name")?,
+                    character_type: row.try_get::<String, _>("character_type")?.parse().unwrap_or(CharacterType::HistoricalFigure),
+                    description: row.try_get("description")?,
+                    historical_period: row.try_get::<Option<String>, _>("historical_period")?.map(|hp| hp.parse().unwrap_or(TimePeriod::Modern)),
+                    birth_year: row.try_get("birth_year")?,
+                    death_year: row.try_get("death_year")?,
+                    biography: row.try_get("biography")?,
+                    virtues: row.try_get::<Option<Vec<String>>, _>("virtues")?.unwrap_or_default(),
+                    role_significance: row.try_get("role_significance")?,
+                    related_stories_count: row.try_get("related_stories_count")?,
+                    created_at: row.try_get("created_at")?,
+                    updated_at: row.try_get("updated_at")?,
                 },
-                role_in_story: row.role_in_story.parse().unwrap_or(CharacterRole::Supporting),
-                importance_level: row.importance_level.parse().unwrap_or(ImportanceLevel::Minor),
-                character_description_in_story: row.character_description_in_story,
+                role_in_story: row.try_get::<String, _>("role_in_story")?.parse().unwrap_or(CharacterRole::Supporting),
+                importance_level: row.try_get::<String, _>("importance_level")?.parse().unwrap_or(ImportanceLevel::Minor),
+                character_description_in_story: row.try_get("character_description_in_story")?,
             });
         }
 
@@ -549,7 +564,7 @@ impl StoryRepository {
         importance: ImportanceLevel,
         description: Option<String>,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO story_characters (story_id, character_id, role_in_story, importance_level, character_description_in_story)
             VALUES ($1, $2, $3, $4, $5)
@@ -557,13 +572,13 @@ impl StoryRepository {
                 role_in_story = EXCLUDED.role_in_story,
                 importance_level = EXCLUDED.importance_level,
                 character_description_in_story = EXCLUDED.character_description_in_story
-            "#,
-            story_id,
-            character_id,
-            role as CharacterRole,
-            importance as ImportanceLevel,
-            description
+            "#
         )
+        .bind(story_id)
+        .bind(character_id)
+        .bind(format!("{:?}", role).to_lowercase())
+        .bind(format!("{:?}", importance).to_lowercase())
+        .bind(description)
         .execute(&self.pool)
         .await?;
 
@@ -572,7 +587,7 @@ impl StoryRepository {
 
     /// Create a new lesson
     pub async fn create_lesson(&self, lesson: &Lesson) -> Result<Lesson> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             INSERT INTO lessons (
                 id, title, arabic_title, description, lesson_type,
@@ -580,52 +595,57 @@ impl StoryRepository {
                 related_verses, related_hadiths
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-            ) RETURNING *
-            "#,
-            lesson.id,
-            lesson.title,
-            lesson.arabic_title,
-            lesson.description,
-            lesson.lesson_type as LessonType,
-            lesson.moral_category as MoralCategory,
-            lesson.practical_application,
-            &lesson.target_audience.iter().map(|ag| format!("{:?}", ag).to_lowercase()).collect::<Vec<_>>(),
-            &lesson.related_verses,
-            &lesson.related_hadiths
+            ) RETURNING id, title, arabic_title, description, lesson_type,
+                moral_category, practical_application, target_audience,
+                related_verses, related_hadiths, created_at, updated_at
+            "#
         )
+        .bind(lesson.id)
+        .bind(&lesson.title)
+        .bind(&lesson.arabic_title)
+        .bind(&lesson.description)
+        .bind(format!("{:?}", lesson.lesson_type).to_lowercase())
+        .bind(format!("{:?}", lesson.moral_category).to_lowercase())
+        .bind(&lesson.practical_application)
+        .bind(&lesson.target_audience.iter().map(|ag| format!("{:?}", ag).to_lowercase()).collect::<Vec<_>>())
+        .bind(&lesson.related_verses)
+        .bind(&lesson.related_hadiths)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(Lesson {
-            id: row.id,
-            title: row.title,
-            arabic_title: row.arabic_title,
-            description: row.description,
-            lesson_type: row.lesson_type.parse().unwrap_or(LessonType::Moral),
-            moral_category: row.moral_category.parse().unwrap_or(MoralCategory::Faith),
-            practical_application: row.practical_application,
-            target_audience: row.target_audience.unwrap_or_default().iter()
+            id: row.try_get("id")?,
+            title: row.try_get("title")?,
+            arabic_title: row.try_get("arabic_title")?,
+            description: row.try_get("description")?,
+            lesson_type: row.try_get::<String, _>("lesson_type")?.parse().unwrap_or(LessonType::Moral),
+            moral_category: row.try_get::<String, _>("moral_category")?.parse().unwrap_or(MoralCategory::Faith),
+            practical_application: row.try_get("practical_application")?,
+            target_audience: row.try_get::<Option<Vec<String>>, _>("target_audience")?.unwrap_or_default().iter()
                 .filter_map(|s| s.parse().ok())
                 .collect(),
-            related_verses: row.related_verses.unwrap_or_default(),
-            related_hadiths: row.related_hadiths.unwrap_or_default(),
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+            related_verses: row.try_get::<Option<Vec<String>>, _>("related_verses")?.unwrap_or_default(),
+            related_hadiths: row.try_get::<Option<Vec<String>>, _>("related_hadiths")?.unwrap_or_default(),
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 
     /// Get lessons for a story
     pub async fn get_story_lessons(&self, story_id: Uuid) -> Result<Vec<LessonInStory>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
-            SELECT l.*, sl.relevance_score, sl.explanation
+            SELECT l.id, l.title, l.arabic_title, l.description, l.lesson_type,
+                   l.moral_category, l.practical_application, l.target_audience,
+                   l.related_verses, l.related_hadiths, l.created_at, l.updated_at,
+                   sl.relevance_score, sl.explanation
             FROM lessons l
             JOIN story_lessons sl ON l.id = sl.lesson_id
             WHERE sl.story_id = $1
             ORDER BY sl.relevance_score DESC
-            "#,
-            story_id
+            "#
         )
+        .bind(story_id)
         .fetch_all(&self.pool)
         .await?;
 
@@ -633,23 +653,23 @@ impl StoryRepository {
         for row in rows {
             lessons.push(LessonInStory {
                 lesson: Lesson {
-                    id: row.id,
-                    title: row.title,
-                    arabic_title: row.arabic_title,
-                    description: row.description,
-                    lesson_type: row.lesson_type.parse().unwrap_or(LessonType::Moral),
-                    moral_category: row.moral_category.parse().unwrap_or(MoralCategory::Faith),
-                    practical_application: row.practical_application,
-                    target_audience: row.target_audience.unwrap_or_default().iter()
+                    id: row.try_get("id")?,
+                    title: row.try_get("title")?,
+                    arabic_title: row.try_get("arabic_title")?,
+                    description: row.try_get("description")?,
+                    lesson_type: row.try_get::<String, _>("lesson_type")?.parse().unwrap_or(LessonType::Moral),
+                    moral_category: row.try_get::<String, _>("moral_category")?.parse().unwrap_or(MoralCategory::Faith),
+                    practical_application: row.try_get("practical_application")?,
+                    target_audience: row.try_get::<Option<Vec<String>>, _>("target_audience")?.unwrap_or_default().iter()
                         .filter_map(|s| s.parse().ok())
                         .collect(),
-                    related_verses: row.related_verses.unwrap_or_default(),
-                    related_hadiths: row.related_hadiths.unwrap_or_default(),
-                    created_at: row.created_at,
-                    updated_at: row.updated_at,
+                    related_verses: row.try_get::<Option<Vec<String>>, _>("related_verses")?.unwrap_or_default(),
+                    related_hadiths: row.try_get::<Option<Vec<String>>, _>("related_hadiths")?.unwrap_or_default(),
+                    created_at: row.try_get("created_at")?,
+                    updated_at: row.try_get("updated_at")?,
                 },
-                relevance_score: row.relevance_score.unwrap_or(5.0) as f64,
-                explanation: row.explanation,
+                relevance_score: row.try_get::<Option<f32>, _>("relevance_score")?.unwrap_or(5.0) as f64,
+                explanation: row.try_get("explanation")?,
             });
         }
 
@@ -664,19 +684,19 @@ impl StoryRepository {
         relevance_score: f64,
         explanation: Option<String>,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO story_lessons (story_id, lesson_id, relevance_score, explanation)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (story_id, lesson_id) DO UPDATE SET
                 relevance_score = EXCLUDED.relevance_score,
                 explanation = EXCLUDED.explanation
-            "#,
-            story_id,
-            lesson_id,
-            relevance_score as f32,
-            explanation
+            "#
         )
+        .bind(story_id)
+        .bind(lesson_id)
+        .bind(relevance_score as f32)
+        .bind(explanation)
         .execute(&self.pool)
         .await?;
 
@@ -685,7 +705,7 @@ impl StoryRepository {
 
     /// Create a story source
     pub async fn create_story_source(&self, source: &StorySource) -> Result<StorySource> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             INSERT INTO story_sources (
                 id, story_id, source_type, source_name, arabic_source_name,
@@ -693,65 +713,69 @@ impl StoryRepository {
                 verification_status, notes
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-            ) RETURNING *
-            "#,
-            source.id,
-            source.story_id,
-            source.source_type as SourceType,
-            source.source_name,
-            source.arabic_source_name,
-            source.author,
-            source.reference,
-            source.authenticity_grade,
-            source.credibility_score as f32,
-            source.verification_status as VerificationStatus,
-            source.notes
+            ) RETURNING id, story_id, source_type, source_name, arabic_source_name,
+                author, reference, authenticity_grade, credibility_score,
+                verification_status, notes, created_at, updated_at
+            "#
         )
+        .bind(source.id)
+        .bind(source.story_id)
+        .bind(format!("{:?}", source.source_type).to_lowercase())
+        .bind(&source.source_name)
+        .bind(&source.arabic_source_name)
+        .bind(&source.author)
+        .bind(&source.reference)
+        .bind(&source.authenticity_grade)
+        .bind(source.credibility_score as f32)
+        .bind(format!("{:?}", source.verification_status).to_lowercase())
+        .bind(&source.notes)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(StorySource {
-            id: row.id,
-            story_id: row.story_id,
-            source_type: row.source_type.parse().unwrap_or(SourceType::ScholarlyWork),
-            source_name: row.source_name,
-            arabic_source_name: row.arabic_source_name,
-            author: row.author,
-            reference: row.reference,
-            authenticity_grade: row.authenticity_grade,
-            credibility_score: row.credibility_score.unwrap_or(5.0) as f64,
-            verification_status: row.verification_status.parse().unwrap_or(VerificationStatus::Unverified),
-            notes: row.notes,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+            id: row.try_get("id")?,
+            story_id: row.try_get("story_id")?,
+            source_type: row.try_get::<String, _>("source_type")?.parse().unwrap_or(SourceType::ScholarlyWork),
+            source_name: row.try_get("source_name")?,
+            arabic_source_name: row.try_get("arabic_source_name")?,
+            author: row.try_get("author")?,
+            reference: row.try_get("reference")?,
+            authenticity_grade: row.try_get("authenticity_grade")?,
+            credibility_score: row.try_get::<Option<f32>, _>("credibility_score")?.unwrap_or(5.0) as f64,
+            verification_status: row.try_get::<String, _>("verification_status")?.parse().unwrap_or(VerificationStatus::Unverified),
+            notes: row.try_get("notes")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
         })
     }
 
     /// Get sources for a story
     pub async fn get_story_sources(&self, story_id: Uuid) -> Result<Vec<StorySource>> {
-        let rows = sqlx::query!(
-            "SELECT * FROM story_sources WHERE story_id = $1 ORDER BY credibility_score DESC",
-            story_id
+        let rows = sqlx::query(
+            "SELECT id, story_id, source_type, source_name, arabic_source_name, author, reference, 
+             authenticity_grade, credibility_score, verification_status, notes, created_at, updated_at 
+             FROM story_sources WHERE story_id = $1 ORDER BY credibility_score DESC"
         )
+        .bind(story_id)
         .fetch_all(&self.pool)
         .await?;
 
         let mut sources = Vec::new();
         for row in rows {
             sources.push(StorySource {
-                id: row.id,
-                story_id: row.story_id,
-                source_type: row.source_type.parse().unwrap_or(SourceType::ScholarlyWork),
-                source_name: row.source_name,
-                arabic_source_name: row.arabic_source_name,
-                author: row.author,
-                reference: row.reference,
-                authenticity_grade: row.authenticity_grade,
-                credibility_score: row.credibility_score.unwrap_or(5.0) as f64,
-                verification_status: row.verification_status.parse().unwrap_or(VerificationStatus::Unverified),
-                notes: row.notes,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                story_id: row.try_get("story_id")?,
+                source_type: row.try_get::<String, _>("source_type")?.parse().unwrap_or(SourceType::ScholarlyWork),
+                source_name: row.try_get("source_name")?,
+                arabic_source_name: row.try_get("arabic_source_name")?,
+                author: row.try_get("author")?,
+                reference: row.try_get("reference")?,
+                authenticity_grade: row.try_get("authenticity_grade")?,
+                credibility_score: row.try_get::<Option<f32>, _>("credibility_score")?.unwrap_or(5.0) as f64,
+                verification_status: row.try_get::<String, _>("verification_status")?.parse().unwrap_or(VerificationStatus::Unverified),
+                notes: row.try_get("notes")?,
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -780,32 +804,33 @@ impl StoryRepository {
 
     /// Get collections that contain a story
     pub async fn get_story_collections(&self, story_id: Uuid) -> Result<Vec<StoryCollection>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
-            SELECT sc.*
+            SELECT sc.id, sc.name, sc.arabic_name, sc.description, sc.collection_type, 
+                   sc.story_count, sc.target_age_group, sc.themes, sc.created_at, sc.updated_at
             FROM story_collections sc
             JOIN story_collection_members scm ON sc.id = scm.collection_id
             WHERE scm.story_id = $1
             ORDER BY sc.name
-            "#,
-            story_id
+            "#
         )
+        .bind(story_id)
         .fetch_all(&self.pool)
         .await?;
 
         let mut collections = Vec::new();
         for row in rows {
             collections.push(StoryCollection {
-                id: row.id,
-                name: row.name,
-                arabic_name: row.arabic_name,
-                description: row.description,
-                collection_type: row.collection_type.parse().unwrap_or(CollectionType::Thematic),
-                story_count: row.story_count,
-                target_age_group: row.target_age_group.map(|ag| ag.parse().unwrap_or(AgeGroup::AllAges)),
-                themes: row.themes.unwrap_or_default(),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                name: row.try_get("name")?,
+                arabic_name: row.try_get("arabic_name")?,
+                description: row.try_get("description")?,
+                collection_type: row.try_get::<String, _>("collection_type")?.parse().unwrap_or(CollectionType::Thematic),
+                story_count: row.try_get("story_count")?,
+                target_age_group: row.try_get::<Option<String>, _>("target_age_group")?.map(|ag| ag.parse().unwrap_or(AgeGroup::AllAges)),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -819,47 +844,50 @@ impl StoryRepository {
         limit: i32,
         offset: i32,
     ) -> Result<Vec<Story>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
-            SELECT DISTINCT s.*
+            SELECT DISTINCT s.id, s.title, s.arabic_title, s.content, s.content_hash, s.summary,
+                   s.category, s.subcategory, s.time_period, s.location, s.word_count,
+                   s.estimated_reading_time, s.age_group, s.moral_lessons, s.themes, s.keywords,
+                   s.language, s.authenticity_level, s.scholarly_verification, s.created_at, s.updated_at
             FROM stories s
             JOIN story_characters sc ON s.id = sc.story_id
             JOIN characters c ON sc.character_id = c.id
             WHERE c.name ILIKE $1 OR c.arabic_name ILIKE $1
             ORDER BY s.created_at DESC
             LIMIT $2 OFFSET $3
-            "#,
-            format!("%{}%", character_name),
-            limit,
-            offset
+            "#
         )
+        .bind(format!("%{}%", character_name))
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await?;
 
         let mut stories = Vec::new();
         for row in rows {
             stories.push(Story {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                content: row.content,
-                content_hash: row.content_hash,
-                summary: row.summary,
-                category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-                subcategory: row.subcategory,
-                time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-                location: row.location,
-                word_count: row.word_count,
-                estimated_reading_time: row.estimated_reading_time,
-                age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-                moral_lessons: row.moral_lessons.unwrap_or_default(),
-                themes: row.themes.unwrap_or_default(),
-                keywords: row.keywords.unwrap_or_default(),
-                language: row.language,
-                authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-                scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                content: row.try_get("content")?,
+                content_hash: row.try_get("content_hash")?,
+                summary: row.try_get("summary")?,
+                category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+                subcategory: row.try_get("subcategory")?,
+                time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+                location: row.try_get("location")?,
+                word_count: row.try_get("word_count")?,
+                estimated_reading_time: row.try_get("estimated_reading_time")?,
+                age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+                moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+                language: row.try_get("language")?,
+                authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+                scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -873,39 +901,42 @@ impl StoryRepository {
         limit: i32,
         offset: i32,
     ) -> Result<Vec<Story>> {
-        let rows = sqlx::query!(
-            "SELECT * FROM stories WHERE $1 = ANY(themes) ORDER BY created_at DESC LIMIT $2 OFFSET $3",
-            theme,
-            limit,
-            offset
+        let rows = sqlx::query(
+            "SELECT id, title, arabic_title, content, content_hash, summary, category, subcategory,
+             time_period, location, word_count, estimated_reading_time, age_group, moral_lessons,
+             themes, keywords, language, authenticity_level, scholarly_verification, created_at, updated_at
+             FROM stories WHERE $1 = ANY(themes) ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         )
+        .bind(theme)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await?;
 
         let mut stories = Vec::new();
         for row in rows {
             stories.push(Story {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                content: row.content,
-                content_hash: row.content_hash,
-                summary: row.summary,
-                category: row.category.parse().unwrap_or(StoryCategory::MoralLessons),
-                subcategory: row.subcategory,
-                time_period: row.time_period.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
-                location: row.location,
-                word_count: row.word_count,
-                estimated_reading_time: row.estimated_reading_time,
-                age_group: row.age_group.parse().unwrap_or(AgeGroup::AllAges),
-                moral_lessons: row.moral_lessons.unwrap_or_default(),
-                themes: row.themes.unwrap_or_default(),
-                keywords: row.keywords.unwrap_or_default(),
-                language: row.language,
-                authenticity_level: row.authenticity_level.parse().unwrap_or(AuthenticityLevel::Educational),
-                scholarly_verification: row.scholarly_verification.parse().unwrap_or(ScholarlyVerification::Pending),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                content: row.try_get("content")?,
+                content_hash: row.try_get("content_hash")?,
+                summary: row.try_get("summary")?,
+                category: row.try_get::<String, _>("category")?.parse().unwrap_or(StoryCategory::MoralLessons),
+                subcategory: row.try_get("subcategory")?,
+                time_period: row.try_get::<Option<String>, _>("time_period")?.map(|tp| tp.parse().unwrap_or(TimePeriod::Modern)),
+                location: row.try_get("location")?,
+                word_count: row.try_get("word_count")?,
+                estimated_reading_time: row.try_get("estimated_reading_time")?,
+                age_group: row.try_get::<String, _>("age_group")?.parse().unwrap_or(AgeGroup::AllAges),
+                moral_lessons: row.try_get::<Option<Vec<String>>, _>("moral_lessons")?.unwrap_or_default(),
+                themes: row.try_get::<Option<Vec<String>>, _>("themes")?.unwrap_or_default(),
+                keywords: row.try_get::<Option<Vec<String>>, _>("keywords")?.unwrap_or_default(),
+                language: row.try_get("language")?,
+                authenticity_level: row.try_get::<String, _>("authenticity_level")?.parse().unwrap_or(AuthenticityLevel::Educational),
+                scholarly_verification: row.try_get::<String, _>("scholarly_verification")?.parse().unwrap_or(ScholarlyVerification::Pending),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             });
         }
 
@@ -914,7 +945,7 @@ impl StoryRepository {
 
     /// Get category statistics
     pub async fn get_category_statistics(&self) -> Result<HashMap<String, i64>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             "SELECT category, COUNT(*) as count FROM stories GROUP BY category"
         )
         .fetch_all(&self.pool)
@@ -922,7 +953,7 @@ impl StoryRepository {
 
         let mut stats = HashMap::new();
         for row in rows {
-            stats.insert(row.category, row.count.unwrap_or(0));
+            stats.insert(row.try_get("category")?, row.try_get::<Option<i64>, _>("count")?.unwrap_or(0));
         }
 
         Ok(stats)
@@ -939,7 +970,7 @@ impl StoryRepository {
 
     /// Get stories with integrity issues
     pub async fn get_stories_with_integrity_issues(&self) -> Result<Vec<Uuid>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             "SELECT id, content, content_hash FROM stories"
         )
         .fetch_all(&self.pool)
@@ -947,9 +978,12 @@ impl StoryRepository {
 
         let mut problematic_stories = Vec::new();
         for row in rows {
-            let calculated_hash = Story::generate_hash(&row.content);
-            if calculated_hash != row.content_hash {
-                problematic_stories.push(row.id);
+            let id: Uuid = row.try_get("id")?;
+            let content: String = row.try_get("content")?;
+            let content_hash: String = row.try_get("content_hash")?;
+            let calculated_hash = Story::generate_hash(&content);
+            if calculated_hash != content_hash {
+                problematic_stories.push(id);
             }
         }
 
@@ -958,29 +992,31 @@ impl StoryRepository {
 
     /// Get a lesson by ID
     pub async fn get_lesson_by_id(&self, lesson_id: Uuid) -> Result<Option<Lesson>> {
-        let row = sqlx::query!(
-            "SELECT * FROM lessons WHERE id = $1",
-            lesson_id
+        let row = sqlx::query(
+            "SELECT id, title, arabic_title, description, lesson_type, moral_category, 
+             practical_application, target_audience, related_verses, related_hadiths, 
+             created_at, updated_at FROM lessons WHERE id = $1"
         )
+        .bind(lesson_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(row) = row {
             Ok(Some(Lesson {
-                id: row.id,
-                title: row.title,
-                arabic_title: row.arabic_title,
-                description: row.description,
-                lesson_type: row.lesson_type.parse().unwrap_or(LessonType::Moral),
-                moral_category: row.moral_category.parse().unwrap_or(MoralCategory::Faith),
-                practical_application: row.practical_application,
-                target_audience: row.target_audience.unwrap_or_default().iter()
+                id: row.try_get("id")?,
+                title: row.try_get("title")?,
+                arabic_title: row.try_get("arabic_title")?,
+                description: row.try_get("description")?,
+                lesson_type: row.try_get::<String, _>("lesson_type")?.parse().unwrap_or(LessonType::Moral),
+                moral_category: row.try_get::<String, _>("moral_category")?.parse().unwrap_or(MoralCategory::Faith),
+                practical_application: row.try_get("practical_application")?,
+                target_audience: row.try_get::<Option<Vec<String>>, _>("target_audience")?.unwrap_or_default().iter()
                     .filter_map(|s| s.parse().ok())
                     .collect(),
-                related_verses: row.related_verses.unwrap_or_default(),
-                related_hadiths: row.related_hadiths.unwrap_or_default(),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                related_verses: row.try_get::<Option<Vec<String>>, _>("related_verses")?.unwrap_or_default(),
+                related_hadiths: row.try_get::<Option<Vec<String>>, _>("related_hadiths")?.unwrap_or_default(),
+                created_at: row.try_get("created_at")?,
+                updated_at: row.try_get("updated_at")?,
             }))
         } else {
             Ok(None)

@@ -249,7 +249,7 @@ impl IntegrationService {
                 cache_hit = true;
                 
                 return Ok(RAGProcessingResponse {
-                    answer: cached_response.response,
+                    answer: cached_response.response.clone(),
                     confidence: cached_response.confidence,
                     sources: Vec::new(), // Sources not cached for simplicity
                     processing_time_ms: start_time.elapsed().as_millis() as u64,
@@ -325,7 +325,7 @@ impl IntegrationService {
         if self.cache.config.enable_embedding_cache {
             if let Some(cached_embedding) = self.cache.get_cached_embedding(question) {
                 debug!("Using cached embedding for question");
-                return Ok(cached_embedding.embedding);
+                return Ok(cached_embedding.embedding.clone());
             }
         }
         

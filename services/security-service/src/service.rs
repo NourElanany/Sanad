@@ -102,11 +102,11 @@ impl SecurityService {
         let mut result = self.authenticator.verify_content(&request.content, &request.signature)?;
 
         // Update verification count in database
-        if let Ok(Some(mut record)) = self.repository.get_content_integrity_records(
+        if let Ok(mut records) = self.repository.get_content_integrity_records(
             Some(request.signature.content_type.clone()),
             None,
         ).await {
-            if let Some(record) = record.iter_mut().find(|r| r.content_id == request.signature.content_id) {
+            if let Some(record) = records.iter_mut().find(|r| r.content_id == request.signature.content_id) {
                 record.verification_count += 1;
                 record.last_verified = Some(Utc::now());
                 self.repository.store_content_integrity_record(record).await?;

@@ -1,10 +1,8 @@
 pub mod rag_system;
 pub mod question_processor;
-pub mod semantic_search;
 pub mod hadith_verifier;
 pub mod source_scorer;
 pub mod anti_hallucination;
-pub mod context_builder;
 pub mod hugging_face_client;
 pub mod vector_database;
 pub mod integration_service;

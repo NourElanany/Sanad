@@ -30,7 +30,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
 
     // Initialize database connection
     let database_url = std::env::var("DATABASE_URL")

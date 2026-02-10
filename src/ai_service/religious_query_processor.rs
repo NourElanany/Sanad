@@ -138,8 +138,14 @@ impl ReligiousQueryProcessor {
         }
 
         // 3. Use integration service if available, otherwise fall back to RAG system
-        let response = if let Some(ref mut integration_service) = self.integration_service {
-            self.process_with_integration_service(integration_service, &request, &processed_question).await?
+        let has_integration = self.integration_service.is_some();
+        let response = if has_integration {
+            // Extract integration service temporarily
+            let mut integration_service = self.integration_service.take().unwrap();
+            let result = self.process_with_integration_service(&mut integration_service, &request, &processed_question).await;
+            // Put it back
+            self.integration_service = Some(integration_service);
+            result?
         } else {
             self.process_with_rag_system(&request, &processed_question).await?
         };
@@ -169,7 +175,7 @@ impl ReligiousQueryProcessor {
 
     /// Process query using integration service
     async fn process_with_integration_service(
-        &self,
+        &mut self,
         integration_service: &mut IntegrationService,
         request: &ReligiousQueryRequest,
         processed_question: &ProcessedQuestion,

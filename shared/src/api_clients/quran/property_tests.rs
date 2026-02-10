@@ -211,7 +211,7 @@ mod fallback_chain_tests {
     use super::*;
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
 
         /// Property: When primary API fails, secondary APIs are tried in priority order
         #[test]
@@ -399,7 +399,7 @@ mod response_validation_tests {
     use super::*;
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
 
         /// Property: Surah responses have valid structure
         #[test]

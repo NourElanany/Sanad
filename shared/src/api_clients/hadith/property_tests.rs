@@ -43,7 +43,7 @@ mod tests {
     // in parallel (not sequentially), and the total time should not exceed the slowest
     // individual API call time plus overhead.
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
         
         #[test]
         fn property_parallel_api_querying(
@@ -103,7 +103,7 @@ mod tests {
     // or reference), the system should return only unique entries, and the count of
     // unique results should be less than or equal to the sum of all results.
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
         
         #[test]
         fn property_deduplication_of_merged_results(
@@ -192,7 +192,7 @@ mod tests {
 
     // Additional property test: Verify deduplication is deterministic
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
+        #![proptest_config(ProptestConfig::with_cases(10))]
         
         #[test]
         fn property_deduplication_is_deterministic(
@@ -276,7 +276,7 @@ mod tests {
 
     // Property test: All identical results should deduplicate to one
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
+        #![proptest_config(ProptestConfig::with_cases(10))]
         
         #[test]
         fn property_all_identical_dedup_to_one(

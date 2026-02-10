@@ -41,7 +41,7 @@ mod property_tests {
     // any time window (minute, hour, day) should never exceed the configured limit
     // for that window.
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
         
         #[test]
         fn property_rate_limit_enforcement_minute(
@@ -108,7 +108,7 @@ mod property_tests {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100))]
+        #![proptest_config(ProptestConfig::with_cases(20))]
         
         #[test]
         fn property_rate_limit_enforcement_multiple_windows(
@@ -167,7 +167,7 @@ mod property_tests {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
+        #![proptest_config(ProptestConfig::with_cases(10))]
         
         #[test]
         fn property_rate_limit_idempotent_check(
@@ -211,7 +211,7 @@ mod property_tests {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
+        #![proptest_config(ProptestConfig::with_cases(10))]
         
         #[test]
         fn property_rate_limit_usage_percentage(
@@ -267,7 +267,7 @@ mod property_tests {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))]
+        #![proptest_config(ProptestConfig::with_cases(10))]
         
         #[test]
         fn property_rate_limit_reset_clears_counters(

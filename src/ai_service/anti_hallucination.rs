@@ -1,4 +1,6 @@
 use super::*;
+use super::question_processor::ProcessedQuestion;
+use super::hadith_verifier::HadithGrade as HadithVerifierGrade;
 use regex::Regex;
 use std::collections::HashSet;
 
@@ -88,6 +90,21 @@ pub enum ResponseRecommendation {
     RequireSourceCheck,   // تتطلب فحص المصادر
     Reject,              // رفض الإجابة
     RequestHumanReview,  // طلب مراجعة بشرية
+}
+
+// Helper structs for internal processing
+#[derive(Debug, Clone)]
+struct FiqhRuling {
+    ruling: String,
+    subject: String,
+    position: usize,
+}
+
+#[derive(Debug, Clone)]
+struct HadithGrade {
+    hadith_text: String,
+    grade: String,
+    position: usize,
 }
 
 impl AntiHallucinationSystem {
@@ -648,31 +665,6 @@ impl AntiHallucinationSystem {
         
         // تطبيع النتيجة
         risk_score.min(1.0)
-    }
-    
-    fn determine_claim_severity(&self, claim: &str) -> ClaimSeverity {
-        let claim_lower = claim.to_lowercase();
-        
-        // ادعاءات خطيرة
-        if claim_lower.contains("قال الله") || claim_lower.contains("في القرآن") {
-            return ClaimSeverity::Critical;
-        }
-        
-        if claim_lower.contains("قال الرسول") || claim_lower.contains("في الحديث") {
-            return ClaimSeverity::Critical;
-        }
-        
-        // ادعاءات كبيرة
-        if claim_lower.contains("حكم") || claim_lower.contains("فتوى") || claim_lower.contains("إجماع") {
-            return ClaimSeverity::Major;
-        }
-        
-        // ادعاءات طفيفة
-        if claim_lower.contains("تاريخ") || claim_lower.contains("قصة") {
-            return ClaimSeverity::Minor;
-        }
-        
-        ClaimSeverity::Minor
     }
     
     async fn suggest_sources_for_claim(&self, claim: &str) -> Result<Vec<String>> {
@@ -1316,7 +1308,7 @@ impl ConsistencyChecker {
             }
         }
         
-        contradictions
+        Ok(contradictions)
     }
     
     pub async fn check_consistency_advanced(
@@ -1547,21 +1539,7 @@ impl ConsistencyChecker {
         Ok(None)
     }
     
-    // Helper methods
-    
-    #[derive(Debug, Clone)]
-    struct FiqhRuling {
-        ruling: String,
-        subject: String,
-        position: usize,
-    }
-    
-    #[derive(Debug, Clone)]
-    struct HadithGrade {
-        hadith_text: String,
-        grade: String,
-        position: usize,
-    }
+    // Helper methods for extracting rulings and grades
     
     fn extract_fiqh_rulings(&self, text: &str) -> Vec<FiqhRuling> {
         let mut rulings = Vec::new();
@@ -1952,7 +1930,7 @@ impl ConfidenceAssessor {
         // تقييم تغطية المفاهيم المطلوبة
         let response_lower = response_text.to_lowercase();
         let covered_concepts = query.concepts.iter()
-            .filter(|concept: &String| response_lower.contains(&concept.to_lowercase()))
+            .filter(|concept| response_lower.contains(&concept.to_lowercase()))
             .count();
         
         if !query.concepts.is_empty() {
